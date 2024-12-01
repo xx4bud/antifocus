@@ -2,6 +2,7 @@ import React from 'react';
 import { auth } from '@/auth';
 import { SessionProvider } from 'next-auth/react';
 import NavBar from './_components/navbar';
+import BottomTab from './_components/bottomtab';
 
 export default async function PublicLayout({
   children,
@@ -17,6 +18,7 @@ export default async function PublicLayout({
         <div className="mx-auto flex h-full w-full max-w-6xl px-2">
           {children}
         </div>
+        <BottomTab />
       </div>
     </SessionProvider>
   );

@@ -6,11 +6,15 @@ import { revalidatePath } from "next/cache"
 import { signIn, signOut } from "@/auth";
 import prisma from "@/lib/prisma"
 
-export async function getUserFromDb(email: string, password: string) {
+export async function getUserFromDb(identifier: string, password: string) {
   try {
-    const existedUser = await prisma.user.findUnique({
+
+    const existedUser = await prisma.user.findFirst({
       where: {
-        email,
+        OR: [
+          { username: identifier },
+          { email: identifier },
+        ],
       },
     });
 
@@ -18,20 +22,6 @@ export async function getUserFromDb(email: string, password: string) {
       return {
         success: false,
         message: "User not found.",
-      }
-    }
-
-    if (!existedUser.email) {
-      return {
-        success: false,
-        message: "Email is required.",
-      }
-    }
-
-    if (!existedUser.username) {
-      return {
-        success: false,
-        message: "Username is required.",
       }
     }
 
@@ -67,26 +57,26 @@ export async function getUserFromDb(email: string, password: string) {
 }
 
 export async function signInCredentials({
-  email,
+  identifier,
   password,
 }: {
-  email: string
+  identifier: string
   password: string
 }) {
   try {
     SignInSchema.parse({
-      email,
+      identifier,
       password,
     })
 
     const formData = new FormData()
 
-    formData.append("email", email)
+    formData.append("identifier", identifier)
     formData.append("password", password)
 
     const res = await signIn("credentials", {
       redirect: false,
-      email,
+      identifier,
       password,
     })
 

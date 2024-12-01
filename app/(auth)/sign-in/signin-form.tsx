@@ -31,7 +31,7 @@ export default function SignInForm() {
   const form = useForm<SignInValues>({
     resolver: zodResolver(SignInSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
@@ -62,15 +62,14 @@ export default function SignInForm() {
           className="flex flex-col gap-2">
           <FormField
             control={form.control}
-            name="email"
+            name="identifier"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Email or Username</FormLabel>
                 <FormControl>
                   <Input
                     disabled={isPending}
-                    type="email"
-                    placeholder="Enter your email"
+                    placeholder="Enter your email or username"
                     {...field}
                   />
                 </FormControl>

@@ -22,7 +22,7 @@ export default function SearchField({ className }: SearchFieldProps) {
 
   return (
     <form onSubmit={handleSubmit} method="GET" action="/search">
-      <div className={cn('relative mx-auto w-full max-w-md', className)}>
+      <div className={cn('relative mx-auto w-full max-w-lg', className)}>
         <Input
           name="q"
           placeholder="Search . . ."
