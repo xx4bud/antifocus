@@ -15,7 +15,7 @@ export default async function RegisterLayout({
 
   if (!session) redirect('/sign-in');
 
-  const seller = await prisma.seller.findFirst({
+  const seller = await prisma.seller.findUnique({
     where: {
       userId: session?.user?.id,
     },

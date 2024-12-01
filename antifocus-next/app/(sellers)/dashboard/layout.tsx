@@ -16,12 +16,13 @@ export default async function DashboardLayout({
     sellerId: string;
   };
 }) {
+  const { sellerId } = await params;
+
   const session = await auth();
-  const userId = session?.user.id;
 
-  if (!session) redirect('/sign-in');
+  const userId = session?.user?.id;
 
-  const sellerId = params.sellerId;
+  if (!session || !userId) redirect('/sign-in');
 
   const seller = await prisma.seller.findUnique({
     where: {
@@ -32,7 +33,7 @@ export default async function DashboardLayout({
 
   if (!seller) return notFound();
 
-  if (seller.userId !== userId) return notFound();
+  if (seller.userId !== session.user.id) return notFound();
 
   return (
     <SessionProvider session={session}>
