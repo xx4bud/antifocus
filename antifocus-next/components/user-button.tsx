@@ -62,27 +62,27 @@ export default async function UserButton({ user }: UserButtonProps) {
               <span>My Cart</span>
             </Link>
           </DropdownMenuItem>
-          {/* {user?.role === 'ADMIN' && (
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard">
-                <Lock className="mr-2 h-4 w-4" />
-                Admin
-              </Link>
-            </DropdownMenuItem>
-          )}
           {user?.role === 'USER' && (
             <DropdownMenuItem asChild>
               <Link href="/register">
                 <SparklesIcon className="mr-2 h-4 w-4" />
-                Create Store
+                Start Selling
               </Link>
             </DropdownMenuItem>
           )}
           {(seller || user?.role === 'ADMIN') && (
             <DropdownMenuItem asChild>
-              <Link href={`/${seller?.id}`}>
+              <Link href={`/dashboard/${seller?.id}`}>
                 <SparklesIcon className="mr-2 h-4 w-4" />
                 My Store
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {/* {user?.role === 'ADMIN' && (
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard">
+                <Lock className="mr-2 h-4 w-4" />
+                Admin
               </Link>
             </DropdownMenuItem>
           )} */}

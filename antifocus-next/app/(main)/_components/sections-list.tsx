@@ -1,8 +1,6 @@
 import { Card } from '@/components/ui/card';
 import React from 'react';
-import ProductsItem from './products-item';
-import { ChevronRight } from 'lucide-react';
-import Image from 'next/image';
+import { SectionsOne, SectionsTwo } from './sections-item';
 
 const products = [
   {
@@ -63,84 +61,14 @@ const products = [
   },
 ];
 
-const SectionsOne = () => {
-  return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-medium">Flash Sale</h1>
-        <div className="-mr-1 ms-auto flex items-center gap-1">
-          <span className="-mr-1 text-sm text-muted-foreground">View All</span>
-          <ChevronRight className="size-5 text-muted-foreground" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 pt-1" key={products[0].id}>
-        <Card className="overflow-hidden shadow-none">
-          <Image
-            src={products[0].image}
-            alt={products[0].name}
-            className="aspect-[4/5] h-auto w-full object-cover"
-            width={200}
-            height={250}
-          />
-        </Card>
-        <Card className="overflow-hidden shadow-none">
-          <Image
-            src={products[1].image}
-            alt={products[1].name}
-            className="aspect-[4/5] h-auto w-full object-cover"
-            width={200}
-            height={250}
-          />
-        </Card>
-      </div>
-    </div>
-  );
-};
-
-const SectionsTwo = () => {
-  return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-medium">Best Seller</h1>
-        <div className="-mr-1 ms-auto flex items-center gap-1">
-          <span className="-mr-1 text-sm text-muted-foreground">View All</span>
-          <ChevronRight className="size-5 text-muted-foreground" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 pt-1" key={products[0].id}>
-        <Card className="overflow-hidden shadow-none">
-          <Image
-            src={products[2].image}
-            alt={products[2].name}
-            className="aspect-[4/5] h-auto w-full object-cover"
-            width={200}
-            height={250}
-          />  
-        </Card>
-        <Card className="overflow-hidden shadow-none">
-          <Image
-            src={products[3].image}
-            alt={products[3].name}
-            className="aspect-[4/5] h-auto w-full object-cover"
-            width={200}
-            height={250}
-          />
-        </Card>
-      </div>
-    </div>
-  );
-};
-
 export default function SectionsList() {
   return (
-    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       <Card className="w-full overflow-hidden p-2 shadow-none">
-        <SectionsOne />
+        <SectionsOne products={products} />
       </Card>
       <Card className="w-full overflow-hidden p-2 shadow-none">
-        <SectionsTwo />
+        <SectionsTwo products={products} />
       </Card>
     </div>
   );

@@ -3,6 +3,7 @@ import { Open_Sans } from 'next/font/google';
 import './globals.css';
 import { auth } from '@/auth';
 import { SessionProvider } from 'next-auth/react';
+import { Toaster } from '@/components/ui/toaster';
 
 const openSans = Open_Sans({
   subsets: ['latin'],
@@ -27,7 +28,10 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={openSans.className}>
-        <SessionProvider session={session}>{children}</SessionProvider>
+        <SessionProvider session={session}>
+          {children}
+          <Toaster />
+        </SessionProvider>
       </body>
     </html>
   );

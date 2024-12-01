@@ -39,13 +39,13 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({
-  params: { username },
+  params,
 }: UserPageProps): Promise<Metadata> {
   const session = await auth();
 
   if (!session) return {};
 
-  const user = await getUser(username, session.user.id);
+  const user = await getUser(params.username, session.user.id);
 
   if (!user) return notFound();
 
@@ -55,13 +55,13 @@ export async function generateMetadata({
 }
 
 export default async function UserPage({
-  params: { username },
+  params  ,
 }: UserPageProps) {
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
   const session = await auth();
 
-  const user = await getUser(username, session?.user?.id);
+  const user = await getUser(params.username, session?.user?.id);
 
   if (!user) return notFound();
 
