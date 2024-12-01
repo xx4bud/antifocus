@@ -4,7 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 import NavBar from './_components/navbar';
 import BottomTab from './_components/bottomtab';
 
-export default async function PublicLayout({
+export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
