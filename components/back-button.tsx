@@ -17,10 +17,10 @@ export const BackButton = ({ className }: { className?: string }) => {
       <Image
         src={iconSource}
         alt="antifocus icon"
-        width={20}
-        height={20}
+        width={32}
+        height={32}
         className={cn(
-          'size-8 hover:cursor-pointer hover:opacity-90',
+          'size-8 px-1 w-full hover:cursor-pointer hover:opacity-90',
           className
         )}
       />

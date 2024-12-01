@@ -6,7 +6,7 @@ import { BackButton } from '@/components/back-button';
 export default function NavBar() {
   return (
     <nav className="sticky top-0 z-10 w-full border-b bg-primary">
-      <div className="mx-auto flex h-[50px] max-w-6xl items-center justify-between gap-2 px-2 md:h-[60px] md:gap-10">
+      <div className="mx-auto flex h-[55px] max-w-6xl items-center justify-between gap-2 px-2 md:h-[60px] md:gap-10">
         <BackButton className="text-secondary" />
         <div className="hidden items-center gap-2 sm:flex">
           <Link href="/">
