@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
+import { getUserDataSelect } from '@/types';
 
 interface UserPageProps {
   params: {
@@ -10,7 +11,7 @@ interface UserPageProps {
   };
 }
 
-const getUser = cache(async (username: string, userId?: string) => {
+const getUser = cache(async (username: string, session?: string) => {
   const user = await prisma.user.findFirst({
     where: {
       username: {
@@ -23,6 +24,8 @@ const getUser = cache(async (username: string, userId?: string) => {
       name: true,
       username: true,
       image: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
@@ -39,16 +42,15 @@ export async function generateMetadata({
   params: { username },
 }: UserPageProps): Promise<Metadata> {
   const session = await auth();
-  const user = session?.user;
 
-  if (!user) return {};
+  if (!session) return {};
 
-  const userData = await getUser(username, user.id);
+  const user = await getUser(username, session.user.id);
 
-  if (!userData) return notFound();
+  if (!user) return notFound();
 
   return {
-    title: userData.name || `@${userData.username}`,
+    title: user.name || `@${user.username}`,
   };
 }
 
@@ -58,17 +60,16 @@ export default async function UserPage({
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
   const session = await auth();
-  const user = session?.user;
 
-  const userData = await getUser(username, user?.id);
+  const user = await getUser(username, session?.user?.id);
 
-  if (!userData) return notFound();
+  if (!user) return notFound();
 
-  if (!user) return redirect('/sign-in');
+  if (!session) return redirect('/sign-in');
 
   // if (!user || !session || session.user.username !== username) {
   //   return <div>Anda harus login untuk melihat halaman ini.</div>;
   // }
 
-  return <div>{userData.name}</div>;
+  return <div>{user.name}</div>;
 }

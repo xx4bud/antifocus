@@ -19,7 +19,7 @@ export default async function AuthLayout({
     <SessionProvider session={session}>
       <div className="flex min-h-screen w-full flex-col sm:gap-2">
         <NavBar />
-        <div className="mx-auto flex h-full w-full max-w-6xl">{children}</div>
+        <div className="mx-auto flex h-full w-full max-w-5xl">{children}</div>
       </div>
     </SessionProvider>
   );

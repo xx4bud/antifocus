@@ -1,25 +1,22 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from '@prisma/client';
 
-export function getUserDataSelect(loggedInUserId: string) {
+export function getUserDataSelect(session: string) {
   return {
     id: true,
+    name: true,
     username: true,
-    displayName: true,
-    avatarUrl: true,
-    bio: true,
+    image: true,
     createdAt: true,
-    followers: {
+    updatedAt: true,
+    seller: {
       where: {
-        followerId: loggedInUserId,
+        userId: session,
       },
       select: {
-        followerId: true,
-      },
-    },
-    _count: {
-      select: {
-        posts: true,
-        followers: true,
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
       },
     },
   } satisfies Prisma.UserSelect;
@@ -28,3 +25,4 @@ export function getUserDataSelect(loggedInUserId: string) {
 export type UserData = Prisma.UserGetPayload<{
   select: ReturnType<typeof getUserDataSelect>;
 }>;
+

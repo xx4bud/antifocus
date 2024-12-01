@@ -13,9 +13,9 @@ export default async function MainLayout({
 
   return (
     <SessionProvider session={session}>
-      <div className="flex min-h-screen w-full flex-col gap-2">
+      <div className="flex min-h-screen w-full flex-col gap-2 sm:gap-4">
         <NavBar />
-        <div className="mx-auto flex h-full w-full max-w-6xl px-2">
+        <div className="mx-auto flex h-full w-full max-w-5xl px-2">
           {children}
         </div>
         <BottomTab />

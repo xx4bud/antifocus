@@ -13,7 +13,7 @@ export default async function NavBar() {
 
   return (
     <nav className="sticky top-0 z-10 w-full border-b bg-primary">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-2 py-2 md:gap-10">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-2 py-2 md:gap-10">
         <div className="hidden items-center gap-2 sm:flex">
           <Link href="/">
             <Image

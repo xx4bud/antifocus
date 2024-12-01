@@ -44,7 +44,7 @@ export default async function BottomTab() {
 
   return (
     <div className="fixed bottom-0 w-full border-t bg-card sm:hidden">
-      <div className="flex items-center justify-around pt-2">
+      <div className="flex items-center justify-around pt-3">
         {MenuItems.map((item) => (
           <Link
             href={item.href}
@@ -54,12 +54,12 @@ export default async function BottomTab() {
               <Image
                 src={user.image ?? '/avatar-placeholder.png'}
                 alt={user.name ?? `@${user.username}`}
-                width={24}
-                height={24}
-                className="size-6 rounded-full"
+                width={28}
+                height={28}
+                className="size-7 rounded-full"
               />
             ) : (
-              <item.icon className="size-6" />
+              <item.icon className="size-7" />
             )}
             <span className="text-2xs">{item.label}</span>
           </Link>
