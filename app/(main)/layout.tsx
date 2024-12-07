@@ -13,7 +13,7 @@ export default async function MainLayout({
   const session = await getSession();
   return (
     <SessionProvider session={session}>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={false}>
         <AppSidebar />
         <div className="flex min-h-screen w-full flex-col gap-2">
           <AppNavBar />
