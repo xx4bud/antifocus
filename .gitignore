@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# auth
+auth.ts
+authjs.d.ts
+middleware.ts
+
+# turbo
+.turbo
