@@ -1,14 +1,15 @@
 "use client"
 
 import { Heading } from "@/components/ui/heading"
-import { Campaign } from "@prisma/client"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
+import { CampaignColumn, columns } from "./_components/columns"
+import { DataTable } from "./_components/data-table"
 
 interface CaampaignsClientProps {
-  campaigns: Campaign[]
+  campaigns: CampaignColumn[]
 }
 
 export default function CampaignsClient({
@@ -31,16 +32,7 @@ export default function CampaignsClient({
       />
       <Separator className="my-3" />
 
-      <div className="flex flex-col gap-4">
-        {campaigns.map((campaign) => (
-          <Link
-            key={campaign.id}
-            href={`/admin/campaigns/${campaign.slug}`}
-          >
-            <span>{campaign.name}</span>
-          </Link>
-        ))}
-      </div>
+      <DataTable columns={columns} data={campaigns} />
     </div>
   )
 }

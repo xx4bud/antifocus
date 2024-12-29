@@ -252,8 +252,9 @@ export default function CampaignsForm({
                       }}
                       onRemove={handleRemovePhoto}
                       onUpload={handleUploadPhoto}
-                      max={5}
+                      max={1}
                       disabled={isPending}
+                      className="w-full"
                     />
                   </FormControl>
                   <FormMessage />

@@ -111,15 +111,10 @@ export async function handleRemovePhoto(
   }
 }
 
-export async function cleanUpPhotos(
-  publicId: string,
-  form: UseFormReturn<any>,
-  setError: (message: string) => void,
-  photos: Photo[]
-): Promise<void> {
+export async function cleanUpPhotos(): Promise<void> {
   const tempPhotos = JSON.parse(
     localStorage.getItem("tempPhotos") || "[]"
-  ) as Photo[]
+  ) as Photo[];
 
   if (tempPhotos.length > 0) {
     for (const photo of tempPhotos) {
@@ -129,15 +124,17 @@ export async function cleanUpPhotos(
           {
             method: "DELETE",
           }
-        )
+        );
 
         if (!response.ok) {
-          setError("Failed to delete image")
+          console.error("Failed to delete temporary photo:", photo.publicId);
         }
       } catch (error) {
-        console.error(`Error deleting photo:`, error)
+        console.error("Error deleting temporary photo:", error);
       }
     }
-    localStorage.removeItem("tempPhotos")
+    localStorage.removeItem("tempPhotos");
   }
 }
+
+
