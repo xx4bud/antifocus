@@ -3,6 +3,5 @@
   "tailwindConfig": "./tailwind.config.ts",
   "printWidth": 60,
   "useTabs": false,
-  "semi": false,
   "trailingComma": "es5"
 }

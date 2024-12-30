@@ -3,7 +3,6 @@ import CampaignsClient from "./client"
 import { prisma } from "@/lib/prisma"
 import { CampaignColumn } from "./_components/columns"
 import { format } from "date-fns"
-import { formatRelativeDate } from "@/lib/utils"
 
 export default async function CampaignsPage() {
   const campaigns = await prisma.campaign.findMany({
@@ -19,8 +18,8 @@ export default async function CampaignsPage() {
   campaigns.map((campaign) => ({
     ...campaign,
     photo: campaign.photos[0].url,
-    createdAt: formatRelativeDate(campaign.createdAt),
-    updatedAt: formatRelativeDate(campaign.updatedAt),
+    createdAt: format(campaign.createdAt, "MMM dd, yyyy"),
+    updatedAt: format(campaign.updatedAt, "MMM dd, yyyy"),
   }));
 
   return (

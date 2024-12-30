@@ -1,9 +1,5 @@
 "use client"
 
-import { Campaign, Photo } from "@prisma/client"
-import { useEffect, useState, useTransition } from "react"
-import { Heading } from "@/components/ui/heading"
-import { Separator } from "@/components/ui/separator"
 import {
   Form,
   FormField,
@@ -12,44 +8,60 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form"
-import { Button } from "@/components/ui/button"
-import { LoadingButton } from "@/components/ui/loading-button"
+import { Heading } from "@/components/ui/heading"
+import { Separator } from "@/components/ui/separator"
+import { Campaign, Photo } from "@prisma/client"
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
   CampaignsSchema,
   CampaignsValues,
 } from "@/lib/schemas"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { Button } from "@/components/ui/button"
+import { LoadingButton } from "@/components/ui/loading-button"
 import { useForm } from "react-hook-form"
-import { UploadPhoto } from "@/components/ui/upload-photo"
-import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { CloudinaryUploadWidgetResults } from "next-cloudinary"
-import axios from "axios"
+import { Textarea } from "@/components/ui/textarea"
+import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { cleanUpPhotos } from "@/app/admin/campaigns/[slug]/actions"
+import {
+  deleteCampaign,
+  submitCampaign,
+  updateCampaign,
+} from "./actions"
+import { Trash } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { UploadPhoto } from "@/components/ui/upload-photo"
+import axios from "axios"
+import { CloudinaryUploadWidgetResults } from "next-cloudinary"
 
 interface CampaignsFormProps {
-  initialData: (Campaign & { photos: Photo[] }) | null
+  campaign: (Campaign & { photos: Photo[] }) | null
 }
 
 export default function CampaignsForm({
-  initialData,
+  campaign,
 }: CampaignsFormProps) {
   const [error, setError] = useState<string>()
+  const [openAlert, setOpenAlert] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const { toast } = useToast()
 
   const form = useForm<CampaignsValues>({
     resolver: zodResolver(CampaignsSchema),
-    defaultValues: initialData
+    defaultValues: campaign
       ? {
-          ...initialData,
-          photos: initialData.photos.map((photo) => ({
-            url: photo.url,
-            publicId: photo.publicId,
-          })),
+          ...campaign,
         }
       : {
           name: "",
@@ -59,7 +71,7 @@ export default function CampaignsForm({
   })
 
   useEffect(() => {
-    const cleanupPhotos = async () => {
+    const cleanUpPhotos = async () => {
       const tempPhotos = JSON.parse(
         localStorage.getItem("tempPhotos") || "[]"
       )
@@ -87,32 +99,66 @@ export default function CampaignsForm({
   }, [])
 
   const handleSubmit = async (data: CampaignsValues) => {
-    try {
-      setError(undefined)
-      startTransition(async () => {
-        if (initialData) {
-          await axios.patch(
-            `/api/admin/campaigns/${initialData.slug}`,
-            data
-          )
-        } else {
-          await axios.post("/admin/campaigns", data)
-        }
+    setError(undefined)
+    startTransition(async () => {
+      console.log(data)
+      let res
+      if (campaign) {
+        res = await updateCampaign({
+          id: campaign!.id,
+          ...data,
+        })
+      } else {
+        res = await submitCampaign({
+          ...data,
+          photos: data.photos.map((photo) => ({
+            url: photo.url,
+            publicId: photo.publicId,
+          })),
+        })
+      }
+      if (res.success) {
         toast({
           title: "Success",
-          description: "Campaign saved successfully",
+          description: campaign
+            ? "Campaign updated successfully"
+            : "Campaign created successfully",
         })
         localStorage.removeItem("tempPhotos")
         router.push("/admin/campaigns")
         router.refresh()
-      })
-    } catch (error) {
-      console.error(`Error saving campaign:`, error)
-    }
+      } else {
+        toast({
+          title: "Error",
+          description: res.message,
+        })
+      }
+    })
   }
 
-  const handleCancel = () => {
-    router.push("/admin/campaigns")
+  const handleDelete = async () => {
+    setError(undefined)
+    setOpenAlert(false)
+    startTransition(async () => {
+      const res = await deleteCampaign(
+        campaign!.id,
+        campaign!.photos.map((photo) => ({
+          url: photo.url,
+          publicId: photo.publicId,
+        }))
+      )
+      if (res.success) {
+        toast({
+          title: "Success",
+          description: "Campaign deleted successfully",
+        })
+        localStorage.removeItem("tempPhotos")
+        router.push("/admin/campaigns")
+        router.refresh()
+      } else {
+        setError(res.message)
+      }
+    })
   }
 
   const handleUploadPhoto = async (
@@ -159,12 +205,23 @@ export default function CampaignsForm({
     <div className="flex h-fit w-full flex-col items-center overflow-auto rounded-lg border bg-card p-4">
       <Heading
         title={
-          initialData ? "Edit Campaign" : "Create Campaign"
+          campaign ? "Edit Campaign" : "Create Campaign"
         }
         description={
-          initialData
+          campaign
             ? "Edit your campaign"
             : "Create a new campaign"
+        }
+        button={
+          campaign && (
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={() => setOpenAlert(true)}
+            >
+              <Trash />
+            </Button>
+          )
         }
       />
       <Separator className="my-4" />
@@ -186,10 +243,9 @@ export default function CampaignsForm({
               name="photos"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Photo</FormLabel>
+                  <FormLabel>Photos</FormLabel>
                   <FormControl>
                     <UploadPhoto
-                      disabled={isPending}
                       value={field.value}
                       onChange={(newPhotos) => {
                         field.onChange(newPhotos)
@@ -197,6 +253,7 @@ export default function CampaignsForm({
                       onRemove={handleRemovePhoto}
                       onUpload={handleUploadPhoto}
                       max={1}
+                      disabled={isPending}
                       className="w-full"
                     />
                   </FormControl>
@@ -247,7 +304,7 @@ export default function CampaignsForm({
                 variant="outline"
                 onClick={(e) => {
                   e.preventDefault()
-                  handleCancel()
+                  router.push("/admin/campaigns")
                 }}
               >
                 Cancel
@@ -261,6 +318,34 @@ export default function CampaignsForm({
             </div>
           </form>
         </Form>
+        <AlertDialog
+          open={openAlert}
+          onOpenChange={setOpenAlert}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Are you sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => setOpenAlert(false)}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isPending}
+              >
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

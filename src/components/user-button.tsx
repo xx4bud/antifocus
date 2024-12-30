@@ -12,14 +12,17 @@ import {
 import { User } from "next-auth";
 import { Sparkles, BadgeCheck, CreditCard, Bell, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { signOutUser } from "@/app/(auth)/actions";
 import { signOut } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface UserButtonProps {
   user: User;
 }
 
 export function UserButton({ user }: UserButtonProps) {
+
+  const queryClient = useQueryClient();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -61,7 +64,10 @@ export function UserButton({ user }: UserButtonProps) {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut()}>
+        <DropdownMenuItem onClick={() => {
+          queryClient.clear();
+          signOut()
+        }}>
           <LogOut className="h-4 w-4" /> Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>

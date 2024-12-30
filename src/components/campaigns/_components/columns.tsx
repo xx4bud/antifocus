@@ -1,24 +1,21 @@
-"use client";
+"use client"
 
-import { ColumnDef } from "@tanstack/react-table";
-import Image from "next/image";
-import { ColumnHeader } from "./column-header";
-import { RowActions } from "./row-actions";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Settings } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table"
+import Image from "next/image"
+import { ColumnHeader } from "./column-header"
+import { RowActions } from "./row-actions"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Settings } from "lucide-react"
 
 export type CampaignColumn = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  photos: {
-    url: string;
-    publicId: string;
-  }[];
-  createdAt: string;
-  updatedAt: string;
-};
+  id: string
+  slug: string
+  name: string
+  description: string
+  photo: string
+  createdAt: string
+  updatedAt: string
+}
 
 export const columns: ColumnDef<CampaignColumn>[] = [
   {
@@ -91,8 +88,8 @@ export const columns: ColumnDef<CampaignColumn>[] = [
           <p className="hidden md:flex">Actions</p>
           <Settings className="ml-2 flex size-4 md:hidden" />
         </div>
-      );
+      )
     },
     cell: ({ row }) => <RowActions row={row} />,
   },
-];
+]

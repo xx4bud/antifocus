@@ -92,6 +92,36 @@ model Campaign {
   @@map("campaigns")
 }
 
+model Category {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  photos      Photo[]
+  subCategories SubCategory[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  name         String
+  description  String
+  products     Product[]
+
+  categorySlug String    @map("category_slug")
+  category     Category  @relation(fields: [categorySlug], references: [slug], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sub_categories")
+}
+
+
 model Product {
   id          String  @id @default(cuid())
   slug        String  @unique
@@ -100,8 +130,10 @@ model Product {
   price       Decimal
   photos      Photo[]
 
-  userSlug String @map("user_slug")
-  user     User   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
+  subCategorySlug String      @map("sub_category_slug")
+  subCategory     SubCategory @relation(fields: [subCategorySlug], references: [slug], onDelete: Cascade)
+  userSlug        String      @map("user_slug")
+  user            User        @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -114,26 +146,19 @@ model Photo {
   url      String
   publicId String @unique
 
-  userSlug     String?   @map("user_slug")
-  user         User?     @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
+  userSlug String? @map("user_slug")
+  user     User?   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
+
   campaignSlug String?   @map("campaign_slug")
   campaign     Campaign? @relation(fields: [campaignSlug], references: [slug], onDelete: Cascade)
   productSlug  String?   @map("product_slug")
   product      Product?  @relation(fields: [productSlug], references: [slug], onDelete: Cascade)
 
+  categorySlug String?   @map("category_slug")
+  category     Category? @relation(fields: [categorySlug], references: [slug], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("photos")
-}
-
-model Post {
-  id          String @id @default(cuid())
-  name        String
-  description String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("posts")
 }

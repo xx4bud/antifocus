@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { CampaignsSchema } from "@/lib/schemas";
-import { slugify } from "@/lib/utils";
+import { generateSlug } from "@/lib/utils";
 import { cloudinary } from "@/lib/cloudinary";
 
 export async function submitCampaign(data: {
@@ -39,7 +39,7 @@ export async function submitCampaign(data: {
       };
     }
 
-    let campaignSlug = slugify(name);
+    let campaignSlug = generateSlug(name);
 
     const existedSlug = await prisma.campaign.findUnique({
       where: { slug: campaignSlug },
@@ -137,7 +137,7 @@ export async function updateCampaign(data: {
       };
     }
 
-    let campaignSlug = slugify(name);
+    let campaignSlug = generateSlug(name);
 
     const existedSlug = await prisma.campaign.findUnique({
       where: { slug: campaignSlug },
@@ -154,7 +154,9 @@ export async function updateCampaign(data: {
       existingCampaign.photos.map(
         (photo) => photo.publicId
       );
+
     const photoIds = photos.map((photo) => photo.publicId);
+
     const photosToDelete = currentPhotoPublicIds.filter(
       (photo) => {
         return !photoIds.includes(photo);
@@ -187,7 +189,7 @@ export async function updateCampaign(data: {
           deleteMany: {
             NOT: {
               publicId: {
-                in: currentPhotoPublicIds,
+                in: photoIds,
               },
             },
           },
@@ -219,6 +221,7 @@ export async function deleteCampaign(
     url: string;
     publicId: string;
   }[],
+  tempPhotos: { publicId: string }[]
 ) {
   try {
     const existingCampaign =
@@ -242,6 +245,14 @@ export async function deleteCampaign(
       }
     }
 
+    if (tempPhotos) {
+      const tempCleanupResult =
+        await cleanupTemporaryPhotos(tempPhotos);
+      if (!tempCleanupResult.success) {
+        console.error("Error cleaning up temporary photos");
+      }
+    }
+
     const deletedCampaign = await prisma.campaign.delete({
       where: { id },
     });
@@ -255,5 +266,19 @@ export async function deleteCampaign(
       success: false,
       message: error.message,
     };
+  }
+}
+
+export async function cleanupTemporaryPhotos(
+  tempPhotos: { publicId: string }[]
+) {
+  try {
+    for (const photo of tempPhotos) {
+      await cloudinary.v2.uploader.destroy(photo.publicId);
+    }
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error cleaning up photos:", error);
+    return { success: false, message: error.message };
   }
 }

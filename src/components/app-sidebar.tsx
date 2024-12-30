@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BadgePercent, SquareTerminal } from "lucide-react"
+import { Archive, BadgePercent, Package, SquareTerminal } from "lucide-react"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -53,9 +53,25 @@ export function AppSidebar({
         ],
       },
       {
+        title: "Categories",
+        url: "#",
+        icon:  Archive,
+        isActive: true,
+        items: [
+          {
+            title: "List Categories",
+            url: "/admin/categories",
+          },
+          {
+            title: "Add Category",
+            url: "/admin/categories/add",
+          },
+        ],
+      },
+      {
         title: "Products",
         url: "#",
-        icon: SquareTerminal,
+        icon: Package,
         isActive: true,
         items: [
           {

@@ -62,6 +62,10 @@ export default function CampaignsForm({
     defaultValues: campaign
       ? {
           ...campaign,
+          photos: campaign.photos.map((photo) => ({
+            url: photo.url,
+            publicId: photo.publicId,
+          })),
         }
       : {
           name: "",

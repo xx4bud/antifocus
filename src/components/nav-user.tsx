@@ -34,9 +34,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { User } from "next-auth";
-import { signOutUser } from "@/app/(auth)/actions";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NavUserProps {
   user: User;
@@ -44,6 +44,8 @@ interface NavUserProps {
 
 export function NavUser({ user }: NavUserProps) {
   const { setOpen, setOpenMobile } = useSidebar();
+
+  const queryClient = useQueryClient();
 
   const onClick = () => {
     setOpen(false);
@@ -120,7 +122,10 @@ export function NavUser({ user }: NavUserProps) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem onClick={() => {
+              queryClient.clear()
+              signOut();
+            }}>
               <LogOut className="h-4 w-4" /> Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>

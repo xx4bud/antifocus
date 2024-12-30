@@ -1,7 +1,7 @@
-import * as z from "zod"
+import * as z from "zod";
 
-const regexSlug = /^[a-zA-Z0-9._-]*$/
-const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const regexSlug = /^[a-zA-Z0-9._-]*$/;
+const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const SignUpSchema = z
   .object({
@@ -65,9 +65,9 @@ export const SignUpSchema = z
       path: ["confirmPassword"],
       message: "Passwords do not match",
     }
-  )
+  );
 
-export type SignUpValues = z.infer<typeof SignUpSchema>
+export type SignUpValues = z.infer<typeof SignUpSchema>;
 
 export const SignInSchema = z
   .object({
@@ -109,28 +109,30 @@ export const SignInSchema = z
   })
   .refine(
     (data) => {
-      const isEmail = regexEmail.test(data.identifier)
-      const isSlug = regexSlug.test(data.identifier)
-      return isEmail || isSlug
+      const isEmail = regexEmail.test(data.identifier);
+      const isSlug = regexSlug.test(data.identifier);
+      return isEmail || isSlug;
     },
     {
       path: ["identifier"],
       message: "Email or username is invalid",
     }
-  )
+  );
 
-export type SignInValues = z.infer<typeof SignInSchema>
+export type SignInValues = z.infer<typeof SignInSchema>;
 
 export const CampaignsSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, "Name is required")
+    .min(10, "Name must be at least 10 characters")
     .max(250, "Name must be less than 250 characters"),
   description: z
     .string()
     .trim()
     .min(1, "Description is required")
+    .min(10, "Description must be at least 10 characters")
     .max(
       5000,
       "Description must be less than 5000 characters"
@@ -149,26 +151,57 @@ export const CampaignsSchema = z.object({
     })
     .array()
     .min(1, "At least one image is required")
-})
+    .max(1, "Only one image is allowed"),
+});
 
 export type CampaignsValues = z.infer<
   typeof CampaignsSchema
->
+>;
 
-export const PostSchema = z.object({
+export const CategoriesSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, "Name is required")
+    // .min(10, "Name must be at least 10 characters")
     .max(250, "Name must be less than 250 characters"),
-  description: z
-    .string()
-    .trim()
-    .min(1, "Description is required")
-    .max(
-      5000,
-      "Description must be less than 5000 characters"
-    ),
-})
+  subCategories: z
+    .object({
+      name: z
+        .string()
+        .trim()
+        .min(1, "Name is required")
+        // .min(10, "Name must be at least 10 characters")
+        .max(250, "Name must be less than 250 characters"),
+      description: z
+        .string()
+        .trim()
+        .min(1, "Description is required")
+        // .min(100, "Description must be at least 100 characters")
+        .max(
+          5000,
+          "Description must be less than 5000 characters"
+        ),
+    })
+    .array()
+    .min(1, "At least one sub category is required"),
+  photos: z
+    .object({
+      url: z
+        .string()
+        .trim()
+        .url("Invalid image URL")
+        .min(1, "Url of image is required"),
+      publicId: z
+        .string()
+        .trim()
+        .min(1, "Public ID of image is required"),
+    })
+    .array()
+    .min(1, "At least one image is required")
+    // .max(1, "Only one image is allowed"),
+});
 
-export type PostValues = z.infer<typeof PostSchema>
+export type CategoriesValues = z.infer<
+  typeof CategoriesSchema
+>;
