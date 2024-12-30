@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Form,
@@ -7,29 +7,29 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components/ui/form"
-import { Heading } from "@/components/ui/heading"
-import { Separator } from "@/components/ui/separator"
-import { Campaign, Photo } from "@prisma/client"
-import { zodResolver } from "@hookform/resolvers/zod"
+} from "@/components/ui/form";
+import { Heading } from "@/components/ui/heading";
+import { Separator } from "@/components/ui/separator";
+import { Campaign, Photo } from "@prisma/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CampaignsSchema,
   CampaignsValues,
-} from "@/lib/schemas"
-import { Button } from "@/components/ui/button"
-import { LoadingButton } from "@/components/ui/loading-button"
-import { useForm } from "react-hook-form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { useEffect, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
+} from "@/lib/schemas";
+import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { useForm } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import {
   deleteCampaign,
   submitCampaign,
   updateCampaign,
-} from "./actions"
-import { Trash } from "lucide-react"
+} from "./actions";
+import { Trash } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,23 +39,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { UploadPhoto } from "@/components/ui/upload-photo"
-import axios from "axios"
-import { CloudinaryUploadWidgetResults } from "next-cloudinary"
+} from "@/components/ui/alert-dialog";
+import { UploadPhoto } from "@/components/ui/upload-photo";
+import axios from "axios";
+import { CloudinaryUploadWidgetResults } from "next-cloudinary";
 
 interface CampaignsFormProps {
-  campaign: (Campaign & { photos: Photo[] }) | null
+  campaign: (Campaign & { photos: Photo[] }) | null;
 }
 
 export default function CampaignsForm({
   campaign,
 }: CampaignsFormProps) {
-  const [error, setError] = useState<string>()
-  const [openAlert, setOpenAlert] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const router = useRouter()
-  const { toast } = useToast()
+  const [error, setError] = useState<string>();
+  const [openAlert, setOpenAlert] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<CampaignsValues>({
     resolver: zodResolver(CampaignsSchema),
@@ -72,54 +72,47 @@ export default function CampaignsForm({
           description: "",
           photos: [],
         },
-  })
+  });
 
   useEffect(() => {
     const cleanUpPhotos = async () => {
       const tempPhotos = JSON.parse(
         localStorage.getItem("tempPhotos") || "[]"
-      )
+      );
 
       if (tempPhotos.length > 0) {
         for (const photo of tempPhotos) {
           try {
             const res = await axios.delete(
               `/api/cloudinary?publicId=${photo.publicId}`
-            )
+            );
             if (res.status !== 200) {
               console.error(
                 `Failed to delete photo ${photo.publicId}`
-              )
+              );
             }
           } catch (error) {
-            console.error(`Error deleting photo:`, error)
+            console.error(`Error deleting photo:`, error);
           }
         }
-        localStorage.removeItem("tempPhotos")
+        localStorage.removeItem("tempPhotos");
       }
-    }
+    };
 
-    cleanUpPhotos()
-  }, [])
+    cleanUpPhotos();
+  }, []);
 
   const handleSubmit = async (data: CampaignsValues) => {
-    setError(undefined)
+    setError(undefined);
     startTransition(async () => {
-      console.log(data)
-      let res
+      let res;
       if (campaign) {
         res = await updateCampaign({
-          id: campaign!.id,
+          id: campaign.id,
           ...data,
-        })
+        });
       } else {
-        res = await submitCampaign({
-          ...data,
-          photos: data.photos.map((photo) => ({
-            url: photo.url,
-            publicId: photo.publicId,
-          })),
-        })
+        res = await submitCampaign(data);
       }
       if (res.success) {
         toast({
@@ -127,86 +120,80 @@ export default function CampaignsForm({
           description: campaign
             ? "Campaign updated successfully"
             : "Campaign created successfully",
-        })
-        localStorage.removeItem("tempPhotos")
-        router.push("/admin/campaigns")
-        router.refresh()
+        });
+        localStorage.removeItem("tempPhotos");
+        router.push("/admin/campaigns");
+        router.refresh();
       } else {
         toast({
           title: "Error",
           description: res.message,
-        })
+        });
       }
-    })
-  }
+    });
+  };
 
   const handleDelete = async () => {
-    setError(undefined)
-    setOpenAlert(false)
+    setError(undefined);
+    setOpenAlert(false);
     startTransition(async () => {
-      const res = await deleteCampaign(
-        campaign!.id,
-        campaign!.photos.map((photo) => ({
-          url: photo.url,
-          publicId: photo.publicId,
-        }))
-      )
+      const res = await deleteCampaign(campaign!.id);
       if (res.success) {
         toast({
           title: "Success",
           description: "Campaign deleted successfully",
-        })
-        localStorage.removeItem("tempPhotos")
-        router.push("/admin/campaigns")
-        router.refresh()
+        });
+        localStorage.removeItem("tempPhotos");
+        router.push("/admin/campaigns");
+        router.refresh();
       } else {
-        setError(res.message)
+        setError(res.message);
       }
-    })
-  }
+    });
+  };
 
   const handleUploadPhoto = async (
     result: CloudinaryUploadWidgetResults
   ) => {
     if (result.info && typeof result.info === "object") {
       const { secure_url: url, public_id: publicId } =
-        result.info
+        result.info;
 
       const tempPhotos = JSON.parse(
         localStorage.getItem("tempPhotos") || "[]"
-      )
+      );
 
       localStorage.setItem(
         "tempPhotos",
         JSON.stringify([...tempPhotos, { url, publicId }])
-      )
+      );
       form.setValue("photos", [
         ...form.getValues("photos"),
         { url, publicId },
-      ])
+      ]);
     }
-  }
+  };
 
   const handleRemovePhoto = async (publicId: string) => {
     const updatedPhotos = form
       .getValues("photos")
-      .filter((photo) => photo.publicId !== publicId)
-    form.setValue("photos", updatedPhotos)
+      .filter((photo) => photo.publicId !== publicId);
+    form.setValue("photos", updatedPhotos);
 
     try {
       const res = await axios.delete(
         `/api/cloudinary?publicId=${publicId}`
-      )
+      );
       if (res.status !== 200) {
-        setError("Failed to delete image")
+        setError("Failed to delete image");
       }
     } catch (error) {
-      console.error(`Error deleting photo:`, error)
+      console.error(`Error deleting photo:`, error);
     }
-  }
+  };
 
   return (
-    <div className="flex h-fit w-full flex-col items-center overflow-auto rounded-lg border bg-card p-4">
+    <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
       <Heading
         title={
           campaign ? "Edit Campaign" : "Create Campaign"
@@ -232,7 +219,7 @@ export default function CampaignsForm({
 
       <div className="flex w-full flex-col gap-2">
         {error && (
-          <div className="flex h-9 items-center justify-center rounded-md bg-destructive/10 text-destructive">
+          <div className="flex h-9 items-center justify-center rounded-md bg-destructive/10 text-destructive overflow-auto">
             <span>{error}</span>
           </div>
         )}
@@ -252,7 +239,7 @@ export default function CampaignsForm({
                     <UploadPhoto
                       value={field.value}
                       onChange={(newPhotos) => {
-                        field.onChange(newPhotos)
+                        field.onChange(newPhotos);
                       }}
                       onRemove={handleRemovePhoto}
                       onUpload={handleUploadPhoto}
@@ -307,8 +294,8 @@ export default function CampaignsForm({
               <Button
                 variant="outline"
                 onClick={(e) => {
-                  e.preventDefault()
-                  router.push("/admin/campaigns")
+                  e.preventDefault();
+                  router.push("/admin/campaigns");
                 }}
               >
                 Cancel
@@ -352,5 +339,5 @@ export default function CampaignsForm({
         </AlertDialog>
       </div>
     </div>
-  )
+  );
 }

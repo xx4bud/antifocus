@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash, X } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -300,24 +300,134 @@ export default function CategoryForm({
               )}
             />
 
-            {fields.map((field, index) => (
+            {fields.map((field, index) => {
+              const nameError = form.getFieldState(
+                `subCategories.${index}.name`,
+                form.formState
+              ).error;
+              const descriptionError = form.getFieldState(
+                `subCategories.${index}.description`,
+                form.formState
+              ).error;
+
+              const isFirstField = index === 0;
+
+              return (
+                <FormField
+                  key={field.id}
+                  control={form.control}
+                  name={`subCategories.${index}`}
+                  render={() => (
+                    <FormItem>
+                      {/* Conditionally apply destructive style to label */}
+                      <FormLabel
+                        className={
+                          isFirstField && nameError
+                            ? "text-destructive"
+                            : ""
+                        }
+                      >
+                        {isFirstField
+                          ? "Sub Categories"
+                          : ""}
+                      </FormLabel>
+                      <div className="flex flex-col gap-4">
+                        {/* Sub Category Name */}
+                        <div className="flex flex-col">
+                          <FormControl>
+                            <Textarea
+                              disabled={isPending}
+                              placeholder="Sub Category Name"
+                              {...form.register(
+                                `subCategories.${index}.name`
+                              )}
+                            />
+                          </FormControl>
+                          {nameError && (
+                            <p className="text-sm text-destructive">
+                              {nameError.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Sub Category Description */}
+                        <div className="flex flex-col">
+                          <FormControl>
+                            <Textarea
+                              disabled={isPending}
+                              placeholder="Sub Category Description"
+                              {...form.register(
+                                `subCategories.${index}.description`
+                              )}
+                            />
+                          </FormControl>
+                          {descriptionError && (
+                            <p className="text-sm text-destructive">
+                              {descriptionError.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Remove Button */}
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            remove(index); // Remove field
+                            form.trigger("subCategories"); // Force validation
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8"
+                        >
+                          <Trash />
+                        </Button>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              );
+            })}
+
+            {/* Global Error Message for Sub Categories */}
+            {form.formState.errors.subCategories && (
+              <p className="mt-2 text-sm text-destructive">
+                {
+                  form.formState.errors.subCategories
+                    .message
+                }
+              </p>
+            )}
+
+            {/* Add Sub Category Button */}
+            <Button
+              type="button"
+              onClick={handleAddSubCategory}
+              variant="outline"
+              size="sm"
+              className="mt-4"
+            >
+              <Plus className="h-4 w-4" />
+              Add Sub Category
+            </Button>
+
+            {/* {fields.map((field, index) => (
               <div key={field.id}>
-                <div className="pt-2">
-                  <Separator className="relative mb-3 mt-2">
-                    <FormLabel className="absolute left-0 top-1/2 -translate-y-1/2 bg-card pr-2 text-muted-foreground">
-                      #{field.name}
-                    </FormLabel>
-                    <button
-                      className="absolute right-0 top-1/2 -translate-y-1/2 bg-card pl-1 text-muted-foreground"
+                <Separator className="my-4" />
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
                       onClick={() => remove(index)}
                       disabled={isPending}
                     >
-                      <X className="size-4" />
-                    </button>
-                  </Separator>
-                </div>
+                      <Trash />
+                    </Button>
+                    <FormLabel>#{field.name}</FormLabel>
+                  </div>
 
-                <div className="space-y-2">
                   <FormField
                     control={form.control}
                     name={`subCategories.${index}.name`}
@@ -358,25 +468,9 @@ export default function CategoryForm({
                   />
                 </div>
               </div>
-            ))}
+            ))} */}
 
-            {form.formState.errors.subCategories && (
-              <p className="text-sm text-destructive">
-                {
-                  form.formState.errors.subCategories
-                    .message
-                }
-              </p>
-            )}
-
-            <div className="flex flex-col pt-2 gap-2">
-              <Button
-                type="button"
-                onClick={handleAddSubCategory}
-              >
-                <Plus className="h-4 w-4" />
-                Add Sub Category
-              </Button>
+            <div className="flex flex-col gap-2">
               <Separator className="my-2" />
               <div className="flex items-center justify-end gap-4">
                 <Button

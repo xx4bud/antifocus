@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { CategoriesSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/utils";
 import { cloudinary } from "@/lib/cloudinary";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function submitCategory(data: {
   name: string;
@@ -142,7 +143,6 @@ export async function updateCategory(data: {
       categorySlug = `${categorySlug}-${Math.floor(Math.random() * 100)}`;
     }
 
-   
     const currentPhotoPublicIds =
       existingCategory.photos.map(
         (photo) => photo.publicId
@@ -152,7 +152,7 @@ export async function updateCategory(data: {
       (photo) => !photoIds.includes(photo)
     );
 
-     if (photosToDelete.length > 0) {
+    if (photosToDelete.length > 0) {
       for (const publicId of photosToDelete) {
         try {
           await cloudinary.v2.uploader.destroy(publicId);
@@ -167,7 +167,7 @@ export async function updateCategory(data: {
         categorySlug: existingCategory.slug,
       },
     });
-   
+
     await prisma.subCategory.deleteMany({
       where: {
         categorySlug: existingCategory.slug,
@@ -199,7 +199,7 @@ export async function updateCategory(data: {
         slug: categorySlug,
         photos: {
           deleteMany: {
-            NOT: {  
+            NOT: {
               publicId: {
                 in: currentPhotoPublicIds,
               },
@@ -214,6 +214,9 @@ export async function updateCategory(data: {
         },
       },
     });
+
+    revalidatePath("/");
+    revalidateTag("categories");
 
     return {
       success: true,
@@ -242,7 +245,6 @@ export async function deleteCategory(id: string) {
       };
     }
 
-  
     for (const { publicId } of existingCategory.photos) {
       try {
         await cloudinary.v2.uploader.destroy(publicId);
@@ -251,7 +253,6 @@ export async function deleteCategory(id: string) {
       }
     }
 
-  
     const deletedCategory = await prisma.category.delete({
       where: { id },
     });

@@ -24,7 +24,7 @@ export default async function CategorySlug({
   });
 
   return (
-    <div className="flex h-screen w-full gap-4 md:p-3">
+    <div className="grid h-full w-full grid-cols-1 gap-4 md:p-3">
       <CategoryForm category={category} />
     </div>
   );

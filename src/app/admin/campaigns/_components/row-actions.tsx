@@ -72,11 +72,7 @@ export function RowActions<TData>({
     setOpenAlert(false);
     try {
       const res = await deleteCampaign(
-        campaign!.id,
-        campaign!.photos.map((photo) => ({
-          url: photo.url,
-          publicId: photo.publicId,
-        }))
+        campaign!.id
       );
       if (res.success) {
         toast({

@@ -19,7 +19,7 @@ export default function CampaignsClient({
   campaigns,
 }: CaampaignsClientProps) {
   return (
-    <div className="flex h-fit w-full flex-col overflow-auto rounded-lg border bg-card p-4">
+    <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
       <Heading
         title="Campaigns"
         amount={campaigns.length}

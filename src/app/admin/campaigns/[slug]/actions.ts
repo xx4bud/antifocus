@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { CampaignsSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/utils";
 import { cloudinary } from "@/lib/cloudinary";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function submitCampaign(data: {
   name: string;
@@ -201,6 +202,9 @@ export async function updateCampaign(data: {
       },
     });
 
+    revalidatePath("/");
+    revalidateTag("campaigns");
+
     return {
       success: true,
       data: updatedCampaign,
@@ -213,13 +217,7 @@ export async function updateCampaign(data: {
   }
 }
 
-export async function deleteCampaign(
-  id: string,
-  photos: {
-    url: string;
-    publicId: string;
-  }[],
-) {
+export async function deleteCampaign(id: string) {
   try {
     const existingCampaign =
       await prisma.campaign.findUnique({
