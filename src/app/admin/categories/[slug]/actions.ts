@@ -1,12 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getCategoryDataInclude } from "@/lib/queries";
 import { CategoriesSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/utils";
-import { cloudinary } from "@/lib/cloudinary";
-import { revalidatePath, revalidateTag } from "next/cache";
 
-export async function submitCategory(data: {
+export async function createCategory(data: {
   name: string;
   photos: {
     url: string;
@@ -15,256 +14,186 @@ export async function submitCategory(data: {
   subCategories: {
     name: string;
     description: string;
+    photos: {
+      url: string;
+      publicId: string;
+    }[];
   }[];
 }) {
   try {
-    CategoriesSchema.parse(data); // Ensure the data matches the schema
+
+    CategoriesSchema.parse(data);
 
     const { name, photos, subCategories } = data;
 
-    if (!name) {
-      return {
-        success: false,
-        message: "Name is required",
-      };
-    }
-
-    if (!photos || photos.length === 0) {
-      return {
-        success: false,
-        message: "Photos are required",
-      };
-    }
-
     let categorySlug = slugify(name);
 
-    const existingSlug = await prisma.category.findUnique({
+    const existedCategory = await prisma.category.findUnique({
       where: { slug: categorySlug },
     });
 
-    if (existingSlug) {
+    if (existedCategory) {
       categorySlug = `${categorySlug}-${Math.floor(Math.random() * 100)}`;
     }
 
+    // Create the main category
     const newCategory = await prisma.category.create({
       data: {
         name,
         slug: categorySlug,
         photos: {
-          createMany: {
-            data: photos.map((photo) => ({
-              url: photo.url,
-              publicId: photo.publicId,
-            })),
-          },
-        },
-        subCategories: {
-          createMany: {
-            data: subCategories.map((subCategory) => ({
-              name: subCategory.name,
-              description: subCategory.description,
-              slug: slugify(subCategory.name),
-            })),
-          },
+          create: photos.map((photo) => ({
+            url: photo.url,
+            publicId: photo.publicId,
+          })),
         },
       },
     });
 
+    // Create subcategories and their photos
+    for (const subCategory of subCategories) {
+      const subCategorySlug = slugify(subCategory.name);
+      const createdSubCategory = await prisma.subCategory.create({
+        data: {
+          name: subCategory.name,
+          slug: subCategorySlug,
+          description: subCategory.description,
+          categoryId: newCategory.id,
+        },
+      });
+
+      // Add photos for the subcategory
+      if (subCategory.photos.length > 0) {
+        await prisma.photo.createMany({
+          data: subCategory.photos.map((photo) => ({
+            url: photo.url,
+            publicId: photo.publicId,
+            subCategoryId: createdSubCategory.id,
+          })),
+        });
+      }
+    }
+
+    const result = await prisma.category.findUnique({
+      where: { id: newCategory.id },
+      include: getCategoryDataInclude(),
+    });
+
     return {
       success: true,
-      data: newCategory,
+      message: "Category created successfully",
+      data: result,
     };
-  } catch (error: any) {
+  } catch (error) {
+    console.log(error);
     return {
       success: false,
-      message: error.message,
+      message: "Something went wrong",
+      error,
     };
   }
 }
 
-export async function updateCategory(data: {
-  id: string;
-  name: string;
-  photos: {
-    url: string;
-    publicId: string;
-  }[];
-  subCategories: {
-    name: string;
-    description: string;
-  }[];
-}) {
+export async function updateCategory(
+  categoryId: string,
+  data: {
+    name?: string;
+    photos?: {
+      url: string;
+      publicId: string;
+    }[];
+    subCategories?: {
+      id?: string;
+      name: string;
+      description: string;
+      photos?: {
+        url: string;
+        publicId: string;
+      }[];
+    }[];
+  }
+) {
   try {
-    CategoriesSchema.parse(data); // Ensure the data matches the schema
-
-    const { id, name, photos, subCategories } = data;
-
-    if (!id) {
-      return {
-        success: false,
-        message: "Category not found",
-      };
+    if (data.name) {
+      CategoriesSchema.parse(data);
     }
 
-    if (!name) {
-      return {
-        success: false,
-        message: "Name is required",
-      };
-    }
-
-    if (!photos || photos.length === 0) {
-      return {
-        success: false,
-        message: "Photos are required",
-      };
-    }
-
-    const existingCategory =
-      await prisma.category.findUnique({
-        where: { id },
-        include: { photos: true, subCategories: true },
-      });
-
-    if (!existingCategory) {
-      return {
-        success: false,
-        message: "Category not found",
-      };
-    }
-
-    let categorySlug = slugify(name);
-
-    const existingSlug = await prisma.category.findUnique({
-      where: { slug: categorySlug },
+    const updatedCategory = await prisma.category.update({
+      where: { id: categoryId },
+      data: {
+        name: data.name,
+        slug: data.name ? slugify(data.name) : undefined,
+        photos: {
+          deleteMany: {},
+          create: data.photos?.map((photo) => ({
+            url: photo.url,
+            publicId: photo.publicId,
+          })),
+        },
+      },
     });
 
-    if (existingSlug && existingSlug.id !== id) {
-      categorySlug = `${categorySlug}-${Math.floor(Math.random() * 100)}`;
-    }
-
-    const currentPhotoPublicIds =
-      existingCategory.photos.map(
-        (photo) => photo.publicId
-      );
-    const photoIds = photos.map((photo) => photo.publicId);
-    const photosToDelete = currentPhotoPublicIds.filter(
-      (photo) => !photoIds.includes(photo)
-    );
-
-    if (photosToDelete.length > 0) {
-      for (const publicId of photosToDelete) {
-        try {
-          await cloudinary.v2.uploader.destroy(publicId);
-        } catch (error) {
-          console.error(`Error deleting photo:`, error);
+    if (data.subCategories) {
+      for (const subCategory of data.subCategories) {
+        if (subCategory.id) {
+          await prisma.subCategory.update({
+            where: { id: subCategory.id },
+            data: {
+              name: subCategory.name,
+              slug: slugify(subCategory.name),
+              description: subCategory.description,
+              photos: {
+                deleteMany: {},
+                create: subCategory.photos?.map((photo) => ({
+                  url: photo.url,
+                  publicId: photo.publicId,
+                })),
+              },
+            },
+          });
+        } else {
+          await prisma.subCategory.create({
+            data: {
+              name: subCategory.name,
+              slug: slugify(subCategory.name),
+              description: subCategory.description,
+              categoryId: categoryId,
+              photos: {
+                create: subCategory.photos?.map((photo) => ({
+                  url: photo.url,
+                  publicId: photo.publicId,
+                })),
+              },
+            },
+          });
         }
       }
     }
 
-    await prisma.photo.deleteMany({
-      where: {
-        categorySlug: existingCategory.slug,
-      },
-    });
-
-    await prisma.subCategory.deleteMany({
-      where: {
-        categorySlug: existingCategory.slug,
-      },
-    });
-
-    for (const subCategory of subCategories) {
-      await prisma.subCategory.upsert({
-        where: {
-          slug: slugify(subCategory.name),
-        },
-        update: {
-          description: subCategory.description,
-          categorySlug: existingCategory.slug,
-        },
-        create: {
-          categorySlug: existingCategory.slug,
-          name: subCategory.name,
-          description: subCategory.description,
-          slug: slugify(subCategory.name),
-        },
-      });
-    }
-
-    const updatedCategory = await prisma.category.update({
-      where: { id },
-      data: {
-        name,
-        slug: categorySlug,
-        photos: {
-          deleteMany: {
-            NOT: {
-              publicId: {
-                in: currentPhotoPublicIds,
-              },
-            },
-          },
-          createMany: {
-            data: photos.map((photo) => ({
-              url: photo.url,
-              publicId: photo.publicId,
-            })),
+    const result = await prisma.category.findUnique({
+      where: { id: categoryId },
+      include: {
+        subCategories: {
+          include: {
+            photos: true,
           },
         },
+        photos: true,
       },
-    });
-
-    revalidatePath("/");
-    revalidateTag("categories");
-
-    return {
-      success: true,
-      data: updatedCategory,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
-}
-
-export async function deleteCategory(id: string) {
-  try {
-    const existingCategory =
-      await prisma.category.findUnique({
-        where: { id },
-        include: { photos: true },
-      });
-
-    if (!existingCategory) {
-      return {
-        success: false,
-        message: "Category not found",
-      };
-    }
-
-    for (const { publicId } of existingCategory.photos) {
-      try {
-        await cloudinary.v2.uploader.destroy(publicId);
-      } catch (error) {
-        console.error(`Error deleting photo:`, error);
-      }
-    }
-
-    const deletedCategory = await prisma.category.delete({
-      where: { id },
     });
 
     return {
       success: true,
-      data: deletedCategory,
+      message: "Category updated successfully",
+      data: result,
     };
-  } catch (error: any) {
+  } catch (error) {
+    console.log(error);
     return {
       success: false,
-      message: error.message,
+      message: "Something went wrong",
+      error,
     };
   }
 }
+

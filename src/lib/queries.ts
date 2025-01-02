@@ -1,44 +1,43 @@
 import { cache } from "react";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 export const getSession = cache(auth);
 
-export const getUser = async () => {
-  const session = await getSession();
-  if (session !== null) {
-    return session.user;
-  }
-  return null;
-};
-
-export const getUserBySlug = cache(async (slug: string) => {
-  const user = await prisma.user.findUnique({
-    where: { slug },
-  });
-
-  return user;
-});
-
-export const getCampaign = unstable_cache(
-  async (id: string) => {
-    return await prisma.campaign.findUnique({
-      where: { id },
-      include: {
+export function getCategoryDataInclude() {
+  return {
+    photos: {
+      select: {
+        id: true,
+        url: true,
+        publicId: true,
+        categoryId: true,
+      },
+    },
+    subCategories: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
         photos: {
           select: {
             id: true,
             url: true,
             publicId: true,
+            subCategoryId: true,
           },
         },
       },
-    });
-  },
-  ["campaign"],
-  {
-    revalidate: 60 * 60 * 2, // 2 hours
-  }
-);
+    },
+    _count: {
+      select: {
+        subCategories: true,
+        photos: true,
+      },
+    },
+  } satisfies Prisma.CategoryInclude;
+}
+
+export type CategoryData = Prisma.CategoryGetPayload<{
+  include: ReturnType<typeof getCategoryDataInclude>;
+}>;

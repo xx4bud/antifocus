@@ -165,24 +165,36 @@ export const CategoriesSchema = z.object({
     .min(1, "Name is required")
     .max(250, "Name must be less than 250 characters"),
   subCategories: z
-    .array(
-      z.object({
-        name: z
-          .string()
-          .trim()
-          .min(1, "Name is required")
-          .max(250, "Name must be less than 250 characters"),
-        description: z
-          .string()
-          .trim()
-          .min(1, "Description is required")
-          .min(10, "Description must be at least 10 characters")
-          .max(
-            5000,
-            "Description must be less than 5000 characters"
-          ),
-      })
-    )
+    .object({
+      name: z
+        .string()
+        .trim()
+        .min(1, "Name is required")
+        .max(250, "Name must be less than 250 characters"),
+      description: z
+        .string()
+        .trim()
+        .min(1, "Description is required")
+        .max(
+          5000,
+          "Description must be less than 5000 characters"
+        ),
+      photos: z
+        .object({
+          url: z
+            .string()
+            .trim()
+            .url("Invalid image URL")
+            .min(1, "Url of image is required"),
+          publicId: z
+            .string()
+            .trim()
+            .min(1, "Public ID of image is required"),
+        })
+        .array()
+        .min(1, "At least one image is required"),
+    })
+    .array()
     .min(1, "At least one subcategory is required"),
   photos: z
     .object({
@@ -198,7 +210,6 @@ export const CategoriesSchema = z.object({
     })
     .array()
     .min(1, "At least one image is required"),
-  // .max(1, "Only one image is allowed"),
 });
 
 export type CategoriesValues = z.infer<
