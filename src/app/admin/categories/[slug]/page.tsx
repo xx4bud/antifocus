@@ -12,7 +12,7 @@ export default async function CategoriesSlug({
 }: CategoriesSlugProps) {
   const { slug } = await params;
 
-  const categories = await prisma.category.findUnique({
+  const categories = await prisma.category.findFirst({
     where: {
       slug: slug,
     },

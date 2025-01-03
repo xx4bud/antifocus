@@ -1,16 +1,12 @@
 "use client";
 
 import { CategoryData } from "@/lib/queries";
-
 import {
   CategoriesSchema,
   CategoriesValues,
 } from "@/lib/schemas";
-
 import { useFieldArray, useForm } from "react-hook-form";
-
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import {
   Form,
   FormControl,
@@ -19,20 +15,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
 import { Input } from "@/components/ui/input";
-
 import { Button } from "@/components/ui/button";
-
 import { UploadPhoto } from "@/components/ui/upload-photo";
-
 import { CloudinaryUploadWidgetResults } from "next-cloudinary";
-
 import axios from "axios";
-
-import { useEffect } from "react";
-
+import { useEffect, useState, useTransition } from "react";
 import { createCategory, updateCategory } from "./actions";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 interface CategoriesFormProps {
   categories: CategoryData | null;
@@ -41,39 +33,28 @@ interface CategoriesFormProps {
 export default function CategoriesForm({
   categories,
 }: CategoriesFormProps) {
+  const [error, setError] = useState<string>();
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const { toast } = useToast();
+
   const form = useForm<CategoriesValues>({
     resolver: zodResolver(CategoriesSchema),
-
     defaultValues: categories
       ? {
           ...categories,
-
-          subCategories: categories.subCategories.map(
-            (subCategory) => ({
-              ...subCategory,
-            })
-          ),
-
-          photos: categories.photos.map((photo) => ({
-            url: photo.url,
-
-            publicId: photo.publicId,
-          })),
         }
       : {
+          photos: [],
           name: "",
-
           subCategories: [
             { name: "", description: "", photos: [] },
           ],
-
-          photos: [],
         },
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-
     name: "subCategories",
   });
 
@@ -86,14 +67,13 @@ export default function CategoriesForm({
       if (tempPhotos.length > 0) {
         for (const photo of tempPhotos) {
           try {
-            const res = await axios.delete(
-              `/api/cloudinary?publicId=${photo.publicId}`
+            const res = await fetch(
+              `/api/cloudinary?publicId=${photo.publicId}`,
+              { method: "DELETE" }
             );
 
-            if (res.status !== 200) {
-              console.error(
-                `Failed to delete photo ${photo.publicId}`
-              );
+            if (!res.ok) {
+              throw new Error("Failed to delete image");
             }
           } catch (error) {
             console.error(`Error deleting photo:`, error);
@@ -108,20 +88,40 @@ export default function CategoriesForm({
   }, []);
 
   const handleSubmit = async (data: CategoriesValues) => {
-    try {
+    setError(undefined);
+    startTransition(async () => {
       let res;
       if (categories) {
-        res = await updateCategory(categories.id, data);
+        res = await updateCategory({
+          ...data,
+          id: categories.id,
+          subCategories: categories.subCategories.map(
+            (subCategory) => ({
+              ...subCategory,
+            })
+          ),
+        });
       } else {
         res = await createCategory(data);
       }
 
       if (res.success) {
+        toast({
+          title: "Success",
+          description: categories
+            ? "Category updated successfully"
+            : "Category created successfully",
+        });
         localStorage.removeItem("tempPhotos");
+        router.push("/admin/categories");
+        router.refresh();
+      } else {
+        toast({
+          title: "Error",
+          description: res.message,
+        });
       }
-    } catch (error) {
-      console.error(error);
-    }
+    });
   };
 
   const handleUploadCategoryPhoto = async (
@@ -200,10 +200,7 @@ export default function CategoriesForm({
     try {
       const res = await fetch(
         `/api/cloudinary?publicId=${publicId}`,
-
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
 
       if (!res.ok) {
@@ -233,10 +230,7 @@ export default function CategoriesForm({
     try {
       const res = await fetch(
         `/api/cloudinary?publicId=${publicId}`,
-
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
 
       if (!res.ok) {
@@ -257,7 +251,6 @@ export default function CategoriesForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Photos</FormLabel>
-
                 <FormControl>
                   <UploadPhoto
                     value={field.value}
@@ -269,7 +262,6 @@ export default function CategoriesForm({
                     max={1}
                   />
                 </FormControl>
-
                 <FormMessage />
               </FormItem>
             )}
@@ -281,7 +273,6 @@ export default function CategoriesForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Name</FormLabel>
-
                 <FormControl>
                   <Input
                     type="text"
@@ -289,7 +280,6 @@ export default function CategoriesForm({
                     {...field}
                   />
                 </FormControl>
-
                 <FormMessage />
               </FormItem>
             )}
@@ -303,7 +293,6 @@ export default function CategoriesForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Photos</FormLabel>
-
                     <FormControl>
                       <UploadPhoto
                         value={field.value}
@@ -327,7 +316,6 @@ export default function CategoriesForm({
                         max={1}
                       />
                     </FormControl>
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -339,7 +327,6 @@ export default function CategoriesForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sub Name</FormLabel>
-
                     <FormControl>
                       <Input
                         type="text"
@@ -347,7 +334,6 @@ export default function CategoriesForm({
                         {...field}
                       />
                     </FormControl>
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -367,7 +353,6 @@ export default function CategoriesForm({
                         {...field}
                       />
                     </FormControl>
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -376,7 +361,12 @@ export default function CategoriesForm({
           ))}
 
           <div className="flex w-full justify-end pt-2">
-            <Button type="submit">Submit</Button>
+            <LoadingButton
+              loading={isPending}
+              type="submit"
+            >
+              Save
+            </LoadingButton>
           </div>
         </form>
       </Form>

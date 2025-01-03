@@ -8,7 +8,6 @@ export function getCategoryDataInclude() {
   return {
     photos: {
       select: {
-        id: true,
         url: true,
         publicId: true,
         categoryId: true,
@@ -21,18 +20,11 @@ export function getCategoryDataInclude() {
         description: true,
         photos: {
           select: {
-            id: true,
             url: true,
             publicId: true,
             subCategoryId: true,
           },
         },
-      },
-    },
-    _count: {
-      select: {
-        subCategories: true,
-        photos: true,
       },
     },
   } satisfies Prisma.CategoryInclude;

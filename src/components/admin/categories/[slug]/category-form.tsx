@@ -134,13 +134,18 @@ export default function CategoryForm({
     setError(undefined);
     startTransition(async () => {
       let res;
-      if (category) {
+      if (categories) {
         res = await updateCategory({
-          id: category.id,
           ...data,
+          id: categories.id,
+          subCategories: categories.subCategories.map(
+            (subCategory) => ({
+              ...subCategory,
+            })
+          ),
         });
       } else {
-        res = await submitCategory(data);
+        res = await createCategory(data);
       }
 
       if (res.success) {
