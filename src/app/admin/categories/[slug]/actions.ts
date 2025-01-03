@@ -191,44 +191,45 @@ export async function updateCategory(data: {
   }[];
 }) {
   try {
-    // Validate input data
+
     CategoriesSchema.parse(data);
 
     const { id: categoryId, name, photos, subCategories } = data;
 
-    // Generate a new slug for the category
-    let newCategorySlug = slugify(name);
     const existingCategory = await prisma.category.findUnique({
-      where: { slug: newCategorySlug },
-    });
-
-    if (existingCategory && existingCategory.id !== categoryId) {
-      newCategorySlug += `-${Math.floor(Math.random() * 100)}`;
-    }
-
-    // Fetch the existing category and its related data
-    const existingCategoryData = await prisma.category.findUnique({
       where: { id: categoryId },
       include: getCategoryDataInclude(),
     });
 
-    if (!existingCategoryData) {
-      throw new Error("Category not found");
+    if (!existingCategory) {
+      return {
+        success: false,
+        message: "Category not found",
+      };
     }
 
-    // Handle photos: Identify photos to delete
-    const currentPhotoPublicIds = existingCategoryData.photos.map((photo) => photo.publicId);
+    let newCategorySlug = slugify(name);
+    const existingCategorySlug = await prisma.category.findUnique({
+      where: { slug: newCategorySlug },
+    });
+
+    if (existingCategorySlug && existingCategorySlug.id !== categoryId) {
+      newCategorySlug += `-${Math.floor(Math.random() * 100)}`;
+    }
+
+    const currentPhotoPublicIds = existingCategory.photos.map((photo) => photo.publicId);
     const newPhotoPublicIds = photos.map((photo) => photo.publicId);
     const photosToDelete = currentPhotoPublicIds.filter((id) => !newPhotoPublicIds.includes(id));
 
-    // Delete old photos from Cloudinary
-    for (const publicId of photosToDelete) {
-      try {
-        await cloudinary.v2.uploader.destroy(publicId);
-      } catch (error) {
-        console.error(`Error deleting photo: ${publicId}`, error);
+    if (photosToDelete.length > 0) {
+        for (const publicId of photosToDelete) {
+          try {
+            await cloudinary.v2.uploader.destroy(publicId);
+          } catch (error) {
+            console.error(`Error deleting photo:`, error);
+          }
+        }
       }
-    }
 
     await prisma.photo.deleteMany({
       where: {
@@ -236,7 +237,6 @@ export async function updateCategory(data: {
       },
     });
 
-    // Update the category in the database
     await prisma.category.update({
       where: { id: categoryId },
       data: {
@@ -254,12 +254,9 @@ export async function updateCategory(data: {
       },
     });
 
-    // Handle subcategories
     for (const subCategory of subCategories) {
-      let newSubCategorySlug = slugify(subCategory.name);
 
       if (subCategory.id) {
-        // Update existing subcategory
         const existingSubCategory = await prisma.subCategory.findUnique({
           where: { id: subCategory.id },
           include: { photos: true },
@@ -269,18 +266,28 @@ export async function updateCategory(data: {
           throw new Error(`Subcategory with ID ${subCategory.id} not found`);
         }
 
+        let newSubCategorySlug = slugify(subCategory.name);
+        const existingSubCategorySlug = await prisma.subCategory.findUnique({
+          where: { slug: newSubCategorySlug },
+        });
+
+        if (existingSubCategorySlug && existingSubCategorySlug.id !== subCategory.id) {
+          newSubCategorySlug += `-${Math.floor(Math.random() * 100)}`;
+        }
+
         const currentSubCategoryPhotoPublicIds = existingSubCategory.photos.map((photo) => photo.publicId);
         const newSubCategoryPhotoPublicIds = subCategory.photos.map((photo) => photo.publicId);
         const subCategoryPhotosToDelete = currentSubCategoryPhotoPublicIds.filter(
           (id) => !newSubCategoryPhotoPublicIds.includes(id)
         );
 
-        // Delete old subcategory photos from Cloudinary
-        for (const publicId of subCategoryPhotosToDelete) {
-          try {
-            await cloudinary.v2.uploader.destroy(publicId);
-          } catch (error) {
-            console.error(`Error deleting subcategory photo: ${publicId}`, error);
+        if (subCategoryPhotosToDelete.length > 0) {
+          for (const publicId of subCategoryPhotosToDelete) {
+            try {
+              await cloudinary.v2.uploader.destroy(publicId);
+            } catch (error) {
+              console.error(`Error deleting subcategory photo: ${publicId}`, error);
+            }
           }
         }
 
@@ -290,7 +297,7 @@ export async function updateCategory(data: {
           },
         });
 
-        // Update the subcategory
+       
         await prisma.subCategory.update({
           where: { id: subCategory.id },
           data: {
@@ -313,7 +320,7 @@ export async function updateCategory(data: {
         await prisma.subCategory.create({
           data: {
             name: subCategory.name,
-            slug: newSubCategorySlug,
+            slug: slugify(subCategory.name),
             description: subCategory.description,
             categoryId,
             photos: {

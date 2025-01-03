@@ -186,30 +186,19 @@ export default function CategoriesForm({
     }
   };
 
-  const handleRemoveCategoryPhoto = async (
-    publicId: string
-  ) => {
+  const handleRemoveCategoryPhoto = (publicId: string) => {
+    // Remove photo from form but don't delete from Cloudinary immediately
     const updatedPhotos = form
-
       .getValues("photos")
-
       .filter((photo) => photo.publicId !== publicId);
-
+    
     form.setValue("photos", updatedPhotos);
-
-    try {
-      const res = await fetch(
-        `/api/cloudinary?publicId=${publicId}`,
-        { method: "DELETE" }
-      );
-
-      if (!res.ok) {
-        // setError("Failed to delete image");
-      }
-    } catch (error) {
-      console.error(`Error deleting photo:`, error);
-    }
+  
+    // Track the photo to be deleted later
+    const photosToDelete = JSON.parse(localStorage.getItem("photosToDelete") || "[]");
+    localStorage.setItem("photosToDelete", JSON.stringify([...photosToDelete, publicId]));
   };
+  
 
   const handleRemoveSubCategoryPhoto = async (
     publicId: string,
