@@ -16,9 +16,9 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
+    <div className="flex h-screen min-h-screen w-full flex-col">
       <AppHeader user={user} />
-      <div className="mx-auto flex h-screen w-full max-w-6xl flex-grow">
+      <div className="mx-auto flex h-full w-full max-w-6xl flex-grow">
         {children}
       </div>
     </div>

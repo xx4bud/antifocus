@@ -16,7 +16,7 @@ export default function CategoriesClient({
   categories,
 }: CategoriesClientProps) {
   return (
-    <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
+    <div className="flex h-full flex-col overflow-y-visible rounded-lg border bg-card p-4">
       <Heading
         title="Categories"
         amount={categories.length}
