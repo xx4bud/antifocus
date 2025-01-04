@@ -162,58 +162,69 @@ export const CategoriesSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Name is required")
-    .max(250, "Name must be less than 250 characters"),
+    .min(1, "Name is required.")
+    .max(250, "Name must be less than 250 characters."),
   photos: z
-    .object({
-      url: z
-        .string()
-        .trim()
-        .url("Invalid image URL")
-        .min(1, "Url of image is required"),
-      publicId: z
-        .string()
-        .trim()
-        .min(1, "Public ID of image is required"),
-    })
-    .array()
-    .min(1, "At least one image is required"),
+    .array(
+      z.object({
+        url: z
+          .string()
+          .trim()
+          .url("Invalid image URL.")
+          .min(1, "Image URL is required."),
+        publicId: z
+          .string()
+          .trim()
+          .min(1, "Public ID of the image is required."),
+      })
+    )
+    .min(1, "At least one image is required."),
   subCategories: z
-    .object({
-      name: z
-        .string()
-        .trim()
-        .min(1, "Name is required")
-        .max(250, "Name must be less than 250 characters"),
-      description: z
-        .string()
-        .trim()
-        .min(1, "Description is required")
-        .min(
-          10,
-          "Description must be at least 10 characters"
-        )
-        .max(
-          5000,
-          "Description must be less than 5000 characters"
-        ),
-      // photos: z
-      //   .object({
-      //     url: z
-      //       .string()
-      //       .trim()
-      //       .url("Invalid image URL")
-      //       .min(1, "Url of image is required"),
-      //     publicId: z
-      //       .string()
-      //       .trim()
-      //       .min(1, "Public ID of image is required"),
-      //   })
-      //   .array()
-      //   .min(1, "At least one image is required"),
-    })
-    .array()
-    .min(1, "At least one category is required"),
+    .array(
+      z.object({
+        name: z
+          .string()
+          .trim()
+          .min(1, "Name is required.")
+          .max(
+            250,
+            "Name must be less than 250 characters."
+          ),
+        description: z
+          .string()
+          .trim()
+          .min(
+            10,
+            "Description must be at least 10 characters."
+          )
+          .max(
+            5000,
+            "Description must be less than 5000 characters."
+          ),
+        photos: z
+          .array(
+            z.object({
+              url: z
+                .string()
+                .trim()
+                .url("Invalid image URL.")
+                .min(1, "Image URL is required."),
+              publicId: z
+                .string()
+                .trim()
+                .min(
+                  1,
+                  "Public ID of the image is required."
+                ),
+            })
+          )
+          .min(
+            1,
+            "At least one photo is required in subcategories."
+          ),
+      })
+    )
+    .min(1, "At least one subcategory is required."),
 });
 
 export type CategoriesValues = z.infer<

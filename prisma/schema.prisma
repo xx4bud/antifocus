@@ -110,6 +110,7 @@ model SubCategory {
   slug        String 
   name        String
   description String
+  photos      Photo[]
 
   categoryId String   @map("category_id")
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -131,6 +132,8 @@ model Photo {
   campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   categoryId    String?      @map("category_id")
   category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategoryId String?      @map("sub_category_id")
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

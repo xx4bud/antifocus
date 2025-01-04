@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 
 export const getSession = cache(auth);
 
-export function getCategoryDataSelect() {
+export function getCategoryDataInclude() {
   return {
     photos: {
       select: {
@@ -12,8 +12,7 @@ export function getCategoryDataSelect() {
         url: true,
         publicId: true,
         categoryId: true,
-      }
-      
+      },
     },
     subCategories: {
       select: {
@@ -21,19 +20,27 @@ export function getCategoryDataSelect() {
         name: true,
         description: true,
         categoryId: true,
-      }
+        photos: {
+          select: {
+            id: true,
+            url: true,
+            publicId: true,
+            subCategoryId: true,
+          },
+        },
+      },
     },
-   _count: {
-    select: {
-      photos: true,
-      subCategories: true,
-    }
-   }
+    _count: {
+      select: {
+        photos: true,
+        subCategories: true,
+      },
+    },
   } satisfies Prisma.CategoryInclude;
 }
 
 export type CategoryData = Prisma.CategoryGetPayload<{
-  include: ReturnType<typeof getCategoryDataSelect>;
+  include: ReturnType<typeof getCategoryDataInclude>;
 }>;
 
 export function getSubCategoryDataSelect() {
@@ -42,6 +49,14 @@ export function getSubCategoryDataSelect() {
     name: true,
     description: true,
     categoryId: true,
+    photos: {
+      select: {
+        id: true,
+        url: true,
+        publicId: true,
+        subCategoryId: true,
+      },
+    },
   } satisfies Prisma.SubCategorySelect;
 }
 
@@ -55,6 +70,7 @@ export function getPhotoDataSelect() {
     url: true,
     publicId: true,
     categoryId: true,
+    subCategoryId: true,
   } satisfies Prisma.PhotoSelect;
 }
 

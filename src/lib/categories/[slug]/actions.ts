@@ -3,8 +3,9 @@
 import { cloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 import {
-  getCategoryDataInclude,
+  getCategoryDataSelect,
   getSession,
+  getSubCategoryDataSelect,
 } from "@/lib/queries";
 import { CategoriesSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/utils";
@@ -19,10 +20,6 @@ export async function createCategory(data: {
   subCategories: {
     name: string;
     description: string;
-    photos: {
-      url: string;
-      publicId: string;
-    }[];
   }[];
 }) {
   try {
@@ -44,8 +41,8 @@ export async function createCategory(data: {
 
     if (
       !name ||
-      !photos?.length ||
-      !subCategories?.length
+      photos?.length === 0 ||
+      subCategories?.length === 0
     ) {
       return {
         success: false,
@@ -54,11 +51,7 @@ export async function createCategory(data: {
     }
 
     for (const subCategory of subCategories) {
-      if (
-        !subCategory.name ||
-        !subCategory.description ||
-        !subCategory.photos?.length
-      ) {
+      if (!subCategory.name || !subCategory.description) {
         return {
           success: false,
           message: "Subcategory fields are required.",
@@ -109,16 +102,6 @@ export async function createCategory(data: {
             name: subCategory.name,
             description: subCategory.description,
             categoryId: newCategory.id,
-            photos: {
-              createMany: {
-                data: subCategory.photos.map(
-                  (photo) => ({
-                    url: photo.url,
-                    publicId: photo.publicId,
-                  })
-                ),
-              },
-            },
           },
         });
       }
@@ -128,7 +111,7 @@ export async function createCategory(data: {
     //fetch category
     const result = await prisma.category.findFirst({
       where: { id: newCategory.id },
-      include: getCategoryDataInclude(),
+      include: getCategoryDataSelect(),
     });
 
     revalidatePath("/");
@@ -160,10 +143,6 @@ export async function updateCategory(data: {
   subCategories: {
     name: string;
     description: string;
-    photos: {
-      url: string;
-      publicId: string;
-    }[];
   }[];
 }) {
   try {
@@ -194,7 +173,7 @@ export async function updateCategory(data: {
     const existingCategory =
       await prisma.category.findUnique({
         where: { id },
-        include: getCategoryDataInclude(),
+        include: getCategoryDataSelect(),
       });
 
     if (!existingCategory) {
@@ -250,7 +229,7 @@ export async function updateCategory(data: {
               publicId: {
                 in: currentPhotos,
               },
-            },
+            }
           },
           createMany: {
             data: photos.map((photo) => ({
@@ -267,7 +246,7 @@ export async function updateCategory(data: {
         where: { categoryId: id },
       });
       const updatedSubCategory = subCategories.map(
-        async ({ name, description, photos }) => {
+        async ({ name, description }) => {
           let subCategorySlug = slugify(name);
           const existingSubCategory =
             await prisma.subCategory.findFirst({
@@ -275,7 +254,7 @@ export async function updateCategory(data: {
             });
 
           if (existingSubCategory) {
-            subCategorySlug += `${subCategorySlug}${Math.floor(Math.random() * 100)}`;
+            subCategorySlug += `-${Math.floor(Math.random() * 100)}`;
           }
 
           return prisma.subCategory.create({
@@ -284,14 +263,6 @@ export async function updateCategory(data: {
               name,
               description,
               categoryId: id,
-              photos: {
-                createMany: {
-                  data: photos.map((photo) => ({
-                    url: photo.url,
-                    publicId: photo.publicId,
-                  })),
-                },
-              },
             },
           });
         }
@@ -303,7 +274,7 @@ export async function updateCategory(data: {
     //fetch category
     const result = await prisma.category.findFirst({
       where: { id: updatedCategory.id },
-      include: getCategoryDataInclude(),
+      include: getCategoryDataSelect(),
     });
 
     revalidatePath("/");

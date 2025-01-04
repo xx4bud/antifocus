@@ -60,43 +60,43 @@ export default function CategoriesForm({
   });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const cleanUpPhotos = async () => {
-        const tempPhotos = JSON.parse(
-          localStorage.getItem("tempPhotos") || "[]"
-        );
+    const cleanUpPhotos = async () => {
+      const tempPhotos = JSON.parse(
+        localStorage.getItem("tempPhotos") || "[]"
+      );
 
-        if (tempPhotos.length > 0) {
-          for (const photo of tempPhotos) {
-            try {
-              const res = await fetch(
-                `/api/cloudinary?publicId=${photo.publicId}`,
-                { method: "DELETE" }
-              );
+      if (tempPhotos.length > 0) {
+        for (const photo of tempPhotos) {
+          try {
+            const res = await fetch(
+              `/api/cloudinary?publicId=${photo.publicId}`,
+              { method: "DELETE" }
+            );
 
-              if (res.ok) {
-                console.log(
-                  "temp photo deleted successfully"
-                );
-              }
-            } catch (error) {
-              console.error(
-                `Error deleting temp photo:`,
-                error
+            if (res.ok) {
+              console.log(
+                "temp photo deleted successfully"
               );
             }
+          } catch (error) {
+            console.error(
+              `Error deleting temp photo:`,
+              error
+            );
           }
-          localStorage.removeItem("tempPhotos");
         }
-      };
-      cleanUpPhotos();
-    }
+
+        localStorage.removeItem("tempPhotos");
+      }
+    };
+
+    cleanUpPhotos();
   }, []);
 
   const handleSubmit = async (data: CategoriesValues) => {
     setError(undefined);
     startTransition(async () => {
-      // console.log(data);
+      console.log(data);
       let res;
       if (category) {
         res = await updateCategory({
@@ -114,8 +114,8 @@ export default function CategoriesForm({
             ? "Category updated successfully"
             : "Category created successfully",
         });
-        localStorage.removeItem("tempPhotos");
         router.push("/admin/categories");
+        localStorage.removeItem("tempPhotos");
         router.refresh();
       } else {
         setError(res.message);
@@ -148,34 +148,34 @@ export default function CategoriesForm({
     }
   };
 
-  const handleUploadSubPhoto = async (
-    result: CloudinaryUploadWidgetResults,
-    index: number
-  ) => {
-    if (result.info && typeof result.info === "object") {
-      const { secure_url: url, public_id: publicId } =
-        result.info;
+  // const handleUploadSubPhoto = async (
+  //   result: CloudinaryUploadWidgetResults,
+  //   index: number
+  // ) => {
+  //   if (result.info && typeof result.info === "object") {
+  //     const { secure_url: url, public_id: publicId } =
+  //       result.info;
 
-      const tempPhotos = JSON.parse(
-        localStorage.getItem("tempPhotos") || "[]"
-      );
+  //     const tempPhotos = JSON.parse(
+  //       localStorage.getItem("tempPhotos") || "[]"
+  //     );
 
-      const newPhotos = [...tempPhotos, { url, publicId }];
-      localStorage.setItem(
-        "tempPhotos",
-        JSON.stringify(newPhotos)
-      );
+  //     const newPhotos = [...tempPhotos, { url, publicId }];
+  //     localStorage.setItem(
+  //       "tempPhotos",
+  //       JSON.stringify(newPhotos)
+  //     );
 
-      const updatedPhotos = [
-        ...form.getValues(`subCategories.${index}.photos`),
-        { url, publicId },
-      ];
-      form.setValue(
-        `subCategories.${index}.photos`,
-        updatedPhotos
-      );
-    }
-  };
+  //     const updatedPhotos = [
+  //       ...form.getValues(`subCategories.${index}.photos`),
+  //       { url, publicId },
+  //     ];
+  //     form.setValue(
+  //       `subCategories.${index}.photos`,
+  //       updatedPhotos
+  //     );
+  //   }
+  // };
 
   const handleRemovePhoto = async (publicId: string) => {
     const updatedPhotos = form
@@ -188,32 +188,40 @@ export default function CategoriesForm({
         `/api/cloudinary?publicId=${publicId}`,
         { method: "DELETE" }
       );
+
+      if (res.ok) {
+        console.log("temp photo deleted successfully");
+      }
     } catch (error) {
       console.error(`Error deleting temp photo:`, error);
     }
   };
 
-  const handleRemoveSubPhoto = async (
-    publicId: string,
-    index: number
-  ) => {
-    const updatedPhotos = form
-      .getValues(`subCategories.${index}.photos`)
-      .filter((photo) => photo.publicId !== publicId);
-    form.setValue(
-      `subCategories.${index}.photos`,
-      updatedPhotos
-    );
+  // const handleRemoveSubPhoto = async (
+  //   publicId: string,
+  //   index: number
+  // ) => {
+  //   const updatedPhotos = form
+  //     .getValues(`subCategories.${index}.photos`)
+  //     .filter((photo) => photo.publicId !== publicId);
+  //   form.setValue(
+  //     `subCategories.${index}.photos`,
+  //     updatedPhotos
+  //   );
 
-    try {
-      const res = await fetch(
-        `/api/cloudinary?publicId=${publicId}`,
-        { method: "DELETE" }
-      );
-    } catch (error) {
-      console.error(`Error deleting temp photo:`, error);
-    }
-  };
+  //   try {
+  //     const res = await fetch(
+  //       `/api/cloudinary?publicId=${publicId}`,
+  //       { method: "DELETE" }
+  //     );
+
+  //     if (res.ok) {
+  //       console.log("temp photo deleted successfully");
+  //     }
+  //   } catch (error) {
+  //     console.error(`Error deleting temp photo:`, error);
+  //   }
+  // };
 
   return (
     <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
@@ -297,42 +305,6 @@ export default function CategoriesForm({
               <div key={field.id}>
                 <FormField
                   control={form.control}
-                  name={`subCategories.${index}.photos`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Photos</FormLabel>
-                      <FormControl>
-                        <UploadPhoto
-                          value={field.value}
-                          onChange={(newPhotos) =>
-                            // field.onChange(newPhotos)
-                            form.setValue(
-                              `subCategories.${index}.photos`,
-                              newPhotos
-                            )
-                          }
-                          onRemove={(publicId) =>
-                            handleRemoveSubPhoto(
-                              publicId,
-                              index
-                            )
-                          }
-                          onUpload={(result) =>
-                            handleUploadSubPhoto(
-                              result,
-                              index
-                            )
-                          }
-                          max={1}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name={`subCategories.${index}.name`}
                   render={({ field }) => (
                     <FormItem>
@@ -368,17 +340,17 @@ export default function CategoriesForm({
                   )}
                 />
 
-                <Button
+                {/* <Button
                   type="button"
                   onClick={() => remove(index)}
                   variant="outline"
                 >
                   Remove Subcategory
-                </Button>
+                </Button> */}
               </div>
             ))}
 
-            <Button
+            {/* <Button
               type="button"
               onClick={() =>
                 append({
@@ -389,7 +361,7 @@ export default function CategoriesForm({
               }
             >
               Add Subcategory
-            </Button>
+            </Button> */}
 
             <div className="flex justify-end gap-4 pt-2">
               <Button
