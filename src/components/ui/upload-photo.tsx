@@ -30,14 +30,6 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
   disabled,
   className,
 }) => {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-
-  if (!isMounted) return null;
 
   return (
     <div className="flex flex-wrap gap-4">

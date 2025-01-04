@@ -65,7 +65,6 @@ model User {
   passwordHash  String?
   accounts      Account[]
   sessions      Session[]
-  products      Product[]
   photos        Photo[]
 
   createdAt DateTime @default(now())
@@ -93,10 +92,11 @@ model Campaign {
 }
 
 model Category {
-  id            String        @id @default(cuid())
-  slug          String        @unique
-  name          String
-  photos        Photo[]
+  id     String  @id @default(cuid())
+  slug   String 
+  name   String
+  photos Photo[]
+
   subCategories SubCategory[]
 
   createdAt DateTime @default(now())
@@ -107,12 +107,11 @@ model Category {
 
 model SubCategory {
   id          String  @id @default(cuid())
-  slug        String  @unique
+  slug        String 
   name        String
   description String
-  photos      Photo[]
 
-  categoryId String @map("category_id")
+  categoryId String   @map("category_id")
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -121,41 +120,20 @@ model SubCategory {
   @@map("sub_categories")
 }
 
-model Product {
-  id          String  @id @default(cuid())
-  slug        String  @unique
-  name        String
-  description String
-  price       Decimal
-  photos      Photo[]
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("products")
-}
-
 model Photo {
   id       String @id @default(cuid())
   url      String
   publicId String @unique
 
-  userSlug String? @map("user_slug")
-  user     User?   @relation(fields: [userSlug], references: [slug], onDelete: Cascade)
-
+  userId        String?      @map("user_id")
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   campaignId    String?      @map("campaign_id")
   campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   categoryId    String?      @map("category_id")
   category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subCategoryId String?      @map("sub_category_id")
-  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
-  productId     String?      @map("product_id")
-  product       Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("photos")
 }

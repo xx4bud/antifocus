@@ -1,61 +1,63 @@
-import { cloudinary } from "@/lib/cloudinary"
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { CloudinaryUploadWidgetResults } from "next-cloudinary"
-import { UseFormReturn } from "react-hook-form"
+import { cloudinary } from "@/lib/cloudinary";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { CloudinaryUploadWidgetResults } from "next-cloudinary";
+import { UseFormReturn } from "react-hook-form";
 
 // Define the Photo interface
 interface Photo {
-  publicId: string
-  url: string
+  publicId: string;
+  url: string;
 }
 
 interface DeleteResponse {
-  message: string
-  error?: string
+  message: string;
+  error?: string;
 }
 
 export async function POST(req: Request) {
   const body = (await req.json()) as {
-    paramsToSign: Record<string, string>
-  }
-  const { paramsToSign } = body
+    paramsToSign: Record<string, string>;
+  };
+  const { paramsToSign } = body;
 
   const signature = cloudinary.v2.utils.api_sign_request(
     paramsToSign,
     process.env.CLOUDINARY_API_SECRET as string
-  )
+  );
 
-  return Response.json({ signature })
+  return Response.json({ signature });
 }
 
-export async function DELETE(req: Request): Promise<NextResponse<DeleteResponse>> {
+export async function DELETE(
+  req: Request
+): Promise<NextResponse<DeleteResponse>> {
   try {
-    const { searchParams } = new URL(req.url)
-    const publicId = searchParams.get("publicId")
+    const { searchParams } = new URL(req.url);
+    const publicId = searchParams.get("publicId");
 
     if (!publicId) {
       return NextResponse.json(
         { message: "Public ID is required" },
         { status: 400 }
-      )
+      );
     }
-    // Delete photo from Cloudinary
-    await cloudinary.v2.uploader.destroy(publicId)
 
-    // Delete photo from database
-    await prisma.photo.deleteMany({ where: { publicId } })
+    await cloudinary.v2.uploader.destroy(publicId);
 
     return NextResponse.json(
       { message: "Photo deleted" },
       { status: 200 }
-    )
+    );
   } catch (error: any) {
-    console.error(error)
+    console.error(error);
     return NextResponse.json(
-      { message: "An error occurred", error: error.message },
+      {
+        message: "An error occurred",
+        error: error.message,
+      },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -64,35 +66,36 @@ export async function handleUploadPhoto(
   form: UseFormReturn<any>
 ): Promise<void> {
   if (result.info && typeof result.info === "object") {
-    const { secure_url: url, public_id: publicId } = result.info
+    const { secure_url: url, public_id: publicId } =
+      result.info;
 
     const tempPhotos = JSON.parse(
       localStorage.getItem("tempPhotos") || "[]"
-    ) as Photo[]
+    ) as Photo[];
 
     localStorage.setItem(
       "tempPhotos",
       JSON.stringify([...tempPhotos, { url, publicId }])
-    )
+    );
 
     form.setValue("photos", [
       ...form.getValues("photos"),
       { url, publicId },
-    ])
+    ]);
   }
 }
 
 export async function handleRemovePhoto(
   publicId: string,
-  form: UseFormReturn<any>, 
+  form: UseFormReturn<any>,
   setError: (message: string) => void,
   photos: Photo[]
 ): Promise<void> {
   const updatedPhotos = form
     .getValues("photos")
-    .filter((photo: Photo) => photo.publicId !== publicId)
+    .filter((photo: Photo) => photo.publicId !== publicId);
 
-  form.setValue("photos", updatedPhotos)
+  form.setValue("photos", updatedPhotos);
 
   try {
     const response = await fetch(
@@ -100,14 +103,14 @@ export async function handleRemovePhoto(
       {
         method: "DELETE",
       }
-    )
+    );
 
     if (!response.ok) {
-      setError("Failed to delete image")
+      setError("Failed to delete image");
     }
   } catch (error) {
-    console.error(`Error deleting photo:`, error)
-    setError("Failed to delete image")
+    console.error(`Error deleting photo:`, error);
+    setError("Failed to delete image");
   }
 }
 
@@ -127,14 +130,18 @@ export async function cleanUpPhotos(): Promise<void> {
         );
 
         if (!response.ok) {
-          console.error("Failed to delete temporary photo:", photo.publicId);
+          console.error(
+            "Failed to delete temporary photo:",
+            photo.publicId
+          );
         }
       } catch (error) {
-        console.error("Error deleting temporary photo:", error);
+        console.error(
+          "Error deleting temporary photo:",
+          error
+        );
       }
     }
     localStorage.removeItem("tempPhotos");
   }
 }
-
-

@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CategoriesSchema,
@@ -25,15 +25,16 @@ import { UploadPhoto } from "@/components/ui/upload-photo";
 import { CloudinaryUploadWidgetResults } from "next-cloudinary";
 import { Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { createCategory, updateCategory } from "./actions";
 
 interface CategoriesFormProps {
-  category: CategoryData | null;
+  categories: CategoryData | null;
 }
 
 export default function CategoriesForm({
-  category,
+  categories,
 }: CategoriesFormProps) {
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
@@ -43,20 +44,15 @@ export default function CategoriesForm({
 
   const form = useForm<CategoriesValues>({
     resolver: zodResolver(CategoriesSchema),
-    defaultValues: category
+    defaultValues: categories
       ? {
-          ...category,
+          ...categories,
         }
       : {
           photos: [],
           name: "",
-          subCategories: [{ name: "", description: "" }],
+          description: "",
         },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "subCategories",
   });
 
   useEffect(() => {
@@ -96,12 +92,11 @@ export default function CategoriesForm({
   const handleSubmit = async (data: CategoriesValues) => {
     setError(undefined);
     startTransition(async () => {
-      console.log(data);
       let res;
-      if (category) {
+      if (categories) {
         res = await updateCategory({
-          id: category.id,
           ...data,
+          id: categories.id,
         });
       } else {
         res = await createCategory(data);
@@ -110,12 +105,12 @@ export default function CategoriesForm({
       if (res.success) {
         toast({
           title: "Success",
-          description: category
+          description: categories
             ? "Category updated successfully"
             : "Category created successfully",
         });
-        router.push("/admin/categories");
         localStorage.removeItem("tempPhotos");
+        router.push("/admin/categories");
         router.refresh();
       } else {
         setError(res.message);
@@ -144,38 +139,8 @@ export default function CategoriesForm({
         ...form.getValues("photos"),
         { url, publicId },
       ]);
-      console.log(form.getValues("photos"));
     }
   };
-
-  // const handleUploadSubPhoto = async (
-  //   result: CloudinaryUploadWidgetResults,
-  //   index: number
-  // ) => {
-  //   if (result.info && typeof result.info === "object") {
-  //     const { secure_url: url, public_id: publicId } =
-  //       result.info;
-
-  //     const tempPhotos = JSON.parse(
-  //       localStorage.getItem("tempPhotos") || "[]"
-  //     );
-
-  //     const newPhotos = [...tempPhotos, { url, publicId }];
-  //     localStorage.setItem(
-  //       "tempPhotos",
-  //       JSON.stringify(newPhotos)
-  //     );
-
-  //     const updatedPhotos = [
-  //       ...form.getValues(`subCategories.${index}.photos`),
-  //       { url, publicId },
-  //     ];
-  //     form.setValue(
-  //       `subCategories.${index}.photos`,
-  //       updatedPhotos
-  //     );
-  //   }
-  // };
 
   const handleRemovePhoto = async (publicId: string) => {
     const updatedPhotos = form
@@ -197,45 +162,19 @@ export default function CategoriesForm({
     }
   };
 
-  // const handleRemoveSubPhoto = async (
-  //   publicId: string,
-  //   index: number
-  // ) => {
-  //   const updatedPhotos = form
-  //     .getValues(`subCategories.${index}.photos`)
-  //     .filter((photo) => photo.publicId !== publicId);
-  //   form.setValue(
-  //     `subCategories.${index}.photos`,
-  //     updatedPhotos
-  //   );
-
-  //   try {
-  //     const res = await fetch(
-  //       `/api/cloudinary?publicId=${publicId}`,
-  //       { method: "DELETE" }
-  //     );
-
-  //     if (res.ok) {
-  //       console.log("temp photo deleted successfully");
-  //     }
-  //   } catch (error) {
-  //     console.error(`Error deleting temp photo:`, error);
-  //   }
-  // };
-
   return (
     <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
       <Heading
         title={
-          category ? "Edit Category" : "Create Category"
+          categories ? "Edit Category" : "Create Category"
         }
         description={
-          category
+          categories
             ? "Edit category details"
             : "Create a new category"
         }
         button={
-          category && (
+          categories && (
             <Button
               variant="destructive"
               onClick={() => setOpenAlert(true)}
@@ -301,67 +240,23 @@ export default function CategoriesForm({
               )}
             />
 
-            {fields.map((field, index) => (
-              <div key={field.id}>
-                <FormField
-                  control={form.control}
-                  name={`subCategories.${index}.name`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sub Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Sub Category Name"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name={`subCategories.${index}.description`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sub Description</FormLabel>
-
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Sub Category Description"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* <Button
-                  type="button"
-                  onClick={() => remove(index)}
-                  variant="outline"
-                >
-                  Remove Subcategory
-                </Button> */}
-              </div>
-            ))}
-
-            {/* <Button
-              type="button"
-              onClick={() =>
-                append({
-                  name: "",
-                  description: "",
-                  photos: [],
-                })
-              }
-            >
-              Add Subcategory
-            </Button> */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      disabled={isPending}
+                      placeholder="Category Description"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end gap-4 pt-2">
               <Button

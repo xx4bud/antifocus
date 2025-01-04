@@ -1,7 +1,9 @@
+import { prisma } from "@/lib/prisma";
+import {
+  getCategoryDataSelect,
+} from "@/lib/queries";
 import React from "react";
 import CategoriesForm from "./categories-form";
-import { prisma } from "@/lib/prisma";
-import { getCategoryDataInclude } from "@/lib/queries";
 
 interface CategoriesSlugProps {
   params: { slug: string };
@@ -12,16 +14,16 @@ export default async function CategoriesSlug({
 }: CategoriesSlugProps) {
   const { slug } = await params;
 
-  const categories = await prisma.category.findFirst({
-    where: {
-      slug: slug,
-    },
-    include: getCategoryDataInclude(),
-  });
+ const category = await prisma.category.findFirst({
+  where: {
+    slug,
+  },
+  include: getCategoryDataSelect(),
+})
 
   return (
     <div className="grid h-full w-full grid-cols-1 gap-4 md:p-3">
-      <CategoriesForm categories={categories} />
+      <CategoriesForm category={category} />
     </div>
   );
 }

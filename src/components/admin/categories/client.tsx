@@ -1,38 +1,35 @@
-'use client'
+"use client";
 
-import { Category } from "@prisma/client"
-import { Button } from "@/components/ui/button"
-import { Heading } from "@/components/ui/heading"
-import { Separator } from "@/components/ui/separator"
-import { Plus } from "lucide-react"
-import Link from "next/link"
+import { Heading } from "@/components/ui/heading";
+import { CategoryData } from "@/lib/queries";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { Separator } from "@/components/ui/separator";
 
 interface CategoriesClientProps {
-    categories: Category[]
+  categories: CategoryData[];
 }
+
 export default function CategoriesClient({
-    categories
+  categories,
 }: CategoriesClientProps) {
   return (
     <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
       <Heading
         title="Categories"
         amount={categories.length}
-        description="Manage your categories"
+        description="Manage our categories"
         button={
           <Button asChild>
             <Link href={"/admin/categories/add"}>
-              <Plus />
+              <Plus className="mr-2 h-4 w-4" />
               Create
             </Link>
           </Button>
         }
       />
       <Separator className="my-3" />
-
-      {/* <div className="container-wrapper">
-        <DataTable columns={columns} data={categories} />
-      </div> */}
     </div>
-  )
+  );
 }
