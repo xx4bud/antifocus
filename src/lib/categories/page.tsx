@@ -1,35 +1,11 @@
 import React from "react";
 import { prisma } from "@/lib/prisma";
 import CategoriesClient from "./client";
-import { getCategoryDataSelect } from "@/lib/queries";
+import { getCategoryDataInclude } from "@/lib/queries";
 
 export default async function CategoriesPage() {
   const categories = await prisma.category.findMany({
-    include: {
-      photos: {
-        select: {
-          id: true,
-          url: true,
-          publicId: true,
-          categoryId: true,
-        },
-      },
-      subCategories: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          categoryId: true,
-
-        },
-      },
-      _count: {
-        select: {
-          photos: true,
-          subCategories: true,
-        },
-      },
-    },
+    include: getCategoryDataInclude(),
     orderBy: {
       createdAt: "desc",
     },

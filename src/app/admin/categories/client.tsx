@@ -16,7 +16,7 @@ export default function CategoriesClient({
   categories,
 }: CategoriesClientProps) {
   return (
-    <div className="flex h-full flex-col overflow-y-visible rounded-lg border bg-card p-4">
+    <div className="flex h-full w-full flex-col overflow-y-visible rounded-lg border bg-card p-4">
       <Heading
         title="Categories"
         amount={categories.length}
@@ -34,12 +34,12 @@ export default function CategoriesClient({
 
       {categories.map((category) => (
         <Link
-          key={category.id}
+          key={category.slug}
           href={`/admin/categories/${category.slug}`}
         >
           {category.subCategories.map((subCategory) => (
             <div
-              key={subCategory.id}
+              key={subCategory.slug}
               className="flex items-center justify-between px-4 py-2"
             >
               <span>{category.name}</span>

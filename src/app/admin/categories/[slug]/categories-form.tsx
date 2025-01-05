@@ -27,6 +27,7 @@ import { Plus, Trash, XIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { createCategory, updateCategory } from "./actions";
+// import { createCategory, updateCategory } from "./actions";
 
 interface CategoriesFormProps {
   category: CategoryData | null;
@@ -52,19 +53,6 @@ export default function CategoriesForm({
     defaultValues: category
       ? {
           ...category,
-          photos: category.photos.map((photo) => ({
-            url: photo.url,
-            publicId: photo.publicId,
-          })),
-          subCategories: category.subCategories.map(
-            (subCategory) => ({
-              ...subCategory,
-              photos: subCategory.photos.map((photo) => ({
-                url: photo.url,
-                publicId: photo.publicId,
-              })),
-            })
-          ),
         }
       : {
           photos: [],
@@ -79,12 +67,10 @@ export default function CategoriesForm({
         },
   });
 
-  const { fields, append, remove } = useFieldArray(
-    {
-      control: form.control,
-      name: "subCategories",
-    }
-  );
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "subCategories",
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -123,12 +109,12 @@ export default function CategoriesForm({
   const handleSubmit = async (data: CategoriesValues) => {
     setError(undefined);
     startTransition(async () => {
-      // console.log(data);
+      console.log(data);
       let res;
       if (category) {
         res = await updateCategory({
-          id: category.id,
           ...data,
+          id: category.id,
         });
       } else {
         res = await createCategory(data);
@@ -265,8 +251,7 @@ export default function CategoriesForm({
   };
 
   return (
-    <div className="flex h-full flex-col overflow-y-visible rounded-lg border bg-card p-4">
-   
+    <div className="flex h-full w-full flex-col overflow-y-visible rounded-lg border bg-card p-4">
       <Heading
         title={
           category ? "Edit Category" : "Create Category"

@@ -1,6 +1,6 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
 import CategoriesClient from "./client";
+import { prisma } from "@/lib/prisma";
 import { getCategoryDataInclude } from "@/lib/queries";
 
 export default async function CategoriesPage() {
@@ -11,7 +11,7 @@ export default async function CategoriesPage() {
     },
   });
   return (
-    <div className="grid h-full w-full grid-cols-1 gap-4 md:p-3">
+    <div className="flex h-full w-full flex-1">
       <CategoriesClient categories={categories} />
     </div>
   );
