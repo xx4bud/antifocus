@@ -126,7 +126,6 @@ export const CampaignsSchema = z.object({
     .string()
     .trim()
     .min(1, "Name is required")
-    .min(10, "Name must be at least 10 characters")
     .max(250, "Name must be less than 250 characters"),
   description: z
     .string()
@@ -134,7 +133,7 @@ export const CampaignsSchema = z.object({
     .min(1, "Description is required")
     .min(10, "Description must be at least 10 characters")
     .max(
-      5000,
+      3000,
       "Description must be less than 5000 characters"
     ),
   photos: z
@@ -198,7 +197,7 @@ export const CategoriesSchema = z.object({
             "Description must be at least 10 characters."
           )
           .max(
-            5000,
+            3000,
             "Description must be less than 5000 characters."
           ),
         photos: z

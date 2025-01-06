@@ -77,11 +77,24 @@ enum Role {
   USER
 }
 
+model Campaign {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String
+  photos      Photo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("campaigns")
+}
+
 model Category {
-  id     String  @id @default(cuid())
-  slug   String  @unique
-  name   String
-  photos Photo[]
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  name          String
+  photos        Photo[]
   subCategories SubCategory[]
 
   createdAt DateTime @default(now())
@@ -91,8 +104,8 @@ model Category {
 }
 
 model SubCategory {
-  id          String @id @default(cuid())
-  slug        String @unique
+  id          String  @id @default(cuid())
+  slug        String  @unique
   name        String
   description String
   photos      Photo[]
@@ -111,10 +124,12 @@ model Photo {
   url      String
   publicId String
 
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId    String?
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subCategoryId String?
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  campaignId    String?
+  campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

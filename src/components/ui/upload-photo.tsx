@@ -30,7 +30,6 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
   disabled,
   className,
 }) => {
-
   return (
     <div className="flex flex-wrap gap-4">
       {value.map((photo) => (
@@ -43,13 +42,14 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
         >
           <div className="absolute right-2 top-2 z-10">
             <button
-              className="rounded-lg bg-primary p-2"
+              className="rounded-lg bg-primary p-2 disabled:cursor-not-allowed "
               onClick={(e) => {
                 e.preventDefault();
                 if (!disabled) {
                   onRemove(photo.publicId);
                 }
               }}
+              disabled={disabled}
             >
               <X className="h-4 w-4 text-secondary" />
             </button>
@@ -67,7 +67,10 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
       {/* Allow uploading only if there is space */}
       {value.length < max && (
         <CldUploadWidget
-          onSuccess={onUpload}
+          onSuccess={(result, { close }) => {
+            onUpload(result);
+            close();
+          }}
           uploadPreset={
             process.env
               .NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
@@ -83,7 +86,12 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
           {({ open }) => (
             <button
               type="button"
-              onClick={() => !disabled && open()}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!disabled) {
+                  open();
+                }
+              }}
               disabled={disabled}
               className={cn(
                 "relative flex h-[150px] w-[150px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 hover:opacity-90",

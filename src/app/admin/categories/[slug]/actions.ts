@@ -145,7 +145,7 @@ export async function createCategory(data: {
     revalidatePath("/");
     revalidateTag("categories");
 
-    console.log(JSON.stringify(newCategory, null, 2));
+    // console.log(JSON.stringify(newCategory, null, 2));
     return {
       success: true,
       data: newCategory,
@@ -416,7 +416,7 @@ export async function updateCategory(data: {
     revalidatePath("/");
     revalidateTag("categories");
 
-    console.log(JSON.stringify(updatedCategory, null, 2));
+    // console.log(JSON.stringify(updatedCategory, null, 2));
     return {
       success: true,
       data: updatedCategory,
@@ -429,3 +429,109 @@ export async function updateCategory(data: {
     };
   }
 }
+
+export async function deleteCategory(categoryId: string) {
+  try {
+    // permissions
+    const session = await getSession();
+    const admin = session?.user.role === "ADMIN";
+
+    if (!admin) {
+      return {
+        success: false,
+        message: "You are not authorized",
+      };
+    }
+
+    if (!categoryId) {
+      return {
+        success: false,
+        message: "Category ID is required",
+      };
+    }
+
+    // check if category exists
+    const existingCategory = await prisma.category.findUnique({
+      where: { id: categoryId },
+      include: {
+        photos: true,
+        subCategories: {
+          include: {
+            photos: true,
+          },
+        },
+      },
+    });
+
+    if (!existingCategory) {
+      return {
+        success: false,
+        message: "Category not found",
+      };
+    }
+
+    // delete all photos in category
+    for (const photo of existingCategory.photos) {
+      try {
+        await cloudinary.v2.uploader.destroy(photo.publicId);
+      } catch (error) {
+        console.error(`Error deleting category photo: ${photo.publicId}`, error);
+      }
+    }
+
+    // delete all photos in subcategories
+    for (const subCategory of existingCategory.subCategories) {
+      for (const photo of subCategory.photos) {
+        try {
+          await cloudinary.v2.uploader.destroy(photo.publicId);
+        } catch (error) {
+          console.error(`Error deleting subcategory photo: ${photo.publicId}`, error);
+        }
+      }
+    }
+
+    // delete subcategory photos in database
+    await prisma.photo.deleteMany({
+      where: {
+        subCategoryId: {
+          in: existingCategory.subCategories.map((sub) => sub.id),
+        },
+      },
+    });
+
+    // delete subcategories
+    await prisma.subCategory.deleteMany({
+      where: {
+        categoryId,
+      },
+    });
+
+    // delete category photos in database
+    await prisma.photo.deleteMany({
+      where: {
+        categoryId,
+      },
+    });
+
+    // delete category
+    await prisma.category.delete({
+      where: { id: categoryId },
+    });
+
+    revalidatePath("/");
+    revalidateTag("categories");
+
+    // console.log(JSON.stringify(existingCategory, null, 2));
+    return {
+      success: true,
+      message: "Category and its subcategories have been deleted successfully",
+    };
+  } catch (error: any) {
+    console.error("Error deleting category:", error);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
+
