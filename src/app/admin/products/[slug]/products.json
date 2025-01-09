@@ -1,0 +1,65 @@
+{
+  /* photos of products are required min 1 max 5 photos */
+  "photos": [
+    {
+      "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736450370/antifocus/diamond_oemrjl.png",
+      "publicId": "antifocus/diamond_oemrjl"
+    },
+    {
+      "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736450469/antifocus/gift_artjx6.png",
+      "publicId": "antifocus/gift_artjx6"
+    }
+  ],
+  /* name and description of products are required */
+  "name": "ini produk 1",
+  "description": "ini produk 1 description",
+  /*subcategories of products are required min 1 subcategoryIds */
+  "subCategories": [
+    // array of subcategoryIds
+    "cm5nqaiwy0031uz2s3nthlylb", // ini subcategory id 1
+    "cm5p9iv7j0003uz3ookceoq5h" // ini subcategory id 2
+  ],
+  /* status of products are required */
+  "status": "AVAILABLE",
+  /* price of products optional */
+  "price": 0,
+  /* stock of products optional */
+  "stock": 0,
+  /* variants of products optional */
+  /* variants of products max 5 if you want to add variants */
+  "variants": [
+    // array of variants
+    {
+      /* ini variant 1 */
+      /* photos of variants are required min & max 1 photo if you want to add variants */
+      "photos": [
+        {
+          "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736450380/antifocus/living-room_m5kflc.png",
+          "publicId": "antifocus/living-room_m5kflc"
+        }
+      ],
+      /* name of variants are required if you want to add variants */
+      "name": "ini variant 1",
+      /* price of variants are required if you want to add variants */
+      "price": 100,
+      /* stock of variants are required if you want to add variants */
+      "stock": 200
+    },
+    {
+      /* ini variant 2 */
+      /* photos of variants are required min & max 1 photo if you want to add variants */
+      "photos": [
+        {
+          "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736450380/antifocus/living-room_m5kflc.png",
+          "publicId": "antifocus/living-room_m5kflc"
+        }
+      ],
+      /* name of variants are required if you want to add variants */
+      "name": "ini variant 2",
+      /* price of variants are required if you want to add variants */
+      "price": 100,
+      /* stock of variants are required if you want to add variants */
+      "stock": 200
+    }
+  ]
+}

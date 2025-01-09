@@ -63,6 +63,23 @@ export type CampaignData = Prisma.CampaignGetPayload<{
 
 export function getProductDataInclude() {
   return {
+    subCategories: {
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        categoryId: true,
+        photos: {
+          select: {
+            id: true,
+            url: true,
+            publicId: true,
+            subCategoryId: true,
+          },
+        },
+      },
+    },
     photos: {
       select: {
         id: true,
@@ -78,6 +95,14 @@ export function getProductDataInclude() {
         price: true,
         productId: true,
         stock: true,
+        photos: {
+          select: {
+            id: true,
+            url: true,
+            publicId: true,
+            productVariantId: true,
+          },
+        },
       },
     },
   } satisfies Prisma.ProductInclude;

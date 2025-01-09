@@ -105,13 +105,12 @@ model Category {
 }
 
 model SubCategory {
-  id          String    @id @default(cuid())
-  slug        String    @unique
+  id          String                 @id @default(cuid())
+  slug        String                 @unique
   name        String
   description String
   photos      Photo[]
-  products    Product[]
-
+  products    Product[]             @relation("ProductToSubCategory")
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
@@ -122,19 +121,16 @@ model SubCategory {
 }
 
 model Product {
-  id          String           @id @default(cuid())
-  slug        String           @unique
-  name        String
-  description String
-  price       Decimal
-  photos      Photo[]
-  status      ProductStatus    @default(AVAILABLE)
-  stock       Int              @default(0)
-  variants    ProductVariant[] //optional
-  // orderItems  OrderItem[]
-
-  subCategoryId String
-  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  id            String                 @id @default(cuid())
+  slug          String                 @unique
+  name          String
+  description   String
+  price         Decimal
+  photos        Photo[]
+  status        ProductStatus          @default(AVAILABLE)
+  stock         Int                    @default(0)
+  subCategories SubCategory[]           @relation("ProductToSubCategory")
+  variants      ProductVariant[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -144,16 +140,15 @@ model Product {
 
 enum ProductStatus {
   AVAILABLE
-  OUT_OF_STOCK
-  DISCONTINUED
+  ARCHIVED
 }
 
 model ProductVariant {
-  id         String      @id @default(cuid())
-  name       String
-  price      Decimal
-  photos     Photo[]
-  stock      Int         @default(0)
+  id     String  @id @default(cuid())
+  name   String
+  price  Decimal
+  photos Photo[]
+  stock  Int     @default(0)
   // orderItems OrderItem[]
 
   productId String
@@ -194,7 +189,6 @@ model ProductVariant {
 //   id       String  @id @default(cuid())
 //   quantity Int     @default(1)
 //   price    Decimal @default(0.0)
-
 
 //   orderId          String?
 //   order            Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)

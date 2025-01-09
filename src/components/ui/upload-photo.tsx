@@ -37,7 +37,7 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
         <div
           key={photo.publicId}
           className={cn(
-            "relative flex h-[150px] w-[150px] items-center justify-center overflow-hidden rounded-lg border-2 border-muted-foreground/50",
+            "relative flex h-[98px] w-[98px] items-center justify-center overflow-hidden rounded-lg border-2 border-muted-foreground/50",
             className
           )}
         >
@@ -84,7 +84,7 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
             maxFiles: max - value.length,
           }}
           className={cn(
-            "relative flex h-[150px] w-[150px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 hover:opacity-90",
+            "relative flex h-[98px] w-[98px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 hover:opacity-90",
             className
           )}
         >

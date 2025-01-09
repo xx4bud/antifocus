@@ -243,22 +243,31 @@ export const ProductsSchema = z
         3000,
         "Description must be less than 3000 characters."
       ),
-    categories: z
+    subCategories: z
       .array(z.string())
-      .min(1, "At least one category is required."),
-    status: z.nativeEnum(ProductStatus),
-    price: z.coerce.number().optional(),
-    stock: z.coerce.number().int().optional(),
+      .min(1, "At least one subcategory is required."),
+    status: z.nativeEnum(ProductStatus, {
+      errorMap: () => ({
+        message: "Invalid product status.",
+      }),
+    }),
+    price: z.coerce
+      .number()
+      .positive("Price must be greater than 0.")
+      .optional(),
+    stock: z.coerce
+      .number()
+      .int()
+      .nonnegative("Stock cannot be negative.")
+      .optional(),
     variants: z.array(ProductVariantSchema).optional(),
   })
   .refine(
     (data) =>
       (data.variants?.length || 0) > 0 ||
-      (data.price !== undefined &&
-        data.stock !== undefined),
+      (data.price !== undefined && data.stock !== undefined),
     {
-      message:
-        "Either price and stock or variants must be provided.",
+      message: "Either price and stock or variants must be provided.",
     }
   );
 

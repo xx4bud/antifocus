@@ -10,8 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  CategoriesSchema,
-  CategoriesValues,
   ProductsSchema,
   ProductsValues,
 } from "@/lib/schemas";
@@ -25,22 +23,33 @@ import {
 } from "@/components/ui/form";
 import { UploadPhoto } from "@/components/ui/upload-photo";
 import { CloudinaryUploadWidgetResults } from "next-cloudinary";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, XIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { LoadingButton } from "@/components/ui/loading-button";
-// import {
-//   createCategory,
-//   deleteCategory,
-//   updateCategory,
-// } from "./actions";
-import { AlertModal } from "@/components/ui/alert-modal";
 import { ProductStatus } from "@prisma/client";
 import { Textarea } from "@/components/ui/textarea";
-// import { SubCategoriesForm } from "./subcategories-form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SubCategoriesSelect } from "./subcategories-select";
+import { AlertModal } from "@/components/ui/alert-modal";
+import { VariantsForm } from "./variants-form";
+import { createProduct } from "./actions";
+
+type ProductVariant = {
+  name: string;
+  price: number;
+  stock: number;
+  photos: CloudinaryUploadWidgetResults[];
+};
 
 interface ProductsFormProps {
   product: ProductData | null;
-  categories: CategoryData[];
+  categories: CategoryData[]
 }
 
 export default function ProductsForm({
@@ -67,6 +76,7 @@ export default function ProductsForm({
           ...product,
           status: product.status || ProductStatus.AVAILABLE,
           price: product.price.toNumber(),
+          subCategories: product.subCategories.map((subCategory) => subCategory.id),
           variants: product.variants.map((variant) => ({
             ...variant,
             price: variant.price.toNumber(),
@@ -76,13 +86,15 @@ export default function ProductsForm({
           photos: [],
           name: "",
           description: "",
-          categories: [],
+          subCategories: [],
           status: ProductStatus.AVAILABLE,
           price: 0,
           stock: 0,
           variants: [],
         },
   });
+  
+  
 
   const {
     fields: variants,
@@ -135,7 +147,34 @@ export default function ProductsForm({
   }, []);
 
   const handleSubmit = async (data: ProductsValues) => {
-    console.log(data);
+    console.log(JSON.stringify(data, null, 2));
+    setError(undefined);
+    setIsLoading(true);
+    const res = await createProduct({
+      ...data,
+      price: data.price ?? 0,
+      stock: data.stock ?? 0,
+      subCategories: categories.filter((category) => data.subCategories.includes(category.id)),
+    });
+    if (res.success) {
+      toast({
+        title: "Success",
+        description: "Product created successfully",
+      });
+      router.push("/admin/products");
+    } else {
+      setError(res.message);
+    }
+    setIsLoading(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    setOpenAlert(false);
+    handleDelete();
+  };
+
+  const handleDelete = async () => {
+    console.log("handleDelete");
   };
 
   const handleUploadPhoto = (
@@ -163,7 +202,7 @@ export default function ProductsForm({
     }
   };
 
-  const handleUploadSubPhoto = (
+  const handleUploadVariantPhoto = (
     result: CloudinaryUploadWidgetResults,
     index: number
   ) => {
@@ -201,9 +240,9 @@ export default function ProductsForm({
     form.trigger("photos");
 
     setPhotosToDelete((prev) => [...prev, publicId]);
-  };    
+  };
 
-  const handleRemoveSubPhoto = async (
+  const handleRemoveVariantPhoto = async (
     publicId: string,
     index: number
   ) => {
@@ -232,182 +271,287 @@ export default function ProductsForm({
     setRemovedVariants(removedVariants);
   };
 
-  const handleRemoveSubCategory = (index: number) => {
-    const removedData = form.getValues(
-      `variants.${index}`
-    );
-    setRemovedVariants((prev) => [
-      ...prev,
-      removedData,
-    ]);
+  const handleRemoveVariant = (index: number) => {
+    const removedData = form.getValues(`variants.${index}`);
+    setRemovedVariants((prev) => [...prev, removedData]);
     remove(index);
   };
 
-  return (
-    <div>
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(handleSubmit)}
-          className="space-y-8"
-        >
-          <FormField
-            control={form.control}
-            name="photos"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Photos</FormLabel>
-                <FormControl>
-                  <UploadPhoto
-                    value={field.value}
-                    onUpload={(photo) =>
-                      field.onChange([
-                        ...field.value,
-                        photo,
-                      ])
-                    }
-                    onRemove={(publicId) =>
-                      field.onChange(
-                        field.value.filter(
-                          (p) => p.publicId !== publicId
-                        )
-                      )
-                    }
-                    onChange={(newPhotos) =>
-                      field.onChange(newPhotos)
-                    }
-                    max={5}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={isLoading}
-                    placeholder="Product Name"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    disabled={isLoading}
-                    placeholder="Product Description"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="categories"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Categories</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={isLoading}
-                    placeholder="Product Categories"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <FormControl>
-                  <select {...field}>
-                    <option value={ProductStatus.AVAILABLE}>
-                      Available
-                    </option>
-                    <option
-                      value={ProductStatus.OUT_OF_STOCK}
-                    >
-                      Out of Stock
-                    </option>
-                    <option
-                      value={ProductStatus.DISCONTINUED}
-                    >
-                      Discontinued
-                    </option>
-                  </select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+  const formattedCategories = categories.map(
+    (category) => ({
+      label: category.name,
+      value: category.id,
+      subCategories: category.subCategories.map(
+        (subCategory) => ({
+          label: subCategory.name,
+          value: subCategory.id,
+        })
+      ),
+    })
+  );
 
-          {/* Variants */}
-          <div>
-            <div className="flex items-center justify-between">
-              <Heading title="Variants" />
-              <Button
-                type="button"
-                onClick={() =>
-                  append({
-                    name: "",
-                    price: 0,
-                    stock: 0,
-                    photos: [],
-                  })
-                }
+  return (
+    <>
+      <AlertModal
+        open={openAlert}
+        title="Are you sure?"
+        description="This action cannot be undone. It will permanently delete the product and its variants."
+        loading={isDeleting}
+        onClose={() => setOpenAlert(false)}
+        onConfirm={handleDeleteConfirm}
+      />
+
+      <div className="flex h-full w-full flex-col rounded-lg border bg-card p-4">
+        <Heading
+          title={
+            product ? "Edit Product" : "Create Product"
+          }
+          description={
+            product
+              ? "Edit product details"
+              : "Create a new product"
+          }
+          button={
+            product && (
+              <LoadingButton
+                variant="destructive"
+                size="icon"
+                onClick={() => setOpenAlert(true)}
+                disabled={isDeleting}
+                loading={isDeleting}
               >
-                <Plus className="mr-2" />
-                Add Variant
-              </Button>
+                <Trash />
+              </LoadingButton>
+            )
+          }
+        />
+        <Separator className="my-3" />
+
+        <div className="space-y-2">
+          {error && (
+            <div className="flex h-9 items-center justify-center overflow-hidden rounded-md bg-destructive/10 text-destructive">
+              <span>{error}</span>
             </div>
-            {variants.map((variant, index) => (
-              <div
-                key={variant.id}
-                className="mt-4 rounded-lg border p-4"
-              >
-                <FormField
-                  control={form.control}
-                  name={`variants.${index}.name`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Variant Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Variant name"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+          )}
+
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-2"
+            >
+              <FormField
+                control={form.control}
+                name="photos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Photos</FormLabel>
+                    <FormControl>
+                      <UploadPhoto
+                        value={field.value}
+                        onChange={(newPhotos) =>
+                          field.onChange(newPhotos)
+                        }
+                        onRemove={handleRemovePhoto}
+                        onUpload={handleUploadPhoto}
+                        disabled={isLoading}
+                        max={5}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={isLoading}
+                        placeholder="Product Name"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        disabled={isLoading}
+                        placeholder="Product Description"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="subCategories"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subcategories</FormLabel>
+                    <FormControl>
+                      <SubCategoriesSelect
+                        {...field}
+                        categories={formattedCategories}
+                        onValueChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                        }}
+                        defaultValue={field.value}
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a status" />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                          {Object.values(ProductStatus).map(
+                            (status) => (
+                              <SelectItem
+                                key={status}
+                                value={status}
+                              >
+                                {status
+                                  .replace(/_/g, " ")
+                                  .toLowerCase()
+                                  .replace(
+                                    /^(\w)/,
+                                    (match) =>
+                                      match.toUpperCase()
+                                  )}
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {variants.length === 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Product Price"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="stock"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Stock</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Product Stock"
+                            disabled={
+                              isLoading ||
+                              form.watch("status") ===
+                                "ARCHIVED"
+                            }
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {variants.map((field, index) => (
+                <VariantsForm
+                  key={field.id}
+                  index={index}
+                  onRemove={() =>
+                    handleRemoveVariant(index)
+                  }
+                  onUploadPhoto={handleUploadVariantPhoto}
+                  onRemovePhoto={handleRemoveVariantPhoto}
+                  loading={isLoading}
                 />
-                {/* Additional fields for variant */}
+              ))}
+
+              <div className="flex flex-col pt-1">
+                <Button
+                  type="button"
+                  onClick={handleAddVariant}
+                  disabled={isLoading}
+                >
+                  <Plus />
+                  Add Variant
+                </Button>
+
+                <Separator className="my-4" />
+                <div className="flex justify-end gap-4">
+                  <Button
+                    variant="outline"
+                    disabled={isLoading}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push("/admin/products");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <LoadingButton
+                    disabled={isLoading}
+                    loading={isLoading}
+                    type="submit"
+                  >
+                    Save
+                  </LoadingButton>
+                </div>
               </div>
-            ))}
-          </div>
-        </form>
-      </Form>
-    </div>
+            </form>
+          </Form>
+        </div>
+      </div>
+    </>
   );
 }
