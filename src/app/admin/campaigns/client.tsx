@@ -6,9 +6,11 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { CampaignColumn, columns } from "./_components/columns";
+import { DataTable } from "@/components/ui/data-table/data-table";
 
 interface CampaignsClientProps {
-  campaigns: CampaignData[];
+  campaigns: CampaignColumn[]
 }
 
 export default function CampaignsClient({
@@ -30,6 +32,8 @@ export default function CampaignsClient({
       }
     />
     <Separator className="my-3" />
+
+    <DataTable columns={columns} data={campaigns} />
   </div>
   )
 }

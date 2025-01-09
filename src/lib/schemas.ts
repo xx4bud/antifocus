@@ -1,3 +1,4 @@
+import { ProductStatus } from "@prisma/client";
 import * as z from "zod";
 
 const regexSlug = /^[a-zA-Z0-9._-]*$/;
@@ -121,6 +122,20 @@ export const SignInSchema = z
 
 export type SignInValues = z.infer<typeof SignInSchema>;
 
+export const PhotoSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .url("Invalid image URL.")
+    .min(1, "Image URL is required."),
+  publicId: z
+    .string()
+    .trim()
+    .min(1, "Public ID of the image is required."),
+});
+
+export type PhotoValues = z.infer<typeof PhotoSchema>;
+
 export const CampaignsSchema = z.object({
   name: z
     .string()
@@ -137,20 +152,8 @@ export const CampaignsSchema = z.object({
       "Description must be less than 5000 characters"
     ),
   photos: z
-    .object({
-      url: z
-        .string()
-        .trim()
-        .url("Invalid image URL")
-        .min(1, "Url of image is required"),
-      publicId: z
-        .string()
-        .trim()
-        .min(1, "Public ID of image is required"),
-    })
-    .array()
-    .min(1, "At least one image is required")
-    .max(1, "Only one image is allowed"),
+    .array(PhotoSchema)
+    .min(1, "At least one image is required"),
 });
 
 export type CampaignsValues = z.infer<
@@ -164,19 +167,7 @@ export const CategoriesSchema = z.object({
     .min(1, "Name is required.")
     .max(250, "Name must be less than 250 characters."),
   photos: z
-    .array(
-      z.object({
-        url: z
-          .string()
-          .trim()
-          .url("Invalid image URL.")
-          .min(1, "Image URL is required."),
-        publicId: z
-          .string()
-          .trim()
-          .min(1, "Public ID of the image is required."),
-      })
-    )
+    .array(PhotoSchema)
     .min(1, "At least one image is required."),
   subCategories: z
     .array(
@@ -201,26 +192,8 @@ export const CategoriesSchema = z.object({
             "Description must be less than 5000 characters."
           ),
         photos: z
-          .array(
-            z.object({
-              url: z
-                .string()
-                .trim()
-                .url("Invalid image URL.")
-                .min(1, "Image URL is required."),
-              publicId: z
-                .string()
-                .trim()
-                .min(
-                  1,
-                  "Public ID of the image is required."
-                ),
-            })
-          )
-          .min(
-            1,
-            "At least one photo is required in subcategories."
-          ),
+          .array(PhotoSchema)
+          .min(1, "At least one image is required."),
       })
     )
     .min(1, "At least one subcategory is required."),
@@ -229,3 +202,64 @@ export const CategoriesSchema = z.object({
 export type CategoriesValues = z.infer<
   typeof CategoriesSchema
 >;
+
+export const ProductVariantSchema = z.object({
+  photos: z
+    .array(PhotoSchema)
+    .min(1, "At least one image is required."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required.")
+    .max(250, "Name must be less than 250 characters."),
+  price: z.coerce
+    .number()
+    .min(1, "Variant price must be greater than 1"),
+  stock: z.coerce
+    .number()
+    .int()
+    .min(0, "Variant stock cannot be negative."),
+});
+
+export const ProductsSchema = z
+  .object({
+    photos: z
+      .array(PhotoSchema)
+      .min(1, "At least one image is required."),
+    name: z
+      .string()
+      .trim()
+      .min(1, "Name is required.")
+      .max(250, "Name must be less than 250 characters."),
+    description: z
+      .string()
+      .trim()
+      .min(1, "Description is required.")
+      .min(
+        10,
+        "Description must be at least 10 characters."
+      )
+      .max(
+        3000,
+        "Description must be less than 3000 characters."
+      ),
+    categories: z
+      .array(z.string())
+      .min(1, "At least one category is required."),
+    status: z.nativeEnum(ProductStatus),
+    price: z.coerce.number().optional(),
+    stock: z.coerce.number().int().optional(),
+    variants: z.array(ProductVariantSchema).optional(),
+  })
+  .refine(
+    (data) =>
+      (data.variants?.length || 0) > 0 ||
+      (data.price !== undefined &&
+        data.stock !== undefined),
+    {
+      message:
+        "Either price and stock or variants must be provided.",
+    }
+  );
+
+export type ProductsValues = z.infer<typeof ProductsSchema>;

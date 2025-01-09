@@ -60,3 +60,29 @@ export function getCampaignDataInclude() {
 export type CampaignData = Prisma.CampaignGetPayload<{
   include: ReturnType<typeof getCampaignDataInclude>;
 }>;
+
+export function getProductDataInclude() {
+  return {
+    photos: {
+      select: {
+        id: true,
+        url: true,
+        publicId: true,
+        productId: true,
+      },
+    },
+    variants: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        productId: true,
+        stock: true,
+      },
+    },
+  } satisfies Prisma.ProductInclude;
+}
+
+export type ProductData = Prisma.ProductGetPayload<{
+  include: ReturnType<typeof getProductDataInclude>;
+}>;

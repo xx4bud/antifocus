@@ -8,22 +8,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type CategoryColumn = {
+export type CampaignColumn = {
   id: string;
   slug: string;
   name: string;
-  photos: {
-    url: string;
-    publicId: string;
-  }[];
-  _count: {
-    subCategories: number;
-  };
+  description: string;
   createdAt: string;
   updatedAt: string;
 };
 
-export const columns: ColumnDef<CategoryColumn>[] = [
+export const columns: ColumnDef<CampaignColumn>[] = [
   {
     id: " select",
     header: ({ table }) => (
@@ -67,7 +61,7 @@ export const columns: ColumnDef<CategoryColumn>[] = [
     cell: ({ cell }) => (
       <div className="flex items-center">
         <Image
-          src={cell.getValue<string>() || "Category Icon"}
+          src={cell.getValue<string>() || "Campaign Icon"}
           alt={cell.row.original.name}
           width={50}
           height={50}
@@ -77,14 +71,9 @@ export const columns: ColumnDef<CategoryColumn>[] = [
     ),
   },
   {
-    accessorKey: "_count.subCategories",
+    accessorKey: "description",
     header: ({ column }) => (
-      <ColumnHeader column={column} title="Subs" />
-    ),
-    cell: ({ cell }) => (
-      <div className="flex items-center px-3">
-        <span>{cell.getValue<number>()}</span>
-      </div>
+      <ColumnHeader column={column} title="Description" />
     ),
   },
   {

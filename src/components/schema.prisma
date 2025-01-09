@@ -65,7 +65,7 @@ model User {
   passwordHash  String?
   accounts      Account[]
   sessions      Session[]
-  // orders        Order[]
+  orders        Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -97,6 +97,7 @@ model Category {
   name          String
   photos        Photo[]
   subCategories SubCategory[]
+  products      Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -130,9 +131,11 @@ model Product {
   photos      Photo[]
   status      ProductStatus    @default(AVAILABLE)
   stock       Int              @default(0)
-  variants    ProductVariant[] //optional
-  // orderItems  OrderItem[]
+  variants    ProductVariant[]
+  orderItems  OrderItem[]
 
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subCategoryId String
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
 
@@ -154,7 +157,7 @@ model ProductVariant {
   price      Decimal
   photos     Photo[]
   stock      Int         @default(0)
-  // orderItems OrderItem[]
+  orderItems OrderItem[]
 
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -165,49 +168,48 @@ model ProductVariant {
   @@map("product_variants")
 }
 
-// model Order {
-//   id           String      @id @default(cuid())
-//   totalAmount  Decimal     @default(0)
-//   status       OrderStatus @default(PENDING)
-//   items        OrderItem[]
-//   paymentInfo  String?
-//   shippingInfo String?
+model Order {
+  id           String      @id @default(cuid())
+  totalAmount  Decimal     @default(0)
+  status       OrderStatus @default(PENDING)
+  items        OrderItem[]
+  paymentInfo  String?
+  shippingInfo String?
 
-//   userId String
-//   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-//   @@map("orders")
-// }
+  @@map("orders")
+}
 
-// enum OrderStatus {
-//   PENDING
-//   CONFIRMED
-//   SHIPPED
-//   DELIVERED
-//   CANCELED
-// }
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
 
-// model OrderItem {
-//   id       String  @id @default(cuid())
-//   quantity Int     @default(1)
-//   price    Decimal @default(0.0)
+model OrderItem {
+  id       String  @id @default(cuid())
+  quantity Int     @default(1)
+  price    Decimal @default(0.0)
 
+  orderId          String?
+  order            Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String?
+  product          Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariantId String?
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
-//   orderId          String?
-//   order            Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-//   productId        String?
-//   product          Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
-//   productVariantId String?
-//   productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   @@map("order_items")
-// }
+  @@map("order_items")
+}
 
 model Photo {
   id       String @id @default(cuid())

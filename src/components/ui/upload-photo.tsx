@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  CldUploadButton,
   CldUploadWidget,
   CloudinaryUploadWidgetResults,
 } from "next-cloudinary";
@@ -42,7 +43,7 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
         >
           <div className="absolute right-2 top-2 z-10">
             <button
-              className="rounded-lg bg-primary p-2 disabled:cursor-not-allowed "
+              className="rounded-lg bg-primary p-2 disabled:cursor-not-allowed"
               onClick={(e) => {
                 e.preventDefault();
                 if (!disabled) {
@@ -66,7 +67,7 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
 
       {/* Allow uploading only if there is space */}
       {value.length < max && (
-        <CldUploadWidget
+        <CldUploadButton
           onSuccess={(result, { close }) => {
             onUpload(result);
             close();
@@ -82,26 +83,13 @@ export const UploadPhoto: React.FC<UploadPhotoProps> = ({
             resourceType: "image",
             maxFiles: max - value.length,
           }}
-        >
-          {({ open }) => (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                if (!disabled) {
-                  open();
-                }
-              }}
-              disabled={disabled}
-              className={cn(
-                "relative flex h-[150px] w-[150px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 hover:opacity-90",
-                className
-              )}
-            >
-              <ImagePlus className="size-10 text-muted-foreground hover:opacity-90" />
-            </button>
+          className={cn(
+            "relative flex h-[150px] w-[150px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 hover:opacity-90",
+            className
           )}
-        </CldUploadWidget>
+        >
+          <ImagePlus className="size-10 text-muted-foreground hover:opacity-90" />
+        </CldUploadButton>
       )}
     </div>
   );

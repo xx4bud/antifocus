@@ -214,7 +214,7 @@ export default function CategoriesForm({
         ...form.getValues("photos"),
         { url, publicId },
       ]);
-      console.log(form.getValues("photos"));
+      form.trigger("photos");
     }
   };
 
@@ -244,6 +244,7 @@ export default function CategoriesForm({
         `subCategories.${index}.photos`,
         updatedPhotos
       );
+      form.trigger(`subCategories.${index}.photos`);
     }
   };
 
@@ -252,6 +253,7 @@ export default function CategoriesForm({
       .getValues("photos")
       .filter((photo) => photo.publicId !== publicId);
     form.setValue("photos", updatedPhotos);
+    form.trigger("photos");
 
     setPhotosToDelete((prev) => [...prev, publicId]);
   };
@@ -267,6 +269,7 @@ export default function CategoriesForm({
       `subCategories.${index}.photos`,
       updatedPhotos
     );
+    form.trigger(`subCategories.${index}.photos`);
 
     setPhotosToDelete((prev) => [...prev, publicId]);
   };
@@ -419,6 +422,7 @@ export default function CategoriesForm({
                 <div className="flex justify-end gap-4">
                   <Button
                     variant="outline"
+                    disabled={isLoading}
                     onClick={(e) => {
                       e.preventDefault();
                       router.push("/admin/categories");
@@ -427,7 +431,7 @@ export default function CategoriesForm({
                     Cancel
                   </Button>
                   <LoadingButton
-                  disabled={isLoading}
+                    disabled={isLoading}
                     loading={isLoading}
                     type="submit"
                   >

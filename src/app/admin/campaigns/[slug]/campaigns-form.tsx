@@ -28,6 +28,11 @@ import { UploadPhoto } from "@/components/ui/upload-photo";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  createCampaign,
+  deleteCampaign,
+  updateCampaign,
+} from "./actions";
 
 interface CampaignsFormProps {
   campaign: CampaignData | null;
@@ -101,12 +106,71 @@ export default function CampaignsForm({
   }, []);
 
   const handleSubmit = async (data: CampaignsValues) => {
-    console.log(data);
+    setError(undefined);
+    setIsLoading(true);
+    let res;
+    if (campaign) {
+      res = await updateCampaign({
+        ...data,
+        id: campaign.id,
+      });
+    } else {
+      res = await createCampaign(data);
+    }
+    if (res.success) {
+      if (photosToDelete.length > 0) {
+        for (const publicId of photosToDelete) {
+          try {
+            await fetch(
+              `/api/cloudinary?publicId=${publicId}`,
+              {
+                method: "DELETE",
+              }
+            );
+          } catch (error) {
+            console.error("Error deleting photo:", error);
+          }
+        }
+      }
+      toast({
+        title: "Success",
+        description: campaign
+          ? "Campaign updated successfully"
+          : "Campaign created successfully",
+      });
+      localStorage.removeItem("tempPhotos");
+      router.push("/admin/campaigns");
+      router.refresh();
+    } else {
+      setError(res.message);
+    }
+    setIsLoading(false);
   };
 
-  const handleDeleteConfirm = async () => {};
+  const handleDeleteConfirm = async () => {
+    setOpenAlert(false);
+    handleDelete();
+  };
 
-  const handleDelete = async () => {};
+  const handleDelete = async () => {
+    setError(undefined);
+    setIsDeleting(true);
+    if (!campaign) return;
+
+    const res = await deleteCampaign(campaign.id);
+
+    if (res.success) {
+      toast({
+        title: "Success",
+        description: "Campaign deleted successfully",
+      });
+      router.push("/admin/campaigns");
+      router.refresh();
+    } else {
+      setError(res.message);
+    }
+    setIsDeleting(false);
+  };
 
   const handleUploadPhoto = (
     result: CloudinaryUploadWidgetResults
@@ -129,11 +193,19 @@ export default function CampaignsForm({
         ...form.getValues("photos"),
         { url, publicId },
       ]);
-      console.log(form.getValues("photos"));
+      form.trigger("photos");
     }
   };
 
-  const handleRemovePhoto = (publicId: string) => {};
+  const handleRemovePhoto = async (publicId: string) => {
+    const updatedPhotos = form
+      .getValues("photos")
+      .filter((photo) => photo.publicId !== publicId);
+    form.setValue("photos", updatedPhotos);
+    form.trigger("photos");
+
+    setPhotosToDelete((prev) => [...prev, publicId]);
+  };
 
   return (
     <>
@@ -250,6 +322,7 @@ export default function CampaignsForm({
                 <div className="flex items-center justify-end gap-4">
                   <Button
                     variant="outline"
+                    disabled={isLoading}
                     onClick={(e) => {
                       e.preventDefault();
                       router.push("/admin/campaigns");
