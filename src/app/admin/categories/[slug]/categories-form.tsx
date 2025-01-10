@@ -176,9 +176,8 @@ export default function CategoriesForm({
   const handleDelete = async () => {
     setError(undefined);
     setIsDeleting(true);
-    if (!category) return;
 
-    const res = await deleteCategory(category.id);
+    const res = await deleteCategory(category!.id);
 
     if (res.success) {
       toast({

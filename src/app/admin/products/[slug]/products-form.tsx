@@ -38,7 +38,7 @@ import {
 import { SubCategoriesSelect } from "./subcategories-select";
 import { AlertModal } from "@/components/ui/alert-modal";
 import { VariantsForm } from "./variants-form";
-import { createProduct } from "./actions";
+import { createProduct, deleteProduct, updateProduct } from "./actions";
 
 type ProductVariant = {
   name: string;
@@ -49,7 +49,7 @@ type ProductVariant = {
 
 interface ProductsFormProps {
   product: ProductData | null;
-  categories: CategoryData[]
+  categories: CategoryData[];
 }
 
 export default function ProductsForm({
@@ -93,8 +93,6 @@ export default function ProductsForm({
           variants: [],
         },
   });
-  
-  
 
   const {
     fields: variants,
@@ -150,22 +148,37 @@ export default function ProductsForm({
     console.log(JSON.stringify(data, null, 2));
     setError(undefined);
     setIsLoading(true);
-    const res = await createProduct({
-      ...data,
-      price: data.price ?? 0,
-      stock: data.stock ?? 0,
-      subCategories: categories.filter((category) => data.subCategories.includes(category.id)),
-    });
+    let res;
+    if (product) {
+      res = await updateProduct({
+        ...data,
+        id: product.id,
+        price: data.price !== undefined ? data.price : 0,
+        stock: data.stock !== undefined ? data.stock : 0,
+        subCategories: data.subCategories.map((subCategory) => ({
+          id: subCategory,
+        })),
+      });
+    } else {
+      res = await createProduct({
+        ...data,
+        price: data.price !== undefined ? data.price : 0,
+        stock: data.stock !== undefined ? data.stock : 0,
+        subCategories: data.subCategories.map((subCategory) => ({
+          id: subCategory,
+        })),
+      });
+    }
     if (res.success) {
       toast({
         title: "Success",
-        description: "Product created successfully",
+        description: "Product created successfully.",
       });
       router.push("/admin/products");
     } else {
       setError(res.message);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleDeleteConfirm = () => {
@@ -174,8 +187,23 @@ export default function ProductsForm({
   };
 
   const handleDelete = async () => {
-    console.log("handleDelete");
-  };
+    setError(undefined);
+    setIsDeleting(true);
+    const res = await deleteProduct(product!.id);
+    console.log(res);
+
+    if (res.success) {
+      toast({
+        title: "Success",
+        description: "Product deleted successfully.",
+      });
+      router.push("/admin/products");
+    } else {
+      setError(res.message);
+
+    }
+    setIsDeleting(false);
+};
 
   const handleUploadPhoto = (
     result: CloudinaryUploadWidgetResults

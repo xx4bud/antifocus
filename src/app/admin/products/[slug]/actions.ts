@@ -10,14 +10,8 @@ import {
   getProductDataInclude,
   getSession,
 } from "@/lib/queries";
-import {
-  Product,
-  ProductVariant,
-  Category,
-  Photo,
-} from "@prisma/client";
 
-interface CreateProductData {
+export async function createProduct(data: {
   name: string;
   photos: { url: string; publicId: string }[];
   description: string;
@@ -33,19 +27,7 @@ interface CreateProductData {
     stock: number;
     photos: { url: string; publicId: string }[];
   }[];
-}
-
-interface UpdateProductData extends CreateProductData {
-  id: string;
-}
-
-interface DeleteProductData {
-  productId: string;
-}
-
-export async function createProduct(
-  data: CreateProductData
-) {
+}) {
   try {
     // Permissions
     const session = await getSession();
@@ -123,7 +105,7 @@ export async function createProduct(
     }
 
     // Existing product slug
-   let productSlug = slugify(name);
+    let productSlug = slugify(name);
     const existingProduct = await prisma.product.findUnique(
       {
         where: { slug: productSlug },
@@ -189,9 +171,25 @@ export async function createProduct(
   }
 }
 
-export async function updateProduct(
-  data: UpdateProductData
-) {
+export async function updateProduct(data: {
+  id: string;
+  name: string;
+  photos: { url: string; publicId: string }[];
+  description: string;
+  subCategories: {
+    id: string;
+  }[];
+  status: "AVAILABLE" | "ARCHIVED";
+  price: number;
+  stock: number;
+  variants?: {
+    id?: string;
+    name: string;
+    price: number;
+    stock: number;
+    photos: { url: string; publicId: string }[];
+  }[];
+}) {
   try {
     // Permissions
     const session = await getSession();
@@ -207,7 +205,7 @@ export async function updateProduct(
     // Validate input data
     ProductsSchema.parse(data);
     const {
-      id,
+      id: productId,
       name,
       photos,
       description,
@@ -218,17 +216,47 @@ export async function updateProduct(
       variants,
     } = data;
 
-    if (!id) {
+    if (!productId) {
       return {
         success: false,
         message: "Product ID is required",
       };
     }
 
+    if (
+      !name ||
+      !photos ||
+      !description ||
+      !subCategories ||
+      !status
+    ) {
+      return {
+        success: false,
+        message: "All product fields are required",
+      };
+    }
+
+    if (variants && variants.length > 0) {
+      for (const variant of variants) {
+        // ProductVariantSchema.parse(variant);
+        if (
+          !variant.name ||
+          !variant.price ||
+          !variant.stock ||
+          !variant.photos
+        ) {
+          return {
+            success: false,
+            message: "All variant fields are required",
+          };
+        }
+      }
+    }
+
     // Existing product
     const existingProduct = await prisma.product.findUnique(
       {
-        where: { id },
+        where: { id: productId },
         include: getProductDataInclude(),
       }
     );
@@ -254,12 +282,12 @@ export async function updateProduct(
     }
 
     await prisma.photo.deleteMany({
-      where: { productId: id },
+      where: { productId },
     });
 
     // Update product
     const updatedProduct = await prisma.product.update({
-      where: { id },
+      where: { id: productId },
       data: {
         name,
         description,
@@ -281,6 +309,7 @@ export async function updateProduct(
       },
     });
 
+    // delete and recreate variants
     const currentVariants = existingProduct.variants.map(
       (variant) => variant.id
     );
@@ -291,15 +320,15 @@ export async function updateProduct(
       (id) => !newVariants?.includes(id)
     );
 
-    // Delete and recreate variants
     await prisma.productVariant.deleteMany({
-      where: { productId: id },
+      where: { productId },
     });
 
     await prisma.productVariant.deleteMany({
       where: { id: { in: variantsToDelete } },
     });
 
+    // delete old variant photos
     const currentVariantPhotos =
       existingProduct.variants.flatMap((variant) =>
         variant.photos.map((photo) => photo.publicId)
@@ -316,21 +345,44 @@ export async function updateProduct(
       await cloudinary.v2.uploader.destroy(publicId);
     }
 
+    await prisma.photo.deleteMany({
+      where: { productId: { in: variantsToDelete } },
+    });
+
+    // update variants
     for (const variant of variants!) {
-      await prisma.productVariant.create({
-        data: {
-          productId: id,
-          name: variant.name,
-          price: variant.price,
-          stock: variant.stock,
-          photos: {
-            create: variant.photos.map((photo) => ({
-              url: photo.url,
-              publicId: photo.publicId,
-            })),
+      if (variant.id) {
+        await prisma.productVariant.update({
+          where: { id: variant.id },
+          data: {
+            name: variant.name,
+            price: variant.price,
+            stock: variant.stock,
+            photos: {
+              create: variant.photos.map((photo) => ({
+                url: photo.url,
+                publicId: photo.publicId,
+              })),
+            },
           },
-        },
-      });
+        });
+      } else {
+        // create new variant
+        await prisma.productVariant.create({
+          data: {
+            productId: productId,
+            name: variant.name,
+            price: variant.price,
+            stock: variant.stock,
+            photos: {
+              create: variant.photos.map((photo) => ({
+                url: photo.url,
+                publicId: photo.publicId,
+              })),
+            },
+          },
+        });
+      }
     }
 
     revalidatePath("/");
@@ -349,9 +401,7 @@ export async function updateProduct(
   }
 }
 
-export async function deleteProduct({
-  productId,
-}: DeleteProductData) {
+export async function deleteProduct(productId: string) {
   try {
     // Permissions
     const session = await getSession();
@@ -375,10 +425,7 @@ export async function deleteProduct({
     const existingProduct = await prisma.product.findUnique(
       {
         where: { id: productId },
-        include: {
-          photos: true,
-          variants: { include: { photos: true } },
-        },
+        include: getProductDataInclude(),
       }
     );
 
@@ -394,7 +441,9 @@ export async function deleteProduct({
       await cloudinary.v2.uploader.destroy(photo.publicId);
     }
 
-    await prisma.photo.deleteMany({ where: { productId } });
+    await prisma.photo.deleteMany({
+      where: { productId },
+    });
 
     // Delete variant photos
     for (const variant of existingProduct.variants) {
@@ -408,7 +457,7 @@ export async function deleteProduct({
     await prisma.photo.deleteMany({
       where: {
         productId: {
-          in: existingProduct.variants.map((v) => v.id),
+          in: existingProduct.variants.map((variant) => variant.id),
         },
       },
     });
