@@ -71,11 +71,11 @@ export default function ProductsForm({
     defaultValues: product
       ? {
           ...product,
-          price: product?.price.toNumber(),
+          price: parseFloat(product?.price.toString()),
           stock: product?.stock,
           variants: product?.variants?.map((variant) => ({
             ...variant,
-            price: variant.price.toNumber(),
+            price: parseFloat(variant.price.toString()),
           })),
         }
       : {
@@ -86,18 +86,15 @@ export default function ProductsForm({
           status: ProductStatus.AVAILABLE,
           price: 0,
           stock: 0,
-          variants: []
+          variants: [],
         },
   });
-
-  // console.log("defaultValues", form.getValues());
 
   const handleSubmit = async (data: any) => {
     setError(undefined);
     setIsLoading(true);
     try {
       let res;
-      // console.log("data", data);
       if (product) {
         res = await updateProduct({
           ...data,
@@ -113,19 +110,70 @@ export default function ProductsForm({
         });
       }
       if (res.success) {
-        // console.log("res", res);
-        router.refresh()
+        if (photosToDelete.length > 0) {
+          for (const publicId of photosToDelete) {
+            try {
+              await fetch(
+                `/api/cloudinary?publicId=${publicId}`,
+                {
+                  method: "DELETE",
+                }
+              );
+            } catch (error) {
+              console.error("Error deleting photo:", error);
+            }
+          }
+        }
+        toast({
+          title: "Success",
+          description: product
+            ? "Product updated successfully"
+            : "Product created successfully",
+        });
+        localStorage.removeItem("tempPhotos");
+        router.push("/admin/products");
+        router.refresh();
+      } else {
+        setError(res.message);
       }
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (error) {
+      console.error(
+        "Error creating/updating product:",
+        error
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    console.log("handleDelete");
-  }
+    setError(undefined);
+    setIsLoading(true);
+    try {
+      const res = await deleteProduct(product!.id);
+      if (res.success) {
+        toast({
+          title: "Product deleted successfully.",
+        });
+        router.push("/admin/products");
+        router.refresh();
+      }
+      if (res.success) {
+        toast({
+          title: "Deleted",
+          description: "Product deleted successfully.",
+        });
+        router.push("/admin/products");
+        router.refresh();
+      } else {
+        setError(res.message);
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -291,7 +339,7 @@ export default function ProductsForm({
 
   return (
     <>
-     <AlertModal
+      <AlertModal
         open={openAlert}
         title="Are you sure?"
         description="This action cannot be undone. It will permanently delete the product and its variants."
@@ -299,7 +347,7 @@ export default function ProductsForm({
         onClose={() => setOpenAlert(false)}
         onConfirm={handleDelete}
       />
-       <div className="flex h-full w-full flex-col rounded-lg border bg-card p-4">
+      <div className="flex h-full w-full flex-col rounded-lg border bg-card p-4">
         <Heading
           title={
             product ? "Edit Product" : "Create Product"
@@ -403,8 +451,8 @@ export default function ProductsForm({
                     <FormControl>
                       <SubCategoriesSelect
                         disabled={isLoading}
-                        value={field.value || []}
-                        onChange={field.onChange}
+                        defaultValue={field.value || []}
+                        onValueChange={field.onChange}
                         categories={formattedCategories}
                       />
                     </FormControl>
@@ -551,5 +599,5 @@ export default function ProductsForm({
         </div>
       </div>
     </>
-  )
+  );
 }

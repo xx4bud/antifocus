@@ -43,13 +43,13 @@ export function TableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        {/* {table.getColumn("status") && (
+        {table.getColumn("status") && (
           <ColumnFacetedFilter
             column={table.getColumn("status")}
             title="Status"
             options={formattedStatuses}
           />
-        )} */}
+        )}
         {/* {table.getColumn("priority") && (
           <ColumnFacetedFilter
             column={table.getColumn("priority")}

@@ -56,39 +56,38 @@ export async function createProduct(data: {
       variants,
     } = data;
 
-    // if (
-    //   !name ||
-    //   !photos ||
-    //   !description ||
-    //   !subCategories ||
-    //   !status
-    // ) {
-    //   return {
-    //     success: false,
-    //     message: "All product fields are required",
-    //   };
-    // }
+    if (
+      !name ||
+      !photos ||
+      !description ||
+      !subCategories ||
+      !status
+    ) {
+      return {
+        success: false,
+        message: "All product fields are required",
+      };
+    }
 
     if (variants && variants.length > 0) {
       for (const variant of variants) {
         ProductVariantSchema.parse(variant);
 
-        // if (
-        //   !variant.name ||
-        //   !variant.price ||
-        //   !variant.stock ||
-        //   !variant.photos
-        // ) {
-        //   return {
-        //     success: false,
-        //     message: "All variant fields are required",
-        //   };
-        // }
+        if (
+          !variant.name ||
+          !variant.price ||
+          !variant.stock ||
+          !variant.photos
+        ) {
+          return {
+            success: false,
+            message: "All variant fields are required",
+          };
+        }
       }
     }
 
-    // Check for existing subcategories
-    // Check for existing subcategories
+    // Existing subcategories
     const subCategoryExists =
       await prisma.subCategory.findMany({
         where: {
@@ -124,7 +123,6 @@ export async function createProduct(data: {
     }
 
     // Create product
-    // Buat produk baru
     const newProduct = await prisma.product.create({
       data: {
         slug: productSlug,
@@ -163,7 +161,7 @@ export async function createProduct(data: {
       },
     });
 
-    // Konversi price dan variant.price menjadi string
+    // Format product
     const formattedProduct = {
       ...newProduct,
       price: newProduct.price
@@ -177,7 +175,7 @@ export async function createProduct(data: {
       })),
     };
 
-    // Serialisasi dengan SuperJSON
+    // Serialize product
     const { json: serializedProduct } = superjson.serialize(
       formattedProduct
     );
@@ -268,7 +266,7 @@ export async function updateProduct(data: {
 
     if (variants && variants.length > 0) {
       for (const variant of variants) {
-        // ProductVariantSchema.parse(variant);
+        ProductVariantSchema.parse(variant);
         if (
           !variant.name ||
           !variant.price ||
@@ -416,7 +414,7 @@ export async function updateProduct(data: {
       }
     }
 
-    // Konversi price dan variant.price menjadi string
+    // Format product
     const formattedProduct = {
       ...updatedProduct,
       price: updatedProduct.price
@@ -430,7 +428,7 @@ export async function updateProduct(data: {
       })),
     };
 
-    // Serialisasi dengan SuperJSON
+    // Serialize product
     const { json: serializedProduct } = superjson.serialize(
       formattedProduct
     );
@@ -528,6 +526,7 @@ export async function deleteProduct(productId: string) {
       include: getProductDataInclude(),
     });
 
+    // Format product
     const formattedProduct = {
       ...deletedProduct,
       price: deletedProduct.price
@@ -541,7 +540,7 @@ export async function deleteProduct(productId: string) {
       })),
     };
 
-    // Serialisasi dengan SuperJSON
+    // Serialize product
     const { json: serializedProduct } = superjson.serialize(
       formattedProduct
     );

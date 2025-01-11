@@ -3,12 +3,12 @@ import { neonConfig, Pool } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import superjson from "superjson";
 import ws from "ws";
+import { Decimal } from "@prisma/client/runtime/library";
 
-// Setting WebSocket
+
 neonConfig.webSocketConstructor = ws;
 neonConfig.poolQueryViaFetch = true;
 
-// PrismaClient untuk Neon
 const prismaClientSingleton = () => {
   const neon = new Pool({
     connectionString: process.env.POSTGRES_PRISMA_URL!,

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/form";
 import { UploadPhoto } from "@/components/ui/upload-photo";
 import { CloudinaryUploadWidgetResults } from "next-cloudinary";
-import { Plus, Trash } from "lucide-react";
+import { Loader2, Plus, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import {
@@ -319,15 +319,14 @@ export default function CategoriesForm({
           }
           button={
             category && (
-              <LoadingButton
+              <Button
                 variant="destructive"
                 size="icon"
                 onClick={() => setOpenAlert(true)}
                 disabled={isDeleting}
-                loading={isDeleting}
               >
-                <Trash />
-              </LoadingButton>
+                <Trash/>
+              </Button>
             )
           }
         />

@@ -2,7 +2,7 @@ import React from "react";
 import CategoriesClient from "./client";
 import { prisma } from "@/lib/prisma";
 import { getCategoryDataInclude } from "@/lib/queries";
-import { formatNumber, formatRelativeDate } from "@/lib/utils";
+import { formatRelativeDate } from "@/lib/utils";
 
 export default async function CategoriesPage() {
   const categories = await prisma.category.findMany({

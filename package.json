@@ -41,7 +41,6 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
     "date-fns": "^4.1.0",
-    "decimal.js": "^10.4.3",
     "embla-carousel-autoplay": "^8.5.1",
     "embla-carousel-react": "^8.5.1",
     "ky": "^1.7.4",

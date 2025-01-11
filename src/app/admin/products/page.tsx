@@ -3,6 +3,8 @@ import ProductsClient from "./client";
 import { prisma, superjson } from "@/lib/prisma";
 import { getProductDataInclude } from "@/lib/queries";
 import { ProductData } from "@/lib/queries";
+import { formatRelativeDate, formatNumber } from "@/lib/utils";
+import { format } from "date-fns";
 
 export default async function ProductsPage() {
   const products = await prisma.product.findMany({
@@ -14,22 +16,32 @@ export default async function ProductsPage() {
 
   const formattedProducts = products.map((product) => ({
     ...product,
-    price: product.price.toString(),
+    photo: product.photos[0].url,
+    price: formatNumber(product.price.toNumber()),
+    stock: product.stock,
+    createdAt: formatRelativeDate(product.createdAt),
+    subCategories: product.subCategories.map((subCategory) => ({
+      ...subCategory,
+      id: subCategory.id,
+      name: subCategory.name,
+    })),
+    status: product.status,
+    updatedAt: formatRelativeDate(product.updatedAt),
     variants: product.variants?.map((variant) => ({
       ...variant,
-      price: variant.price.toString(),
+      price: formatNumber(variant.price.toNumber()),
     })),
   }));
-  const { json: serializedProducts } = superjson.serialize(
-    formattedProducts
-  );
-
-  const initialProducts =
-    serializedProducts as unknown as ProductData[];
+  
+  // const { json: serializedProducts } = superjson.serialize(
+  //   formattedProducts
+  // );
+  // const formattedProductsData =
+  //   serializedProducts as unknown as ProductData[];
 
   return (
     <div className="grid h-full w-full grid-cols-1 gap-4 md:p-3">
-      <ProductsClient products={initialProducts} />
+      <ProductsClient products={formattedProducts} />
     </div>
   );
 }

@@ -44,13 +44,13 @@ export default async function ProductsSlug({
     formattedProduct
   );
 
-  const initialProduct =
+  const formattedProductData =
     serializedProduct as unknown as ProductData | null;
 
   return (
     <div className="grid h-full w-full grid-cols-1 gap-4 md:p-3">
       <ProductsForm
-        product={initialProduct}
+        product={formattedProductData}
         categories={categories}
       />
     </div>

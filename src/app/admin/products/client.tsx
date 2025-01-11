@@ -6,9 +6,11 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { ProductData } from "@/lib/queries";
+import { DataTable } from "@/components/ui/data-table/data-table";
+import { columns, ProductColumn } from "./_components/columns";
 
 interface ProductsClientProps {
-  products: ProductData[];
+  products: ProductColumn[];
 }
 
 export default function ProductsClient({ products }: ProductsClientProps) {
@@ -29,13 +31,7 @@ export default function ProductsClient({ products }: ProductsClientProps) {
       />
       <Separator className="my-3" />
 
-      <ul>
-        {products.map((product) => (
-          <li key={product.id}>
-            {product.name} - Rp {parseFloat(product.price.toString())}
-          </li>
-        ))}
-      </ul>
+      <DataTable columns={columns} data={products} />
     </div>
   );
 }

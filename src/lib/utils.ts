@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { clsx, type ClassValue } from "clsx";
 import {
   formatDate,
@@ -8,6 +7,16 @@ import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+/, "");
 }
 
 export function formatRelativeDate(from: Date) {
@@ -28,29 +37,12 @@ export function formatRelativeDate(from: Date) {
   }
 }
 
-export function formatNumber(n: number): string {
-  return Intl.NumberFormat("id-ID", {
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
-    notation: "compact",
     minimumFractionDigits: 0,
-    maximumFractionDigits: 1,
-  }).format(n);
+  }).format(value);
 }
 
-export function slugify(input: string): string {
-  return input
-  .toLowerCase()
-  .trim()
-  .replace(/\s+/g, "-")
-  .replace(/[^a-z0-9-]/g, "")
-  .replace(/-+/g, "-")
-  .replace(/^-+/, "");
-}
 
-export function decimalReviver(key: string, value: any) {
-  if (value && typeof value === "object" && "__decimal__" in value) {
-    return new Prisma.Decimal(value.__decimal__);
-  }
-  return value;
-}
