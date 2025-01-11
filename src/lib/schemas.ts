@@ -4,6 +4,7 @@ import * as z from "zod";
 const regexSlug = /^[a-zA-Z0-9._-]*$/;
 const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// SignUp Schema
 export const SignUpSchema = z
   .object({
     name: z
@@ -70,6 +71,7 @@ export const SignUpSchema = z
 
 export type SignUpValues = z.infer<typeof SignUpSchema>;
 
+// SignIn Schema
 export const SignInSchema = z
   .object({
     identifier: z
@@ -122,6 +124,7 @@ export const SignInSchema = z
 
 export type SignInValues = z.infer<typeof SignInSchema>;
 
+// Photo Schema
 export const PhotoSchema = z.object({
   url: z
     .string()
@@ -136,6 +139,7 @@ export const PhotoSchema = z.object({
 
 export type PhotoValues = z.infer<typeof PhotoSchema>;
 
+// Campaign Schema
 export const CampaignsSchema = z.object({
   name: z
     .string()
@@ -149,7 +153,7 @@ export const CampaignsSchema = z.object({
     .min(10, "Description must be at least 10 characters")
     .max(
       3000,
-      "Description must be less than 5000 characters"
+      "Description must be less than 3000 characters"
     ),
   photos: z
     .array(PhotoSchema)
@@ -160,6 +164,7 @@ export type CampaignsValues = z.infer<
   typeof CampaignsSchema
 >;
 
+// Category Schema
 export const CategoriesSchema = z.object({
   name: z
     .string()
@@ -189,7 +194,7 @@ export const CategoriesSchema = z.object({
           )
           .max(
             3000,
-            "Description must be less than 5000 characters."
+            "Description must be less than 3000 characters."
           ),
         photos: z
           .array(PhotoSchema)
@@ -203,6 +208,7 @@ export type CategoriesValues = z.infer<
   typeof CategoriesSchema
 >;
 
+// ProductVariant Schema
 export const ProductVariantSchema = z.object({
   photos: z
     .array(PhotoSchema)
@@ -213,7 +219,7 @@ export const ProductVariantSchema = z.object({
     .min(1, "Name is required.")
     .max(250, "Name must be less than 250 characters."),
   price: z.coerce
-    .number()
+    .string()
     .min(1, "Variant price must be greater than 1"),
   stock: z.coerce
     .number()
@@ -221,6 +227,11 @@ export const ProductVariantSchema = z.object({
     .min(0, "Variant stock cannot be negative."),
 });
 
+export type ProductVariantValues = z.infer<
+  typeof ProductVariantSchema
+>;
+
+// Product Schema
 export const ProductsSchema = z
   .object({
     photos: z
@@ -244,30 +255,29 @@ export const ProductsSchema = z
         "Description must be less than 3000 characters."
       ),
     subCategories: z
-      .array(z.string())
-      .min(1, "At least one subcategory is required."),
+      .array(
+        z.object({
+          id: z.string(),
+        })
+      )
+      .default([]),
     status: z.nativeEnum(ProductStatus, {
       errorMap: () => ({
         message: "Invalid product status.",
       }),
     }),
-    price: z.coerce
-      .number()
-      .positive("Price must be greater than 0.")
-      .optional(),
-    stock: z.coerce
-      .number()
-      .int()
-      .nonnegative("Stock cannot be negative.")
-      .optional(),
+    price: z.coerce.string().optional(),
+    stock: z.coerce.number().int().optional(),
     variants: z.array(ProductVariantSchema).optional(),
   })
   .refine(
     (data) =>
       (data.variants?.length || 0) > 0 ||
-      (data.price !== undefined && data.stock !== undefined),
+      (data.price !== undefined &&
+        data.stock !== undefined),
     {
-      message: "Either price and stock or variants must be provided.",
+      message:
+        "Either price and stock or variants must be provided.",
     }
   );
 

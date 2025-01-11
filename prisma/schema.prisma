@@ -105,14 +105,14 @@ model Category {
 }
 
 model SubCategory {
-  id          String                 @id @default(cuid())
-  slug        String                 @unique
+  id          String    @id @default(cuid())
+  slug        String    @unique
   name        String
   description String
   photos      Photo[]
-  products    Product[]             @relation("ProductToSubCategory")
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products    Product[] @relation("ProductToSubCategory")
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,15 +121,16 @@ model SubCategory {
 }
 
 model Product {
-  id            String                 @id @default(cuid())
-  slug          String                 @unique
-  name          String
-  description   String
-  price         Decimal
-  photos        Photo[]
-  status        ProductStatus          @default(AVAILABLE)
-  stock         Int                    @default(0)
-  subCategories SubCategory[]           @relation("ProductToSubCategory")
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  photos      Photo[]
+  name        String
+  description String
+  price       Decimal       @default(0)
+  stock       Int           @default(0)
+  status      ProductStatus @default(AVAILABLE)
+
+  subCategories SubCategory[]    @relation("ProductToSubCategory")
   variants      ProductVariant[]
 
   createdAt DateTime @default(now())
@@ -146,7 +147,7 @@ enum ProductStatus {
 model ProductVariant {
   id     String  @id @default(cuid())
   name   String
-  price  Decimal
+  price  Decimal @default(0)
   photos Photo[]
   stock  Int     @default(0)
   // orderItems OrderItem[]

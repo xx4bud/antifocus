@@ -1,81 +1,82 @@
 "use server";
 
+import { cloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
+import {
+  getCampaignDataInclude,
+  getSession,
+} from "@/lib/queries";
 import { CampaignsSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/utils";
-import { cloudinary } from "@/lib/cloudinary";
 import { revalidatePath, revalidateTag } from "next/cache";
 
-export async function submitCampaign(data: {
+export async function createCampaign(data: {
   name: string;
   description: string;
-  photos: {
-    url: string;
-    publicId: string;
-  }[];
+  photos: { url: string; publicId: string }[];
 }) {
   try {
-    CampaignsSchema.parse(data);
+    // permissions
+    const session = await getSession();
+    const admin = session?.user.role === "ADMIN";
 
+    if (!admin) {
+      return {
+        success: false,
+        message: "You are not authorized",
+      };
+    }
+
+    // validate input data
+    CampaignsSchema.parse(data);
     const { name, description, photos } = data;
 
-    if (!name) {
+    if (!name || !description || !photos) {
       return {
         success: false,
-        message: "Name is required",
+        message: "All campaign fields are required",
       };
     }
 
-    if (!description) {
-      return {
-        success: false,
-        message: "Description is required",
-      };
-    }
-
-    if (!photos || photos.length === 0) {
-      return {
-        success: false,
-        message: "Photos is required",
-      };
-    }
-
+    // existing campaign slug
     let campaignSlug = slugify(name);
-
-    const existedSlug = await prisma.campaign.findUnique({
-      where: { slug: campaignSlug },
-    });
-
-    if (existedSlug) {
-      campaignSlug = `${campaignSlug}-${Math.floor(Math.random() * 100)}`;
+    const existingCampaignsSlug =
+      await prisma.campaign.findUnique({
+        where: {
+          slug: campaignSlug,
+        },
+      });
+    if (existingCampaignsSlug) {
+      return {
+        success: false,
+        message: `Campaign slug "${campaignSlug}" already exists`,
+      };
     }
 
+    // create campaign
     const newCampaign = await prisma.campaign.create({
       data: {
+        slug: campaignSlug,
         name,
         description,
-        slug: campaignSlug,
         photos: {
-          createMany: {
-            data: photos.map(
-              (photo: {
-                url: string;
-                publicId: string;
-              }) => ({
-                url: photo.url,
-                publicId: photo.publicId,
-              })
-            ),
-          },
+          create: photos.map((photo) => ({
+            url: photo.url,
+            publicId: photo.publicId,
+          })),
         },
       },
     });
+
+    revalidatePath("/");
+    revalidateTag("campaigns");
 
     return {
       success: true,
       data: newCampaign,
     };
   } catch (error: any) {
+    console.error("Error creating campaign:", error);
     return {
       success: false,
       message: error.message,
@@ -87,48 +88,50 @@ export async function updateCampaign(data: {
   id: string;
   name: string;
   description: string;
-  photos: {
-    url: string;
-    publicId: string;
-  }[];
+  photos: { url: string; publicId: string }[];
 }) {
   try {
+    // permissions
+    const session = await getSession();
+    const admin = session?.user.role === "ADMIN";
+
+    if (!admin) {
+      return {
+        success: false,
+        message: "You are not authorized",
+      };
+    }
+
+    // validate input data
     CampaignsSchema.parse(data);
+    const {
+      id: campaignId,
+      name,
+      description,
+      photos,
+    } = data;
 
-    const { id, name, description, photos } = data;
-
-    if (!id) {
+    if (!campaignId) {
       return {
         success: false,
-        message: "Campaign not found",
+        message: "Campaign ID is required",
       };
     }
 
-    if (!name) {
+    if (!name || !description || !photos) {
       return {
         success: false,
-        message: "Name is required",
+        message: "All campaign fields are required",
       };
     }
 
-    if (!description) {
-      return {
-        success: false,
-        message: "Description is required",
-      };
-    }
-
-    if (!photos || photos.length === 0) {
-      return {
-        success: false,
-        message: "Photos is required",
-      };
-    }
-
+    // existing campaign
     const existingCampaign =
       await prisma.campaign.findUnique({
-        where: { id },
-        include: { photos: true },
+        where: {
+          id: campaignId,
+        },
+        include: getCampaignDataInclude(),
       });
 
     if (!existingCampaign) {
@@ -138,66 +141,37 @@ export async function updateCampaign(data: {
       };
     }
 
-    let campaignSlug = slugify(name);
-
-    const existedSlug = await prisma.campaign.findUnique({
-      where: { slug: campaignSlug },
-      include: {
-        photos: true,
-      },
-    });
-
-    if (existedSlug && existedSlug.id !== id) {
-      campaignSlug = `${campaignSlug}-${Math.floor(Math.random() * 100)}`;
-    }
-
-    const currentPhotoPublicIds =
-      existingCampaign.photos.map(
-        (photo) => photo.publicId
-      );
-    const photoIds = photos.map((photo) => photo.publicId);
-    const photosToDelete = currentPhotoPublicIds.filter(
-      (photo) => {
-        return !photoIds.includes(photo);
-      }
+    // delete old photos
+    const currentPhotos = existingCampaign.photos.map(
+      (photo) => photo.publicId
     );
-
-    if (photosToDelete.length > 0) {
-      for (const publicId of photosToDelete) {
-        try {
-          await cloudinary.v2.uploader.destroy(publicId);
-        } catch (error) {
-          console.error(`Error deleting photo:`, error);
-        }
-      }
+    const newPhotos = photos.map((photo) => photo.publicId);
+    const photosToDelete = currentPhotos.filter(
+      (photo) => !newPhotos.includes(photo)
+    );
+    for (const publicId of photosToDelete) {
+      await cloudinary.v2.uploader.destroy(publicId);
     }
 
     await prisma.photo.deleteMany({
       where: {
-        campaignSlug: existingCampaign.slug,
+        campaignId,
       },
     });
 
+    // update campaign
     const updatedCampaign = await prisma.campaign.update({
-      where: { id },
+      where: {
+        id: campaignId,
+      },
       data: {
         name,
         description,
-        slug: campaignSlug,
         photos: {
-          deleteMany: {
-            NOT: {
-              publicId: {
-                in: currentPhotoPublicIds,
-              },
-            },
-          },
-          createMany: {
-            data: photos.map((photo) => ({
-              url: photo.url,
-              publicId: photo.publicId,
-            })),
-          },
+          create: photos.map((photo) => ({
+            url: photo.url,
+            publicId: photo.publicId,
+          })),
         },
       },
     });
@@ -210,6 +184,7 @@ export async function updateCampaign(data: {
       data: updatedCampaign,
     };
   } catch (error: any) {
+    console.error("Error updating campaign:", error);
     return {
       success: false,
       message: error.message,
@@ -217,12 +192,34 @@ export async function updateCampaign(data: {
   }
 }
 
-export async function deleteCampaign(id: string) {
+export async function deleteCampaign(campaignId: string) {
   try {
+    // permissions
+    const session = await getSession();
+    const admin = session?.user.role === "ADMIN";
+
+    if (!admin) {
+      return {
+        success: false,
+        message: "You are not authorized",
+      };
+    }
+
+    // validate input data
+    if (!campaignId) {
+      return {
+        success: false,
+        message: "Campaign ID is required",
+      };
+    }
+
+    // existing campaign
     const existingCampaign =
       await prisma.campaign.findUnique({
-        where: { id },
-        include: { photos: true },
+        where: {
+          id: campaignId,
+        },
+        include: getCampaignDataInclude(),
       });
 
     if (!existingCampaign) {
@@ -232,23 +229,32 @@ export async function deleteCampaign(id: string) {
       };
     }
 
-    for (const { publicId } of existingCampaign.photos) {
-      try {
-        await cloudinary.v2.uploader.destroy(publicId);
-      } catch (error) {
-        console.error(`Error deleting photo:`, error);
-      }
+    // delete all photos
+    for (const photo of existingCampaign.photos) {
+      await cloudinary.v2.uploader.destroy(photo.publicId);
     }
-
-    const deletedCampaign = await prisma.campaign.delete({
-      where: { id },
+    await prisma.photo.deleteMany({
+      where: {
+        campaignId,
+      },
     });
+
+    // delete campaign
+    await prisma.campaign.delete({
+      where: {
+        id: campaignId,
+      },
+    });
+
+    revalidatePath("/");
+    revalidateTag("campaigns");
 
     return {
       success: true,
-      data: deletedCampaign,
+      message: "Campaign deleted successfully",
     };
   } catch (error: any) {
+    console.error("Error deleting campaign:", error);
     return {
       success: false,
       message: error.message,

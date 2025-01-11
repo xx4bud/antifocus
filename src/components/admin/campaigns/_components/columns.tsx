@@ -2,20 +2,17 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
-import { ColumnHeader } from "./column-header";
+import { ColumnHeader } from "@/components/ui/data-table/column-header";
 import { RowActions } from "./row-actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export type CampaignColumn = {
   id: string;
   slug: string;
   name: string;
   description: string;
-  photos: {
-    url: string;
-    publicId: string;
-  }[];
   createdAt: string;
   updatedAt: string;
 };
@@ -58,11 +55,13 @@ export const columns: ColumnDef<CampaignColumn>[] = [
   },
   {
     accessorKey: "photo",
-    header: "Photo",
+    header: ({ column }) => (
+      <ColumnHeader column={column} title="Photo" />
+    ),
     cell: ({ cell }) => (
       <div className="flex items-center">
         <Image
-          src={cell.getValue<string>()}
+          src={cell.getValue<string>() || "Campaign Icon"}
           alt={cell.row.original.name}
           width={50}
           height={50}
@@ -73,26 +72,44 @@ export const columns: ColumnDef<CampaignColumn>[] = [
   },
   {
     accessorKey: "description",
-    header: "Description",
+    header: ({ column }) => (
+      <ColumnHeader column={column} title="Description" />
+    ),
   },
   {
     accessorKey: "createdAt",
-    header: "Created At",
+    header: ({ column }) => (
+      <ColumnHeader column={column} title="Created At" />
+    ),
+    cell: ({ cell }) => (
+      <div className="flex items-center">
+        {cell.getValue<Date>().toLocaleString()}
+      </div>
+    ),
   },
   {
     accessorKey: "updatedAt",
-    header: "Updated At",
+    header: ({ column }) => (
+      <ColumnHeader column={column} title="Updated At" />
+    ),
+    cell: ({ cell }) => (
+      <div className="flex items-center">
+        {cell.getValue<Date>().toLocaleString()}
+      </div>
+    ),
   },
   {
     id: "actions",
-    header: ({}) => {
-      return (
-        <div className="flex items-center">
-          <p className="hidden md:flex">Actions</p>
-          <Settings className="ml-2 flex size-4 md:hidden" />
-        </div>
-      );
-    },
+    header: () => (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-1 h-8 md:-ml-5"
+      >
+        <span className="hidden md:block">Actions</span>
+        <Settings className="h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => <RowActions row={row} />,
   },
 ];

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { clsx, type ClassValue } from "clsx";
 import {
   formatDate,
@@ -47,4 +48,9 @@ export function slugify(input: string): string {
   .replace(/^-+/, "");
 }
 
-
+export function decimalReviver(key: string, value: any) {
+  if (value && typeof value === "object" && "__decimal__" in value) {
+    return new Prisma.Decimal(value.__decimal__);
+  }
+  return value;
+}

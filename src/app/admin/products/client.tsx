@@ -1,19 +1,17 @@
 "use client";
 
 import { Heading } from "@/components/ui/heading";
-import { ProductData } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
+import { ProductData } from "@/lib/queries";
 
 interface ProductsClientProps {
   products: ProductData[];
 }
 
-export default function ProductsClient({
-  products,
-}: ProductsClientProps) {
+export default function ProductsClient({ products }: ProductsClientProps) {
   return (
     <div className="flex h-full w-full flex-col overflow-auto rounded-lg border bg-card p-4">
       <Heading
@@ -31,6 +29,13 @@ export default function ProductsClient({
       />
       <Separator className="my-3" />
 
-     </div>
+      <ul>
+        {products.map((product) => (
+          <li key={product.id}>
+            {product.name} - Rp {parseFloat(product.price.toString())}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

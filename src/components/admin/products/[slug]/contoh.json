@@ -1,0 +1,49 @@
+{
+    "photos": [
+      {
+        "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736500595/antifocus/c0511d5d-64b2-4deb-8def-cb18410e4794_gmvevf.webp",
+        "publicId": "antifocus/c0511d5d-64b2-4deb-8def-cb18410e4794_gmvevf"
+      },
+      {
+        "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736503689/antifocus/diamond_pchail.png",
+        "publicId": "antifocus/diamond_pchail"
+      }
+    ],
+    "name": "produk 1",
+    "description": "deskripsi produk 1",
+    "subCategories": [
+      {
+        "id": "cm5nqaiwy0031uz2s3nthlylb"
+      },
+      {
+        "id": "cm5p9iv7j0003uz3ookceoq5h"
+      }
+    ],
+    "status": "AVAILABLE",
+    "price": 322,
+    "stock": 322,
+    "variants": [
+      {
+        "photos": [
+          {
+            "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736503682/antifocus/box_n4y6g0.png",
+            "publicId": "antifocus/box_n4y6g0"
+          }
+        ],
+        "name": "variant 1",
+        "price": 123,
+        "stock": 123
+      },
+      {
+        "photos": [
+          {
+            "url": "https://res.cloudinary.com/dveujcs9k/image/upload/v1736503729/antifocus/games_sandrs.png",
+            "publicId": "antifocus/games_sandrs"
+          }
+        ],
+        "name": "variant 2",
+        "price": 123,
+        "stock": 123
+      }
+    ]
+  }

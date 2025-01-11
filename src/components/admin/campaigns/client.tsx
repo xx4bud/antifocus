@@ -1,43 +1,39 @@
-"use client"
+"use client";
 
-import { Heading } from "@/components/ui/heading"
-import { Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import Link from "next/link"
-import {
-  CampaignColumn,
-  columns,
-} from "./_components/columns"
-import { DataTable } from "./_components/data-table"
+import { CampaignData } from "@/lib/queries";
+import { Button } from "@/components/ui/button";
+import { Heading } from "@/components/ui/heading";
+import { Separator } from "@/components/ui/separator";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { CampaignColumn, columns } from "./_components/columns";
+import { DataTable } from "@/components/ui/data-table/data-table";
 
-interface CaampaignsClientProps {
+interface CampaignsClientProps {
   campaigns: CampaignColumn[]
 }
 
 export default function CampaignsClient({
   campaigns,
-}: CaampaignsClientProps) {
+}: CampaignsClientProps) {
   return (
-    <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
-      <Heading
-        title="Campaigns"
-        amount={campaigns.length}
-        description="Manage your campaigns and categories"
-        button={
-          <Button asChild>
-            <Link href={"/admin/campaigns/add"}>
-              <Plus />
-              Create
-            </Link>
-          </Button>
-        }
-      />
-      <Separator className="my-3" />
+    <div className="flex h-full w-full flex-col overflow-auto rounded-lg border bg-card p-4">
+    <Heading
+      title="Campaigns"
+      amount={campaigns.length}
+      description="Manage our campaigns"
+      button={
+        <Button asChild>
+          <Link href={"/admin/campaigns/add"}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create
+          </Link>
+        </Button>
+      }
+    />
+    <Separator className="my-3" />
 
-      <div className="container-wrapper">
-        <DataTable columns={columns} data={campaigns} />
-      </div>
-    </div>
+    <DataTable columns={columns} data={campaigns} />
+  </div>
   )
 }

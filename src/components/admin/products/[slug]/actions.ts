@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma, superjson } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import {
   ProductsSchema,
   ProductVariantSchema,
@@ -11,8 +11,8 @@ import { cloudinary } from "@/lib/cloudinary";
 import {
   getProductDataInclude,
   getSession,
-  ProductData,
 } from "@/lib/queries";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export async function createProduct(data: {
   name: string;
@@ -22,11 +22,11 @@ export async function createProduct(data: {
     id: string;
   }[];
   status: "AVAILABLE" | "ARCHIVED";
-  price?: string;
+  price?: number;
   stock?: number;
   variants?: {
     name: string;
-    price: string;
+    price: number;
     stock: number;
     photos: { url: string; publicId: string }[];
   }[];
@@ -124,7 +124,6 @@ export async function createProduct(data: {
     }
 
     // Create product
-    // Buat produk baru
     const newProduct = await prisma.product.create({
       data: {
         slug: productSlug,
@@ -158,39 +157,14 @@ export async function createProduct(data: {
           })),
         },
       },
-      include: {
-        variants: true,
-      },
     });
-
-    // Konversi price dan variant.price menjadi string
-    const productWithStringPrice = {
-      ...newProduct,
-      price: newProduct.price
-        ? newProduct.price.toString()
-        : "0",
-      variants: newProduct.variants.map((variant) => ({
-        ...variant,
-        price: variant.price
-          ? variant.price.toString()
-          : "0",
-      })),
-    };
-
-    // Serialisasi dengan SuperJSON
-    const { json: serializedProduct } = superjson.serialize(
-      productWithStringPrice
-    );
-
-    const initialProduct =
-      serializedProduct as unknown as ProductData;
 
     revalidatePath("/");
     revalidateTag("products");
 
     return {
       success: true,
-      data: initialProduct,
+      data: newProduct,
     };
   } catch (error: any) {
     console.error("Error creating product:", error);
@@ -210,12 +184,12 @@ export async function updateProduct(data: {
     id: string;
   }[];
   status: "AVAILABLE" | "ARCHIVED";
-  price?: string;
-  stock?: number;
+  price: number;
+  stock: number;
   variants?: {
     id?: string;
     name: string;
-    price: string;
+    price: number;
     stock: number;
     photos: { url: string; publicId: string }[];
   }[];
@@ -318,7 +292,6 @@ export async function updateProduct(data: {
     // Update product
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
-      include: getProductDataInclude(),
       data: {
         name,
         description,
@@ -416,32 +389,12 @@ export async function updateProduct(data: {
       }
     }
 
-    const productWithStringPrice = {
-      ...updatedProduct,
-      price: updatedProduct.price
-        ? updatedProduct.price.toString()
-        : "0",
-      variants: updatedProduct.variants.map((variant) => ({
-        ...variant,
-        price: variant.price
-          ? variant.price.toString()
-          : "0",
-      })),
-    };
-
-    // Serialisasi dengan SuperJSON
-    const { json: serializedProduct } = superjson.serialize(
-      productWithStringPrice
-    );
-
-    const initialProduct =
-      serializedProduct as unknown as ProductData;
-
     revalidatePath("/");
     revalidateTag("products");
+
     return {
       success: true,
-      data: initialProduct,
+      data: updatedProduct,
     };
   } catch (error: any) {
     console.error("Error updating product:", error);

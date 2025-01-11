@@ -12,30 +12,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CampaignColumn } from "./columns";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { AlertModal } from "@/components/ui/alert-modal";
 import { deleteCampaign } from "../[slug]/actions";
 
 interface RowActionsProps<TData> {
@@ -45,21 +28,19 @@ interface RowActionsProps<TData> {
 export function RowActions<TData>({
   row,
 }: RowActionsProps<TData>) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
   const campaign = row.original as CampaignColumn;
-  const baseUrl = process.env.AUTH_URL!;
+  // const baseUrl = process.env.AUTH_URL!;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(
-      `${baseUrl}/api/campaigns/${campaign.slug}`
-    );
+    navigator.clipboard.writeText(campaign.id);
     toast({
       title: "Success",
-      description: "Campaign slug copied to clipboard",
+      description: "Campaign id copied to clipboard",
     });
   };
 
@@ -67,83 +48,70 @@ export function RowActions<TData>({
     router.push(`/admin/campaigns/${campaign.slug}`);
   };
 
-  const handleDelete = async () => {
-    setIsLoading(true);
+  const handleDeleteConfirmation = () => {
     setOpenAlert(false);
-    try {
-      const res = await deleteCampaign(
-        campaign!.id
-      );
-      if (res.success) {
-        toast({
-          title: "Success",
-          description: "Campaign deleted successfully",
-        });
-        localStorage.removeItem("tempPhotos");
-        router.push("/admin/campaigns");
-        router.refresh();
-      } else {
-        throw new Error(res.message);
-      }
-    } catch (error) {
-      console.error(`Error deleting campaign:`, error);
-    } finally {
-      setIsLoading(false);
+    handleDelete();
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    if (!campaign) return;
+
+    const res = await deleteCampaign(campaign.id);
+
+    if (res.success) {
+      toast({
+        title: "Deleted",
+        description: "Campaign deleted successfully.",
+      });
+      router.push("/admin/campaigns");
+      router.refresh();
+    } else {
+      toast({
+        title: "Error",
+        description: res.message,
+      });
     }
+    setIsDeleting(false);
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-        >
-          <MoreHorizontal />
-          <span className="sr-only">Open menu</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleCopy}>
-          <Copy />
-          Copy
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleEdit}>
-          <Edit />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => setOpenAlert(true)}
-        >
-          <Trash />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-      <AlertDialog
+    <>
+      <AlertModal
         open={openAlert}
-        onOpenChange={setOpenAlert}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirm Deletion?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This action is permanent. It will delete your
-              campaign and remove data from our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isLoading}
-            >
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </DropdownMenu>
+        title="Are you sure?"
+        description="This action cannot be undone. It will permanently delete the campaign."
+        loading={isDeleting}
+        onClose={() => setOpenAlert(false)}
+        onConfirm={handleDeleteConfirmation}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+          >
+            <MoreHorizontal />
+            <span className="sr-only">Open menu</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleCopy}>
+            <Copy />
+            Copy ID
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleEdit}>
+            <Edit />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setOpenAlert(true)}
+          >
+            <Trash />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }

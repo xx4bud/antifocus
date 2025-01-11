@@ -6,16 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
+import { DataTable } from "@/components/ui/data-table/data-table";
+import {
+  CategoryColumn,
+  columns,
+} from "./_components/columns";
 
 interface CategoriesClientProps {
-  categories: CategoryData[];
+  categories: CategoryColumn[];
 }
 
 export default function CategoriesClient({
   categories,
 }: CategoriesClientProps) {
   return (
-    <div className="flex flex-col overflow-auto rounded-lg border bg-card p-4">
+    <div className="flex h-full w-full flex-col overflow-auto rounded-lg border bg-card p-4">
       <Heading
         title="Categories"
         amount={categories.length}
@@ -30,6 +35,8 @@ export default function CategoriesClient({
         }
       />
       <Separator className="my-3" />
+
+      <DataTable columns={columns} data={categories} />
     </div>
   );
 }

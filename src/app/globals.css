@@ -10,6 +10,7 @@ body,
   overflow-y: auto !important;
 }
 
+
 @layer base {
   :root {
     --background: 0 0% 97%;

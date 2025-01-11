@@ -43,7 +43,6 @@ import {
   deleteProduct,
   updateProduct,
 } from "./actions";
-import { superjson } from "@/lib/prisma";
 
 interface ProductsFormProps {
   product: ProductData | null;
@@ -57,6 +56,7 @@ export default function ProductsForm({
   const [error, setError] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [photosToDelete, setPhotosToDelete] = useState<
     string[]
   >([]);
@@ -66,67 +66,7 @@ export default function ProductsForm({
   const router = useRouter();
   const { toast } = useToast();
 
-  const form = useForm<ProductsValues>({
-    resolver: zodResolver(ProductsSchema),
-    defaultValues: product
-      ? {
-          ...product,
-          price: product?.price.toString(),
-          stock: product?.stock,
-          variants: product?.variants?.map((variant) => ({
-            ...variant,
-            price: variant.price.toString(),
-          })),
-        }
-      : {
-          name: "",
-          photos: [],
-          description: "",
-          subCategories: [],
-          status: ProductStatus.AVAILABLE,
-          price: "",
-          stock: 0,
-          variants: []
-        },
-  });
-
-  // console.log("defaultValues", form.getValues());
-
-  const handleSubmit = async (data: any) => {
-    setError(undefined);
-    setIsLoading(true);
-    try {
-      let res;
-      // console.log("data", data);
-      if (product) {
-        res = await updateProduct({
-          ...data,
-          id: product.id,
-        });
-        toast({
-          title: "Product updated successfully.",
-        });
-      } else {
-        res = await createProduct(data);
-        toast({
-          title: "Product created successfully.",
-        });
-      }
-      if (res.success) {
-        // console.log("res", res);
-        router.refresh()
-      }
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    console.log("handleDelete");
-  }
-
+  // Delete temp photos
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -167,6 +107,39 @@ export default function ProductsForm({
     cleanUpPhotos();
   }, []);
 
+  const form = useForm<ProductsValues>({
+    resolver: zodResolver(ProductsSchema),
+    defaultValues: product
+      ? {
+          ...product,
+          price: parseFloat(product.price.toString()),
+          stock: parseInt(product.stock.toString()),
+          subCategories:
+            product.subCategories?.map((subCategory) => ({
+              id: subCategory.id,
+            })) ?? [],
+          variants:
+            product.variants.map((variant) => ({
+              id: variant.id,
+              name: variant.name,
+              price: parseFloat(variant.price.toString()),
+              stock: parseInt(variant.stock.toString()),
+              photos: variant.photos,
+            })) || [],
+        }
+      : {
+          photos: [],
+          name: "",
+          description: "",
+          subCategories: [],
+          status: ProductStatus.AVAILABLE,
+          price: 0,
+          stock: 0,
+          variants: [],
+        },
+  });
+  
+
   const {
     fields: variants,
     append,
@@ -175,6 +148,101 @@ export default function ProductsForm({
     control: form.control,
     name: "variants",
   });
+
+  const handleDelete = async () => {
+    setError(undefined);
+    setIsDeleting(true);
+    const res = await deleteProduct(product!.id);
+    console.log(res);
+
+    if (res.success) {
+      toast({
+        title: "Success",
+        description: "Product deleted successfully.",
+      });
+      router.push("/admin/products");
+    } else {
+      setError(res.message);
+    }
+    setIsDeleting(false);
+  };
+
+  const handleSubmit = async (data: ProductsValues) => {
+    console.log(JSON.stringify(data, null, 2));
+    setError(undefined);
+    setIsLoading(true);
+
+    let res;
+    try {
+      if (product) {
+        res = await updateProduct({
+          ...data,
+          id: product.id,
+          price: data.price ?? 0,
+          stock: data.stock ?? 0,
+          subCategories: data.subCategories.map(
+            (subCategory) => ({
+              id: subCategory.id,
+            })
+          ),
+        });
+      } else {
+        res = await createProduct({
+          ...data,
+          price: data.price,
+          stock: data.stock,
+          subCategories: data.subCategories.map(
+            (subCategory) => ({
+              id: subCategory.id,
+            })
+          ),
+        });
+      }
+
+      if (res.success) {
+        if (photosToDelete.length > 0) {
+          // Delete photos concurrently using Promise.all
+          await Promise.all(
+            photosToDelete.map((publicId) =>
+              fetch(
+                `/api/cloudinary?publicId=${publicId}`,
+                {
+                  method: "DELETE",
+                }
+              ).catch((error) =>
+                console.error(
+                  "Error deleting photo:",
+                  error
+                )
+              )
+            )
+          );
+        }
+
+        toast({
+          title: "Success",
+          description: product
+            ? "Product updated successfully."
+            : "Product created successfully.",
+        });
+        localStorage.removeItem("tempPhotos");
+        router.push("/admin/products");
+        router.refresh();
+      } else {
+        setError(res.message);
+      }
+    } catch (error) {
+      console.error("Error handling product:", error);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    setOpenAlert(false);
+    handleDelete();
+  };
 
   const handleUploadPhoto = (
     result: CloudinaryUploadWidgetResults
@@ -291,15 +359,16 @@ export default function ProductsForm({
 
   return (
     <>
-     <AlertModal
+      <AlertModal
         open={openAlert}
         title="Are you sure?"
         description="This action cannot be undone. It will permanently delete the product and its variants."
-        loading={isLoading}
+        loading={isDeleting}
         onClose={() => setOpenAlert(false)}
-        onConfirm={handleDelete}
+        onConfirm={handleDeleteConfirm}
       />
-       <div className="flex h-full w-full flex-col rounded-lg border bg-card p-4">
+
+      <div className="flex h-full w-full flex-col rounded-lg border bg-card p-4">
         <Heading
           title={
             product ? "Edit Product" : "Create Product"
@@ -315,8 +384,8 @@ export default function ProductsForm({
                 variant="destructive"
                 size="icon"
                 onClick={() => setOpenAlert(true)}
-                disabled={isLoading}
-                loading={isLoading}
+                disabled={isDeleting}
+                loading={isDeleting}
               >
                 <Trash />
               </LoadingButton>
@@ -551,5 +620,5 @@ export default function ProductsForm({
         </div>
       </div>
     </>
-  )
+  );
 }

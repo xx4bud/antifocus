@@ -1,31 +1,31 @@
-import { neonConfig, Pool } from "@neondatabase/serverless"
-import { PrismaNeon } from "@prisma/adapter-neon"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, Prisma } from "@prisma/client";
+import { neonConfig, Pool } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import superjson from "superjson";
+import ws from "ws";
 
-import ws from "ws"
-neonConfig.webSocketConstructor = ws
+// Setting WebSocket
+neonConfig.webSocketConstructor = ws;
+neonConfig.poolQueryViaFetch = true;
 
-// To work in edge environments (Cloudflare Workers, Vercel Edge, etc.), enable querying over fetch
-neonConfig.poolQueryViaFetch = true
-
+// PrismaClient untuk Neon
 const prismaClientSingleton = () => {
   const neon = new Pool({
     connectionString: process.env.POSTGRES_PRISMA_URL!,
-  })
-  const adapter = new PrismaNeon(neon)
-  return new PrismaClient({ adapter })
-}
+  });
+  const adapter = new PrismaNeon(neon);
+  return new PrismaClient({ adapter });
+};
 
 declare global {
-  var prismaGlobal:
-    | undefined
-    | ReturnType<typeof prismaClientSingleton>
+  var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
 const prisma =
-  globalThis.prismaGlobal ?? prismaClientSingleton()
+  globalThis.prismaGlobal ?? prismaClientSingleton();
 
-if (process.env.NODE_ENV !== "production")
-  globalThis.prismaGlobal = prisma
+if (process.env.NODE_ENV !== "production") {
+  globalThis.prismaGlobal = prisma;
+}
 
-export { prisma }
+export { prisma, superjson };

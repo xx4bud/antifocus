@@ -1,11 +1,11 @@
 import React from "react";
 import ProductsForm from "./products-form";
-import { prisma, superjson } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import {
   getCategoryDataInclude,
   getProductDataInclude,
-  ProductData,
 } from "@/lib/queries";
+import { Decimal } from "@prisma/client/runtime/library";
 
 interface ProductsSlugProps {
   params: {
@@ -29,25 +29,24 @@ export default async function ProductsSlug({
     include: getCategoryDataInclude(),
   });
 
-  const formattedProduct = product
-    ? {
-        ...product,
-        price: product.price.toString(),
-        variants: product.variants?.map((variant) => ({
-          ...variant,
-          price: variant.price.toString(),
-        })),
-      }
-    : null;
-
-  const { json: serializedProduct } = superjson.serialize(formattedProduct);
-
-  const initialProduct = serializedProduct as unknown as ProductData | null;
+  // if (product) {
+  //   // Convert Decimal to Decimal for frontend use
+  //   product.price = new Decimal(product.price.toString());
+  //   product.subCategories = product.subCategories.map(
+  //     (subCategory) => ({
+  //       ...subCategory,
+  //     })
+  //   );
+  //   product.variants = product.variants.map((variant) => ({
+  //     ...variant,
+  //     price: new Decimal(variant.price.toString()),
+  //   }));
+  // }
 
   return (
     <div className="grid h-full w-full grid-cols-1 gap-4 md:p-3">
       <ProductsForm
-        product={initialProduct}
+        product={product}
         categories={categories}
       />
     </div>
