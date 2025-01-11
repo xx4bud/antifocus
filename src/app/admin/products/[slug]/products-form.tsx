@@ -71,11 +71,11 @@ export default function ProductsForm({
     defaultValues: product
       ? {
           ...product,
-          price: product?.price.toString(),
+          price: product?.price.toNumber(),
           stock: product?.stock,
           variants: product?.variants?.map((variant) => ({
             ...variant,
-            price: variant.price.toString(),
+            price: variant.price.toNumber(),
           })),
         }
       : {
@@ -84,7 +84,7 @@ export default function ProductsForm({
           description: "",
           subCategories: [],
           status: ProductStatus.AVAILABLE,
-          price: "",
+          price: 0,
           stock: 0,
           variants: []
         },
@@ -261,7 +261,7 @@ export default function ProductsForm({
     const lastRemoved = removedVariants.pop();
     const newVariant = lastRemoved || {
       name: "",
-      price: "",
+      price: 0,
       stock: 0,
       photos: [],
     };

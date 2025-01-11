@@ -32,17 +32,20 @@ export default async function ProductsSlug({
   const formattedProduct = product
     ? {
         ...product,
-        price: product.price.toString(),
+        price: product.price.toNumber(),
         variants: product.variants?.map((variant) => ({
           ...variant,
-          price: variant.price.toString(),
+          price: variant.price.toNumber(),
         })),
       }
     : null;
 
-  const { json: serializedProduct } = superjson.serialize(formattedProduct);
+  const { json: serializedProduct } = superjson.serialize(
+    formattedProduct
+  );
 
-  const initialProduct = serializedProduct as unknown as ProductData | null;
+  const initialProduct =
+    serializedProduct as unknown as ProductData | null;
 
   return (
     <div className="grid h-full w-full grid-cols-1 gap-4 md:p-3">

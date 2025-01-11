@@ -22,11 +22,11 @@ export async function createProduct(data: {
     id: string;
   }[];
   status: "AVAILABLE" | "ARCHIVED";
-  price?: string;
+  price?: number;
   stock?: number;
   variants?: {
     name: string;
-    price: string;
+    price: number;
     stock: number;
     photos: { url: string; publicId: string }[];
   }[];
@@ -164,25 +164,25 @@ export async function createProduct(data: {
     });
 
     // Konversi price dan variant.price menjadi string
-    const productWithStringPrice = {
+    const formattedProduct = {
       ...newProduct,
       price: newProduct.price
-        ? newProduct.price.toString()
-        : "0",
+        ? newProduct.price.toNumber()
+        : 0,
       variants: newProduct.variants.map((variant) => ({
         ...variant,
         price: variant.price
-          ? variant.price.toString()
-          : "0",
+          ? variant.price.toNumber()
+          : 0,
       })),
     };
 
     // Serialisasi dengan SuperJSON
     const { json: serializedProduct } = superjson.serialize(
-      productWithStringPrice
+      formattedProduct
     );
 
-    const initialProduct =
+    const newProductData =
       serializedProduct as unknown as ProductData;
 
     revalidatePath("/");
@@ -190,7 +190,7 @@ export async function createProduct(data: {
 
     return {
       success: true,
-      data: initialProduct,
+      data: newProductData,
     };
   } catch (error: any) {
     console.error("Error creating product:", error);
@@ -210,12 +210,12 @@ export async function updateProduct(data: {
     id: string;
   }[];
   status: "AVAILABLE" | "ARCHIVED";
-  price?: string;
+  price?: number;
   stock?: number;
   variants?: {
     id?: string;
     name: string;
-    price: string;
+    price: number;
     stock: number;
     photos: { url: string; publicId: string }[];
   }[];
@@ -416,32 +416,34 @@ export async function updateProduct(data: {
       }
     }
 
-    const productWithStringPrice = {
+    // Konversi price dan variant.price menjadi string
+    const formattedProduct = {
       ...updatedProduct,
       price: updatedProduct.price
-        ? updatedProduct.price.toString()
-        : "0",
+        ? updatedProduct.price.toNumber()
+        : 0,
       variants: updatedProduct.variants.map((variant) => ({
         ...variant,
         price: variant.price
-          ? variant.price.toString()
-          : "0",
+          ? variant.price.toNumber()
+          : 0,
       })),
     };
 
     // Serialisasi dengan SuperJSON
     const { json: serializedProduct } = superjson.serialize(
-      productWithStringPrice
+      formattedProduct
     );
 
-    const initialProduct =
+    const updatedProductData =
       serializedProduct as unknown as ProductData;
 
     revalidatePath("/");
     revalidateTag("products");
+
     return {
       success: true,
-      data: initialProduct,
+      data: updatedProductData,
     };
   } catch (error: any) {
     console.error("Error updating product:", error);
@@ -521,9 +523,31 @@ export async function deleteProduct(productId: string) {
     });
 
     // Delete product
-    await prisma.product.delete({
+    const deletedProduct = await prisma.product.delete({
       where: { id: productId },
+      include: getProductDataInclude(),
     });
+
+    const formattedProduct = {
+      ...deletedProduct,
+      price: deletedProduct.price
+        ? deletedProduct.price.toNumber()
+        : 0,
+      variants: deletedProduct.variants.map((variant) => ({
+        ...variant,
+        price: variant.price
+          ? variant.price.toNumber()
+          : 0,
+      })),
+    };
+
+    // Serialisasi dengan SuperJSON
+    const { json: serializedProduct } = superjson.serialize(
+      formattedProduct
+    );
+
+    const deletedProductData =
+      serializedProduct as unknown as ProductData;
 
     revalidatePath("/");
     revalidateTag("products");
@@ -531,6 +555,7 @@ export async function deleteProduct(productId: string) {
     return {
       success: true,
       message: "Product has been deleted successfully",
+      data: deletedProductData,
     };
   } catch (error: any) {
     console.error("Error deleting product:", error);

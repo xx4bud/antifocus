@@ -164,6 +164,30 @@ export type CampaignsValues = z.infer<
   typeof CampaignsSchema
 >;
 
+export const SubCategoriesSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(250, "Name must be less than 250 characters"),
+  description: z
+    .string()
+    .trim()
+    .min(1, "Description is required")
+    .min(10, "Description must be at least 10 characters")
+    .max(
+      3000,
+      "Description must be less than 3000 characters"
+    ),
+  photos: z
+    .array(PhotoSchema)
+    .min(1, "At least one image is required"),
+});
+
+export type SubCategoriesValues = z.infer<
+  typeof SubCategoriesSchema
+>;
+
 // Category Schema
 export const CategoriesSchema = z.object({
   name: z
@@ -175,32 +199,7 @@ export const CategoriesSchema = z.object({
     .array(PhotoSchema)
     .min(1, "At least one image is required."),
   subCategories: z
-    .array(
-      z.object({
-        name: z
-          .string()
-          .trim()
-          .min(1, "Name is required.")
-          .max(
-            250,
-            "Name must be less than 250 characters."
-          ),
-        description: z
-          .string()
-          .trim()
-          .min(
-            10,
-            "Description must be at least 10 characters."
-          )
-          .max(
-            3000,
-            "Description must be less than 3000 characters."
-          ),
-        photos: z
-          .array(PhotoSchema)
-          .min(1, "At least one image is required."),
-      })
-    )
+    .array(SubCategoriesSchema)
     .min(1, "At least one subcategory is required."),
 });
 
@@ -219,7 +218,7 @@ export const ProductVariantSchema = z.object({
     .min(1, "Name is required.")
     .max(250, "Name must be less than 250 characters."),
   price: z.coerce
-    .string()
+    .number()
     .min(1, "Variant price must be greater than 1"),
   stock: z.coerce
     .number()
@@ -266,7 +265,7 @@ export const ProductsSchema = z
         message: "Invalid product status.",
       }),
     }),
-    price: z.coerce.string().optional(),
+    price: z.coerce.number().optional(),
     stock: z.coerce.number().int().optional(),
     variants: z.array(ProductVariantSchema).optional(),
   })
