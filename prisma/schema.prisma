@@ -1,0 +1,285 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// ==============
+// AUTHENTICATION
+// ==============
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String?
+  email         String?   @unique
+  role          Role      @default(USER)
+  image         String?
+  photos        Photo[]
+  products      Product[]
+  accounts      Account[]
+  sessions      Session[]
+  passwordHash  String?
+  emailVerified DateTime? @map("email_verified")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// ==============
+// COLLECTIONS
+// ==============
+
+model Campaign {
+  id         String    @id @default(cuid())
+  slug       String    @unique
+  name       String //big sale 12.12
+  isFeatured Boolean   @default(false)
+  photos     Photo[]
+  productId  String?   @map("product_id")
+  products   Product[] @relation("products_campaigns")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("campaigns")
+}
+
+model Collection {
+  id         String    @id @default(cuid())
+  slug       String    @unique
+  name       String //new arrivals, men, foryou
+  isFeatured Boolean   @default(false)
+  photos     Photo[]
+  productId  String?   @map("product_id")
+  products   Product[] @relation("products_collections")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("collections")
+}
+
+model Category {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  name          String //home, fashion
+  isFeatured    Boolean       @default(false)
+  photos        Photo[]
+  subCategories SubCategory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id         String    @id @default(cuid())
+  slug       String    @unique
+  name       String //home decors, fashion accessories
+  isFeatured Boolean   @default(false)
+  photos     Photo[]
+  categoryId String?   @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  productId  String?   @map("product_id")
+  products   Product[] @relation("products_subCategories")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("sub_categories")
+}
+
+// ==============
+// PRODUCTS
+// ==============
+
+model Product {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  name          String //clock, watches
+  isPublished   Boolean        @default(false)
+  description   String
+  photos        Photo[]
+  sellingInfos  SellingInfo[]
+  shippingInfos ShippingInfo[]
+  salesInfos    SalesInfo[]
+  userId        String?        @map("user_id")
+  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specsInfoId   String?        @map("specs_info_id")
+  specsInfos    SpecsInfo[]    @relation("products_specsInfos")
+  campaignId    String?        @map("campaign_id")
+  campaigns     Campaign[]     @relation("products_campaigns")
+  collectionId  String?        @map("collection_id")
+  collections   Collection[]   @relation("products_collections")
+  subCategoryId String?        @map("sub_category_id")
+  subCategories SubCategory[]  @relation("products_subCategories")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("products")
+}
+
+model SpecsInfo {
+  id        String    @id @default(cuid())
+  key       String    @unique //brand, material
+  value     Json      @db.Json //string | string[]
+  productId String?   @map("product_id")
+  products  Product[] @relation("products_specsInfos")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("specs_infos")
+}
+
+model SellingInfo {
+  id         String      @id @default(cuid())
+  listPrice  Decimal     @default(0)
+  price      Decimal?    @default(0)
+  totalStock Int         @default(0)
+  stock      Int?        @default(0)
+  variants   Variant[]
+  wholesales Wholesale[]
+  productId  String?     @map("product_id")
+  product    Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@map("selling_infos")
+}
+
+model Variant {
+  id            String         @id @default(cuid())
+  key           String         @unique
+  value         Json           @db.Json //string | string[]
+  listPrice     Decimal?       @default(0)
+  price         Decimal        @default(0)
+  stock         Int            @default(0)
+  photos        Photo[]
+  shippingInfos ShippingInfo[]
+  sellingInfoId String?        @map("selling_info_id")
+  sellingInfo   SellingInfo?   @relation(fields: [sellingInfoId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("variants")
+}
+
+model Wholesale {
+  id            String       @id @default(cuid())
+  unitPrice     Decimal      @default(0)
+  minOrder      Int          @default(0)
+  maxOrder      Int          @default(0)
+  sellingInfoId String?      @map("selling_info_id")
+  sellingInfo   SellingInfo? @relation(fields: [sellingInfoId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("wholesales")
+}
+
+model SalesInfo {
+  id        String   @id @default(cuid())
+  numSales  Int      @default(0)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sales_infos")
+}
+
+model ShippingInfo {
+  id            String   @id @default(cuid())
+  weight        Int      @default(0)
+  variantWeight Int?     @default(0)
+  variantId     String?  @map("variant_id")
+  variant       Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  productId     String   @map("product_id")
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("shipping_infos")
+}
+
+// ==============
+// OTHERS
+// ==============
+
+model Photo {
+  id            String       @id @default(cuid())
+  url           String
+  publicId      String?      @unique
+  isCover       Boolean      @default(true)
+  productId     String?      @map("product_id")
+  product       Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId        String?      @map("user_id")
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignId    String?      @map("campaign_id")
+  campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  collectionId  String?      @map("collection_id")
+  collection    Collection?  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  subCategoryId String?      @map("sub_category_id")
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  categoryId    String?      @map("category_id")
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variantId     String?      @map("variant_id")
+  variant       Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("photos")
+}
