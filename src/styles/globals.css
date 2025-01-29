@@ -81,6 +81,10 @@
     @apply border-border;
   }
 
+  *:focus {
+    @apply outline-none ring-0;
+  }
+
   html,
   body,
   :root {
@@ -111,6 +115,7 @@
       @apply min-[1800px]:border-t;
     }
   }
+  
 
   ::-webkit-scrollbar {
     width: 7px;
