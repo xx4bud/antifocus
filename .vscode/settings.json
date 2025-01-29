@@ -1,0 +1,26 @@
+{
+    "workbench.colorTheme": "One Dark Pro",
+    "workbench.iconTheme": "material-icon-theme",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "always"
+    },
+    "[prisma]": {
+      "editor.defaultFormatter": "Prisma.prisma"
+    },
+    "[xml]": {
+      "editor.defaultFormatter": "DotJoshJohnson.xml"
+    },
+    "javascript.updateImportsOnFileMove.enabled": "always",
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "files.autoSave": "afterDelay",
+    "editor.minimap.enabled": false,
+    "editor.fontSize": 13,
+    "editor.glyphMargin": false,
+    "git.enableSmartCommit": true,
+    "git.autofetch": true,
+    "editor.quickSuggestions": {
+      "strings": "on"
+    },
+  }
+  
