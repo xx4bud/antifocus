@@ -1,5 +1,5 @@
 import type { DefaultSession } from "next-auth";
-import { Role } from "@/types";
+import type { PhotoData, Role } from "@/types";
 
 declare module "next-auth" {
   interface Session {
@@ -9,5 +9,6 @@ declare module "next-auth" {
   interface User {
     role: Role;
     slug: string;
+    photos?: PhotoData[];
   }
 }
