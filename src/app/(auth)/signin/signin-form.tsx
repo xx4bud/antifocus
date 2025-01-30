@@ -17,17 +17,38 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { signInCredentials } from "@/app/actions/auth.client";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+import { signInGoogle } from "@/app/actions/auth.client";
+import { GoogleButton } from "@/components/ui/google-button";
+import { Separator } from "@/components/ui/separator";
+import { PasswordInput } from "@/components/ui/password-input";
+import { LoadingButton } from "@/components/ui/loading-button";
+import Link from "next/link";
 
 export function SignInForm() {
-  const [isLoading, setIsLoading] =
-    React.useState<boolean>(false);
-
+  const [activeAuth, setActiveAuth] = React.useState<
+    "google" | "credentials" | null
+  >(null);
   const router = useRouter();
+  const params = useSearchParams();
+  const isLoading = activeAuth !== null;
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const error = params.get("error");
+    if (error) {
+      toast({
+        variant: "destructive",
+        description:
+          "Account already exists on another provider",
+      });
+    }
+  }, [params, toast]);
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(SignInSchema),
@@ -39,48 +60,66 @@ export function SignInForm() {
   });
 
   const onSubmit = async (data: SignInValues) => {
-    setIsLoading(true);
+    setActiveAuth("credentials");
     try {
       const res = await signInCredentials(data);
-      if (!res.success) {
+      if (res.success) {
+        router.push("/");
+        router.refresh();
+      } else {
         toast({
           variant: "destructive",
           description: res.message,
         });
-      } else {
-        toast({
-          variant: "default",
-          description: "Signed in successfully",
-        });
-        router.push("/");
-        router.refresh();
+        setActiveAuth(null);
       }
     } catch (error: any) {
-      console.error("Error signing up:", error);
+      console.error("Error signing in:", error);
     } finally {
-      setIsLoading(false);
+      setActiveAuth(null);
     }
+  };
+
+  const googleSignUp = async () => {
+    setActiveAuth("google");
+    await signInGoogle();
+    setActiveAuth(null);
   };
 
   return (
     <Card className="flex h-full flex-1 flex-col justify-center p-6 sm:h-fit sm:max-w-md">
+      <div className="flex flex-col gap-2 text-center">
+        <h1 className="text-xl font-semibold">Sign In</h1>
+        <GoogleButton
+          onClick={googleSignUp}
+          loading={activeAuth === "google"}
+          disabled={isLoading}
+        />
+        <Separator className="relative my-4">
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-sm text-muted-foreground">
+            OR
+          </span>
+        </Separator>
+      </div>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-2"
+          className="flex flex-col gap-2"
         >
           <FormField
             control={form.control}
             name="identifier"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Identifier</FormLabel>
+                <FormLabel isRequired>
+                  Email or Username
+                </FormLabel>
                 <FormControl>
                   <Input
+                    disabled={isLoading}
                     type="text"
                     autoComplete="username"
-                    placeholder="Enter your identifier"
-                    className="input"
+                    placeholder="Enter your email or username"
                     {...field}
                   />
                 </FormControl>
@@ -93,13 +132,12 @@ export function SignInForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel isRequired>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
+                  <PasswordInput
+                    disabled={isLoading}
                     autoComplete="current-password"
                     placeholder="Enter your password"
-                    className="input"
                     {...field}
                   />
                 </FormControl>
@@ -107,8 +145,24 @@ export function SignInForm() {
               </FormItem>
             )}
           />
-          <div className="flex flex-1 flex-col pt-2">
-            <Button type="submit">Continue</Button>
+          <div className="flex flex-col gap-2 pt-2">
+            <LoadingButton
+              type="submit"
+              loading={activeAuth === "credentials"}
+              disabled={isLoading}
+            >
+              Continue
+            </LoadingButton>
+            <p className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link
+                className="font-medium text-primary"
+                href="/signup"
+                aria-disabled={isLoading}
+              >
+                SignUp
+              </Link>
+            </p>
           </div>
         </form>
       </Form>

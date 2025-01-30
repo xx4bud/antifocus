@@ -4,8 +4,12 @@ export default async function HomePage() {
   const session = await getSession();
 
   return (
-    <div className="flex flex-col">
-      {/* <pre>{JSON.stringify(session, null, 2)}</pre> */}
+    <div className="container flex flex-1 flex-col">
+      <div className="flex flex-col gap-4 py-3">
+        <div className="aspect-video rounded-xl bg-muted/50" />
+        <div className="aspect-video rounded-xl bg-muted/50 sm:hidden" />
+        <div className="aspect-video rounded-xl bg-muted/50 sm:hidden" />
+      </div>
     </div>
   );
 }

@@ -80,15 +80,54 @@ enum Role {
   USER
 }
 
+// ==============
+// CATALOGUE
+// ==============
+
+model Category {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  isFeatured    Boolean       @default(true)
+  photos        Photo[]
+  subCategories SubCategory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id         String    @id @default(cuid())
+  name       String
+  slug       String    @unique
+  isFeatured Boolean   @default(true)
+  photos     Photo[]
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("sub_categories")
+}
+
+// ==============
+// MEDIA
+// ==============
+
 model Photo {
-  id        String   @id @default(cuid())
-  url       String
-  publicId  String?
-  isCover   Boolean  @default(true)
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String       @id @default(cuid())
+  url           String
+  publicId      String?
+  isCover       Boolean      @default(true)
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId    String?
+  Category      Category?    @relation(fields: [categoryId], references: [id])
+  subCategoryId String?
+  SubCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@map("photos")
 }

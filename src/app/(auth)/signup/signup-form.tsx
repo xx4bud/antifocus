@@ -17,17 +17,38 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { signUpCredentials } from "@/app/actions/auth.server";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+import { signInGoogle } from "@/app/actions/auth.client";
+import { GoogleButton } from "@/components/ui/google-button";
+import { Separator } from "@/components/ui/separator";
+import { PasswordInput } from "@/components/ui/password-input";
+import { LoadingButton } from "@/components/ui/loading-button";
+import Link from "next/link";
 
 export function SignUpForm() {
-  const [isLoading, setIsLoading] =
-    React.useState<boolean>(false);
-
+  const [activeAuth, setActiveAuth] = React.useState<
+    "google" | "credentials" | null
+  >(null);
   const router = useRouter();
+  const params = useSearchParams();
+  const isLoading = activeAuth !== null;
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const error = params.get("error");
+    if (error) {
+      toast({
+        variant: "destructive",
+        description:
+          "Account already exists on another provider",
+      });
+    }
+  }, [params, toast]);
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(SignUpSchema),
@@ -41,48 +62,64 @@ export function SignUpForm() {
   });
 
   const onSubmit = async (data: SignUpValues) => {
-    setIsLoading(true);
+    setActiveAuth("credentials");
     try {
       const res = await signUpCredentials(data);
-      if (!res.success) {
+      if (res.success) {
+        router.push("/signin");
+        router.refresh();
+      } else {
         toast({
           variant: "destructive",
           description: res.message,
         });
-      } else {
-        toast({
-          variant: "default",
-          description: "User created successfully",
-        });
-        router.push("/signin");
-        router.refresh();
+        setActiveAuth(null);
       }
     } catch (error: any) {
       console.error("Error signing up:", error);
     } finally {
-      setIsLoading(false);
+      setActiveAuth(null);
     }
+  };
+
+  const googleSignUp = async () => {
+    setActiveAuth("google");
+    await signInGoogle();
+    setActiveAuth(null);
   };
 
   return (
     <Card className="flex h-full flex-1 flex-col justify-center p-6 sm:h-fit sm:max-w-md">
+      <div className="flex flex-col gap-2 text-center">
+        <h1 className="text-xl font-semibold">Sign Up</h1>
+        <GoogleButton
+          onClick={googleSignUp}
+          loading={activeAuth === "google"}
+          disabled={isLoading}
+        />
+        <Separator className="relative my-4">
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-sm text-muted-foreground">
+            OR
+          </span>
+        </Separator>
+      </div>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-2"
+          className="flex flex-col gap-2"
         >
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel isRequired>Name</FormLabel>
                 <FormControl>
                   <Input
+                    disabled={isLoading}
                     type="text"
                     autoComplete="name"
                     placeholder="Enter your name"
-                    className="input"
                     {...field}
                   />
                 </FormControl>
@@ -95,13 +132,13 @@ export function SignUpForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel isRequired>Email</FormLabel>
                 <FormControl>
                   <Input
+                    disabled={isLoading}
                     type="email"
                     autoComplete="email"
                     placeholder="Enter your email"
-                    className="input"
                     {...field}
                   />
                 </FormControl>
@@ -114,13 +151,12 @@ export function SignUpForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel isRequired>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
+                  <PasswordInput
+                    disabled={isLoading}
                     autoComplete="new-password"
                     placeholder="Enter your password"
-                    className="input"
                     {...field}
                   />
                 </FormControl>
@@ -135,11 +171,10 @@ export function SignUpForm() {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    autoComplete="current-password"
+                  <PasswordInput
+                    disabled={isLoading}
+                    autoComplete="password"
                     placeholder="Confirm your password"
-                    className="input"
                     {...field}
                   />
                 </FormControl>
@@ -147,8 +182,24 @@ export function SignUpForm() {
               </FormItem>
             )}
           />
-          <div className="flex flex-1 flex-col pt-2">
-            <Button type="submit">Continue</Button>
+          <div className="flex flex-col gap-2 pt-2">
+            <LoadingButton
+              type="submit"
+              loading={activeAuth === "credentials"}
+              disabled={isLoading}
+            >
+              Continue
+            </LoadingButton>
+            <p className="text-center text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link
+                className="font-medium text-primary"
+                href="/signin"
+                aria-disabled={isLoading}
+              >
+                SignIn
+              </Link>
+            </p>
           </div>
         </form>
       </Form>
