@@ -85,27 +85,16 @@ enum Role {
 // ==============
 
 model Campaign {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   name       String
-  slug       String   @unique
-  isFeatured Boolean  @default(true)
+  slug       String    @unique
+  isFeatured Boolean   @default(true)
   photos     Photo[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  products   Product[] @relation("products_campaigns")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@map("campaigns")
-}
-
-model Collection {
-  id         String   @id @default(cuid())
-  name       String
-  slug       String   @unique
-  isFeatured Boolean  @default(true)
-  photos     Photo[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@map("collections")
 }
 
 model Category {
@@ -114,7 +103,6 @@ model Category {
   slug          String        @unique
   isFeatured    Boolean       @default(true)
   photos        Photo[]
-  products      Product[]
   subCategories SubCategory[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -128,9 +116,9 @@ model SubCategory {
   slug       String    @unique
   isFeatured Boolean   @default(true)
   photos     Photo[]
-  products   Product[]
-  categoryId String?
+  categoryId String?   @map("category_id")
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products   Product[] @relation("products_subCategories")
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -146,13 +134,29 @@ model Product {
   name          String
   slug          String        @unique
   isPublished   Boolean       @default(true)
+  description   String
+  sellingInfos  SellingInfo[]
   photos        Photo[]
-  categories    Category[]
-  subCategories SubCategory[]
+  campaigns     Campaign[]    @relation("products_campaigns")
+  subCategories SubCategory[] @relation("products_subCategories")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   @@map("products")
+}
+
+model SellingInfo {
+  id         String   @id @default(cuid())
+  listPrice  Decimal  @default(0)
+  price      Decimal? @default(0)
+  totalStock Int      @default(0)
+  stock      Int?     @default(0)
+  productId  String?  @map("product_id")
+  product    Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("selling_infos")
 }
 
 // ==============
@@ -164,17 +168,15 @@ model Photo {
   url           String
   publicId      String?
   isCover       Boolean      @default(true)
-  productId     String?
+  productId     String?      @map("product_id")
   product       Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  userId        String?
+  userId        String?      @map("user_id")
   user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campaignId    String?
+  campaignId    String?      @map("campaign_id")
   campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  collectionId  String?
-  collection    Collection?  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  categoryId    String?
+  categoryId    String?      @map("category_id")
   category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subCategoryId String?
+  subCategoryId String?      @map("sub_category_id")
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt

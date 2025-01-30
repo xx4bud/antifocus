@@ -14,7 +14,6 @@ export function getPhotoDataSelect() {
     isCover: true,
     userId: true,
     campaignId: true,
-    collectionId: true,
     categoryId: true,
     subCategoryId: true,
     productId: true,
@@ -34,6 +33,7 @@ export function getCampaignDataSelect() {
     slug: true,
     isFeatured: true,
     photos: true,
+    products: true,
   } satisfies Prisma.CampaignSelect;
 }
 export function getCampaignDataInclude() {
@@ -41,33 +41,13 @@ export function getCampaignDataInclude() {
     photos: {
       select: getPhotoDataSelect(),
     },
+    products: {
+      select: getProductDataSelect(),
+    },
   } satisfies Prisma.CampaignInclude;
 }
 export type CampaignData = Prisma.CampaignGetPayload<{
   include: ReturnType<typeof getCampaignDataInclude>;
-}>;
-
-// Collection Data
-export function getCollectionDataSelect() {
-  return {
-    createdAt: true,
-    updatedAt: true,
-    id: true,
-    name: true,
-    slug: true,
-    photos: true,
-    isFeatured: true,
-  } satisfies Prisma.CollectionSelect;
-}
-export function getCollectionDataInclude() {
-  return {
-    photos: {
-      select: getPhotoDataSelect(),
-    },
-  } satisfies Prisma.CollectionInclude;
-}
-export type CollectionData = Prisma.CollectionGetPayload<{
-  include: ReturnType<typeof getCollectionDataInclude>;
 }>;
 
 // SubCategory Data
@@ -114,9 +94,6 @@ export function getCategoryDataInclude() {
     photos: {
       select: getPhotoDataSelect(),
     },
-    products: {
-      select: getProductDataSelect(),
-    },
     subCategories: {
       select: getSubCategoryDataSelect(),
     },
@@ -136,7 +113,6 @@ export function getProductDataSelect() {
     slug: true,
     isPublished: true,
     photos: true,
-    categories: true,
     subCategories: true,
   } satisfies Prisma.ProductSelect;
 }
@@ -144,9 +120,6 @@ export function getProductDataInclude() {
   return {
     photos: {
       select: getPhotoDataSelect(),
-    },
-    categories: {
-      select: getCategoryDataSelect(),
     },
     subCategories: {
       select: getSubCategoryDataSelect(),

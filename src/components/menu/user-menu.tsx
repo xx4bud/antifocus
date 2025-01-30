@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import {
+  LockIcon,
   LogOutIcon,
   ShoppingBagIcon,
   UserIcon,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { useSidebar } from "../ui/sidebar";
+import { signOutUser } from "@/app/actions/auth.actions";
 
 interface UserMenuProps {
   username?: boolean;
@@ -26,14 +26,11 @@ export function UserMenu({
   username = true,
   user,
 }: UserMenuProps) {
-  const {setOpen, setOpenMobile} = useSidebar()
-  const router = useRouter();
+  const { setOpen, setOpenMobile } = useSidebar();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
-      router.push("/");
-      router.refresh();
+      await signOutUser();
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -56,6 +53,14 @@ export function UserMenu({
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
       <DropdownMenuGroup onClick={onClick}>
+        {user.role === "ADMIN" && (
+          <DropdownMenuItem asChild>
+            <Link href={"/admin"}>
+              <LockIcon />
+              Admin
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem>
           <ShoppingBagIcon />
           Cart

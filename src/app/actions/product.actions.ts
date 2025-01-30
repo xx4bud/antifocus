@@ -9,7 +9,6 @@ export async function getAllCategories() {
       where: {
         isFeatured: true,
       },
-      
       include: getCategoryDataInclude(),
       orderBy: {
         name: "asc",
@@ -19,6 +18,20 @@ export async function getAllCategories() {
     return categories;
   } catch (error: any) {
     console.error("Error fetching categories:", error);
+    return [];
+  }
+}
+
+export async function getNewArrivals() {
+  try {
+    return await prisma.product.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 10,
+    });
+  } catch (error: any) {
+    console.error("Error fetching new arrivals:", error);
     return [];
   }
 }

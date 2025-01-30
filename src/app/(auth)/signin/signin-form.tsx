@@ -26,7 +26,10 @@ import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
-import { signInGoogle, signInCredentials } from "@/app/actions/auth.actions";
+import {
+  signInCredentials,
+  signInGoogle,
+} from "@/app/actions/auth.actions";
 import { GoogleButton } from "@/components/ui/google-button";
 
 export function SignInForm() {
@@ -68,7 +71,7 @@ export function SignInForm() {
       } else {
         toast({
           variant: "destructive",
-          description: res.message,
+          description: "Email or password is incorrect",
         });
         setActiveAuth(null);
       }
@@ -81,8 +84,13 @@ export function SignInForm() {
 
   const googleSignUp = async () => {
     setActiveAuth("google");
-    await signInGoogle();
-    setActiveAuth(null);
+    try {
+      await signInGoogle()
+    } catch (error: any) {
+      console.error("Error signing in google:", error);
+    } finally {
+      setActiveAuth(null);
+    }
   };
 
   return (

@@ -8,7 +8,8 @@ import {
   SignUpSchema,
   SignUpValues,
 } from "@/lib/validation";
-import { signIn } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export async function getUserFromDatabase(
   data: SignInValues
@@ -70,7 +71,9 @@ export async function getUserFromDatabase(
   }
 }
 
-export async function signUpCredentials(data: SignUpValues) {
+export async function signUpCredentials(
+  data: SignUpValues
+) {
   try {
     const validated = SignUpSchema.safeParse(data);
 
@@ -161,7 +164,7 @@ export async function signInCredentials(
     const res = await signIn("credentials", {
       identifier,
       password,
-      redirect: false
+      redirect: false,
     });
 
     return {
@@ -178,6 +181,12 @@ export async function signInCredentials(
 }
 
 export async function signInGoogle() {
-  await signIn("google");
+  await signIn("google", {
+    redirect: false,
+  });
 }
 
+export async function signOutUser() {
+  const redirectTo = await signOut({ redirect: false });
+  redirect(redirectTo.redirect);
+}

@@ -9,12 +9,13 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { UserNav } from "../menu/user-nav";
+import { UserNav } from "@/components/menu/user-nav";
 import { User } from "next-auth";
 import Link from "next/link";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { FaRegUser } from "react-icons/fa6";
-import { NavMain } from "./nav-main";
+import { NavMain } from "@/components/sidebar/nav-main";
+import { NavAdmin } from "@/components/sidebar/nav-admin";
 
 interface AppSidebarProps
   extends React.ComponentProps<typeof Sidebar> {
@@ -53,6 +54,9 @@ export function AppSidebar({
       <SidebarSeparator />
       <SidebarContent>
         {!dashboard && <NavMain />}
+        {dashboard && user?.role === "ADMIN" && (
+          <NavAdmin />
+        )}
       </SidebarContent>
       <SidebarFooter></SidebarFooter>
     </Sidebar>

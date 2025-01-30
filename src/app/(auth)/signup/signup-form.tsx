@@ -86,8 +86,13 @@ export function SignUpForm() {
 
   const googleSignUp = async () => {
     setActiveAuth("google");
-    await signInGoogle();
-    setActiveAuth(null);
+    try {
+      await signInGoogle();
+    } catch (error: any) {
+      console.error("Error signing in google:", error);
+    } finally {
+      setActiveAuth(null);
+    }
   };
 
   return (
