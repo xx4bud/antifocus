@@ -11,7 +11,7 @@ interface CampaignsSlugProps {
 export default async function CampaignsSlug({
   params,
 }: CampaignsSlugProps) {
-  const { slug } = await params;
+  const { slug } = params;
 
   const campaign = await prisma.campaign.findUnique({
     where: {
