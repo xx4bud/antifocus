@@ -17,6 +17,7 @@ export function getPhotoDataSelect() {
     collectionId: true,
     categoryId: true,
     subCategoryId: true,
+    productId: true,
   } satisfies Prisma.PhotoSelect;
 }
 
@@ -87,6 +88,9 @@ export function getSubCategoryDataInclude() {
     photos: {
       select: getPhotoDataSelect(),
     },
+    products: {
+      select: getProductDataSelect(),
+    },
   } satisfies Prisma.SubCategoryInclude;
 }
 export type SubCategoryData = Prisma.SubCategoryGetPayload<{
@@ -110,6 +114,9 @@ export function getCategoryDataInclude() {
     photos: {
       select: getPhotoDataSelect(),
     },
+    products: {
+      select: getProductDataSelect(),
+    },
     subCategories: {
       select: getSubCategoryDataSelect(),
     },
@@ -117,4 +124,35 @@ export function getCategoryDataInclude() {
 }
 export type CategoryData = Prisma.CategoryGetPayload<{
   include: ReturnType<typeof getCategoryDataInclude>;
+}>;
+
+// Product Data
+export function getProductDataSelect() {
+  return {
+    createdAt: true,
+    updatedAt: true,
+    id: true,
+    name: true,
+    slug: true,
+    isPublished: true,
+    photos: true,
+    categories: true,
+    subCategories: true,
+  } satisfies Prisma.ProductSelect;
+}
+export function getProductDataInclude() {
+  return {
+    photos: {
+      select: getPhotoDataSelect(),
+    },
+    categories: {
+      select: getCategoryDataSelect(),
+    },
+    subCategories: {
+      select: getSubCategoryDataSelect(),
+    },
+  } satisfies Prisma.ProductInclude;
+}
+export type ProductData = Prisma.ProductGetPayload<{
+  include: ReturnType<typeof getProductDataInclude>;
 }>;

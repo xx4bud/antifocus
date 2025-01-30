@@ -1,4 +1,5 @@
 import { AppProviders } from "@/components/app-providers";
+import { QueryProvider } from "@/components/query-provider";
 import { fontMono, fontSans } from "@/config/fonts";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
@@ -71,7 +72,9 @@ export default function RootLayout({
           fontMono.variable
         )}
       >
-        <AppProviders>{children}</AppProviders>
+        <QueryProvider>
+          <AppProviders>{children}</AppProviders>
+        </QueryProvider>
       </body>
     </html>
   );

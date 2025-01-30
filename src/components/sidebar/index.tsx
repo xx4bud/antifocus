@@ -52,7 +52,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        {!dashboard && <NavMain setOpen={onClick} />}
+        {!dashboard && <NavMain />}
       </SidebarContent>
       <SidebarFooter></SidebarFooter>
     </Sidebar>

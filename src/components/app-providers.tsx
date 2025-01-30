@@ -18,7 +18,6 @@ export async function AppProviders({
   const session = await getSession();
 
   return (
-    <QueryProvider>
       <SessionProvider session={session}>
         <SidebarProvider defaultOpen={false}>
           <AppSidebar user={session?.user} />
@@ -32,6 +31,5 @@ export async function AppProviders({
         </SidebarProvider>
         <Toaster />
       </SessionProvider>
-    </QueryProvider>
   );
 }

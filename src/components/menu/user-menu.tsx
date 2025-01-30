@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useSidebar } from "../ui/sidebar";
 
 interface UserMenuProps {
   username?: boolean;
@@ -25,6 +26,7 @@ export function UserMenu({
   username = true,
   user,
 }: UserMenuProps) {
+  const {setOpen, setOpenMobile} = useSidebar()
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -37,10 +39,15 @@ export function UserMenu({
     }
   };
 
+  const onClick = () => {
+    setOpen(false);
+    setOpenMobile(false);
+  };
+
   return (
     <>
       <DropdownMenuLabel className="p-0 font-normal">
-        <DropdownMenuItem asChild>
+        <DropdownMenuItem asChild onClick={onClick}>
           <Link href={`/users/${user.slug}`}>
             <UserIcon />
             {username ? user.name || user.slug : "Profile"}
@@ -48,7 +55,7 @@ export function UserMenu({
         </DropdownMenuItem>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      <DropdownMenuGroup>
+      <DropdownMenuGroup onClick={onClick}>
         <DropdownMenuItem>
           <ShoppingBagIcon />
           Cart

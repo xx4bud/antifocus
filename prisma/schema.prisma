@@ -114,6 +114,7 @@ model Category {
   slug          String        @unique
   isFeatured    Boolean       @default(true)
   photos        Photo[]
+  products      Product[]
   subCategories SubCategory[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -127,12 +128,31 @@ model SubCategory {
   slug       String    @unique
   isFeatured Boolean   @default(true)
   photos     Photo[]
+  products   Product[]
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
   @@map("sub_categories")
+}
+
+// ==============
+// PRODUCTS
+// ==============
+
+model Product {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  isPublished   Boolean       @default(true)
+  photos        Photo[]
+  categories    Category[]
+  subCategories SubCategory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("products")
 }
 
 // ==============
@@ -144,16 +164,18 @@ model Photo {
   url           String
   publicId      String?
   isCover       Boolean      @default(true)
+  productId     String?
+  product       Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
   userId        String?
   user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   campaignId    String?
-  Campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   collectionId  String?
-  Collection    Collection?  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collection    Collection?  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   categoryId    String?
-  Category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subCategoryId String?
-  SubCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 

@@ -29,15 +29,12 @@ import { getAllCategories } from "@/app/actions/product.actions";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-interface NavMainProps {
-  setOpen: (open: boolean) => void;
-}
-
-export function NavMain({ setOpen }: NavMainProps) {
+export function NavMain() {
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: () => getAllCategories(),
   });
+  const { setOpen, setOpenMobile } = useSidebar();
   const pathname = usePathname();
 
   const data = [
@@ -46,7 +43,6 @@ export function NavMain({ setOpen }: NavMainProps) {
       url: "/",
       icon: HomeIcon,
       isActive: false,
-      items: [],
     },
     {
       title: "Categories",
@@ -73,6 +69,7 @@ export function NavMain({ setOpen }: NavMainProps) {
 
   const onClick = () => {
     setOpen(false);
+    setOpenMobile(false);
   };
 
   return (
@@ -87,16 +84,16 @@ export function NavMain({ setOpen }: NavMainProps) {
           >
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton
+                  asChild
+                  onClick={item.items ? undefined : onClick}
+                >
                   <Link
                     href={item.url}
                     className={
                       pathname === item.url
                         ? "font-medium"
                         : ""
-                    }
-                    onClick={
-                      item.items ? undefined : onClick
                     }
                   >
                     {item.icon && (
@@ -127,11 +124,11 @@ export function NavMain({ setOpen }: NavMainProps) {
                   <SidebarMenuSub>
                     {item.items.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.url}>
-                        <SidebarMenuSubButton asChild>
-                          <Link
-                            href={subItem.url}
-                            onClick={onClick}
-                          >
+                        <SidebarMenuSubButton
+                          asChild
+                          onClick={onClick}
+                        >
+                          <Link href={subItem.url}>
                             <span
                               className={
                                 pathname === subItem.url

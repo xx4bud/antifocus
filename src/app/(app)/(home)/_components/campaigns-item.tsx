@@ -32,7 +32,7 @@ export function CampaignsItem({
       onMouseEnter={() => plugin.current.stop()}
       onMouseLeave={() => plugin.current.play()}
     >
-      <CarouselContent className="pt-3">
+      <CarouselContent className="pt-3 shadow">
         {campaigns.map((campaign) => (
           <CarouselItem
             key={campaign.id}

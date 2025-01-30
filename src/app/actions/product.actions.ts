@@ -9,6 +9,7 @@ export async function getAllCategories() {
       where: {
         isFeatured: true,
       },
+      
       include: getCategoryDataInclude(),
       orderBy: {
         name: "asc",
