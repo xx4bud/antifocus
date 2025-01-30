@@ -3,15 +3,13 @@ import { getCampaignDataInclude } from "@/types";
 import { CampaignsForm } from "./campaigns-form";
 
 interface CampaignsSlugProps {
-  params: {
-    slug: string;
-  };
+  params: Promise<{ slug: string }>;
 }
 
 export default async function CampaignsSlug({
   params,
 }: CampaignsSlugProps) {
-  const { slug } = params;
+  const { slug } = await params;
 
   const campaign = await prisma.campaign.findUnique({
     where: {
@@ -19,5 +17,5 @@ export default async function CampaignsSlug({
     },
     include: getCampaignDataInclude(),
   });
-  return <CampaignsForm campaign={campaign} />
+  return <CampaignsForm campaign={campaign} />;
 }
