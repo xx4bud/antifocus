@@ -84,6 +84,30 @@ enum Role {
 // CATALOGUE
 // ==============
 
+model Campaign {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  isFeatured Boolean  @default(true)
+  photos     Photo[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("campaigns")
+}
+
+model Collection {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  isFeatured Boolean  @default(true)
+  photos     Photo[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("collections")
+}
+
 model Category {
   id            String        @id @default(cuid())
   name          String
@@ -122,10 +146,14 @@ model Photo {
   isCover       Boolean      @default(true)
   userId        String?
   user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignId    String?
+  Campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  collectionId  String?
+  Collection    Collection?  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   categoryId    String?
-  Category      Category?    @relation(fields: [categoryId], references: [id])
+  Category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subCategoryId String?
-  SubCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  SubCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 

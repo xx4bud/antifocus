@@ -5,9 +5,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
   SidebarHeader,
-  SidebarMenu,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { UserNav } from "../menu/user-nav";
@@ -19,15 +17,19 @@ import { NavMain } from "./nav-main";
 
 interface AppSidebarProps
   extends React.ComponentProps<typeof Sidebar> {
+  dashboard?: boolean;
   user?: User;
 }
 export function AppSidebar({
+  dashboard,
   user,
   ...props
 }: AppSidebarProps) {
-  
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar
+      collapsible={dashboard ? "icon" : "offcanvas"}
+      {...props}
+    >
       <SidebarHeader>
         {user ? (
           <UserNav user={user} />
@@ -42,11 +44,9 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        <NavMain/>
+        {!dashboard && <NavMain />}
       </SidebarContent>
-      <SidebarFooter>
-        {/* <NavUser user={data.user} /> */}
-      </SidebarFooter>
+      <SidebarFooter></SidebarFooter>
     </Sidebar>
   );
 }
