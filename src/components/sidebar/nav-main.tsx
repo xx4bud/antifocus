@@ -29,12 +29,15 @@ import { getAllCategories } from "@/app/actions/product.actions";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export function NavMain() {
+interface NavMainProps {
+  setOpen: (open: boolean) => void;
+}
+
+export function NavMain({ setOpen }: NavMainProps) {
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: () => getAllCategories(),
   });
-  const { setOpen, setOpenMobile } = useSidebar();
   const pathname = usePathname();
 
   const data = [
@@ -70,7 +73,6 @@ export function NavMain() {
 
   const onClick = () => {
     setOpen(false);
-    setOpenMobile(false);
   };
 
   return (

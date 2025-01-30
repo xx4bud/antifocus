@@ -7,11 +7,11 @@ import { Fabs } from "@/components/footer/fabs";
 export function AppFooter() {
   return (
     <>
-      <Fabs />
+      <Fabs className="sm:hidden" />
       <footer className="border-grid w-full border-t bg-secondary text-secondary-foreground">
         <div className="container-wrapper">
           <div className="container flex items-center justify-between">
-            <span className="text-xs py-1">
+            <span className="py-1 text-xs">
               &copy;&nbsp;{new Date().getFullYear()}&nbsp;
               {siteConfig.name}&nbsp;by&nbsp;
               <Link

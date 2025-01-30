@@ -4,10 +4,20 @@ import { FaWhatsapp } from "react-icons/fa6";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+import { cn } from "@/lib/utils";
 
-export function Fabs() {
+interface FabsProps {
+  className?: string;
+}
+
+export function Fabs({ className }: FabsProps) {
   return (
-    <nav className="fixed bottom-6 right-6 flex items-center justify-center sm:hidden">
+    <nav
+      className={cn(
+        "fixed bottom-6 right-6 flex items-center justify-center",
+        className
+      )}
+    >
       <Link
         href={siteConfig.links.whatsapp}
         target="_blank"

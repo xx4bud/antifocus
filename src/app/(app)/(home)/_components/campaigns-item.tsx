@@ -38,7 +38,7 @@ export function CampaignsItem({
             key={campaign.id}
             className="group overflow-hidden transition-transform duration-100"
           >
-            <div className="relative h-52 w-full overflow-hidden rounded-lg md:h-80">
+            <div className="relative h-40 w-full overflow-hidden rounded-lg md:h-80">
               <Link href={`/`}>
                 <Image
                   loading="lazy"

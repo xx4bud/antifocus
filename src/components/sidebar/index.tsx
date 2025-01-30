@@ -7,6 +7,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { UserNav } from "../menu/user-nav";
 import { User } from "next-auth";
@@ -25,6 +26,13 @@ export function AppSidebar({
   user,
   ...props
 }: AppSidebarProps) {
+  const { setOpen, setOpenMobile } = useSidebar();
+
+  const onClick = () => {
+    setOpen(false);
+    setOpenMobile(false);
+  };
+
   return (
     <Sidebar
       collapsible={dashboard ? "icon" : "offcanvas"}
@@ -34,7 +42,7 @@ export function AppSidebar({
         {user ? (
           <UserNav user={user} />
         ) : (
-          <Link href={"/signin"}>
+          <Link href={"/signin"} onClick={onClick}>
             <Button className="w-full">
               <FaRegUser />
               SignIn
@@ -44,7 +52,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        {!dashboard && <NavMain />}
+        {!dashboard && <NavMain setOpen={onClick} />}
       </SidebarContent>
       <SidebarFooter></SidebarFooter>
     </Sidebar>
