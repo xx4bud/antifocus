@@ -1,10 +1,9 @@
+import "@/styles/globals.css";
+import type { Metadata } from "next";
 import { AppProviders } from "@/components/app-providers";
-import { QueryProvider } from "@/components/query-provider";
 import { fontMono, fontSans } from "@/config/fonts";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
-import "@/styles/globals.css";
-import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
@@ -72,9 +71,7 @@ export default function RootLayout({
           fontMono.variable
         )}
       >
-        <QueryProvider>
-          <AppProviders>{children}</AppProviders>
-        </QueryProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

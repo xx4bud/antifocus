@@ -17,18 +17,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { signInCredentials } from "@/app/actions/auth.client";
 import { useToast } from "@/hooks/use-toast";
 import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
-import { signInGoogle } from "@/app/actions/auth.client";
-import { GoogleButton } from "@/components/ui/google-button";
 import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
+import { signInGoogle, signInCredentials } from "@/app/actions/auth.actions";
+import { GoogleButton } from "@/components/ui/google-button";
 
 export function SignInForm() {
   const [activeAuth, setActiveAuth] = React.useState<

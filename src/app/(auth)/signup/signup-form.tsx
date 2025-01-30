@@ -17,13 +17,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { signUpCredentials } from "@/app/actions/auth.server";
+import {
+  signUpCredentials,
+  signInGoogle,
+} from "@/app/actions/auth.actions";
 import { useToast } from "@/hooks/use-toast";
 import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
-import { signInGoogle } from "@/app/actions/auth.client";
 import { GoogleButton } from "@/components/ui/google-button";
 import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "@/components/ui/password-input";
