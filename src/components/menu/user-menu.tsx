@@ -14,7 +14,6 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
 import { signOut } from "next-auth/react";
 
 interface UserMenuProps {
@@ -27,14 +26,10 @@ export function UserMenu({
   user,
 }: UserMenuProps) {
   const router = useRouter();
-  const { toast } = useToast();
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast({
-        description: "Signed out successfully",
-      });
       router.push("/");
       router.refresh();
     } catch (error) {

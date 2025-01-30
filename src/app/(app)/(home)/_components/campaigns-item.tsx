@@ -19,7 +19,7 @@ export function CampaignsItem({
 }: CampaignsItemProps) {
   const plugin = React.useRef(
     Autoplay({
-      delay: 5000,
+      delay: 3000,
       stopOnInteraction: true,
     })
   );

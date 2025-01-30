@@ -14,6 +14,7 @@ export function LogoBar() {
         alt={siteConfig.name + " logo"}
         width={152}
         height={36}
+        quality={50}
       />
     </Link>
   );

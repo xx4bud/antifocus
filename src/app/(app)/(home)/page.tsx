@@ -7,7 +7,6 @@ export default function HomePage() {
       <div className="flex flex-col gap-4 py-3">
         <div className="aspect-video rounded-xl bg-muted/50" />
         <div className="aspect-video rounded-xl bg-muted/50 sm:hidden" />
-        <div className="aspect-video rounded-xl bg-muted/50 sm:hidden" />
       </div>
     </div>
   );
