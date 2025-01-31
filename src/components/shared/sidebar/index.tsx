@@ -9,13 +9,13 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { UserNav } from "@/components/menu/user-nav";
+import { UserNav } from "@/components/shared/user-nav";
 import { User } from "next-auth";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FaRegUser } from "react-icons/fa6";
-import { NavMain } from "@/components/sidebar/nav-main";
-import { NavAdmin } from "@/components/sidebar/nav-admin";
+import { NavMain } from "./nav-main";
+import { NavAdmin } from "./nav-admin";
 
 interface AppSidebarProps
   extends React.ComponentProps<typeof Sidebar> {
@@ -41,7 +41,7 @@ export function AppSidebar({
     >
       <SidebarHeader>
         {user ? (
-          <UserNav user={user} />
+          <UserNav user={user} badge={true} />
         ) : (
           <Link href={"/signin"} onClick={onClick}>
             <Button className="w-full">

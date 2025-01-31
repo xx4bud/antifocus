@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import {
   SignUpValues,
   SignUpSchema,
-} from "@/lib/validation";
+} from "@/schemas/auth.schemas";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import {
   signUpCredentials,
   signInGoogle,
-} from "@/app/actions/auth.actions";
+} from "@/actions/auth.actions"
 import { useToast } from "@/hooks/use-toast";
 import {
   useRouter,

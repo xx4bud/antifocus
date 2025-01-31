@@ -1,6 +1,6 @@
 "use client";
 
-import { SidebarTrigger } from "../ui/sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function DashboardHeader() {
   return (

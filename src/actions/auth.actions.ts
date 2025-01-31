@@ -7,7 +7,7 @@ import {
   SignInValues,
   SignUpSchema,
   SignUpValues,
-} from "@/lib/validation";
+} from "@/schemas/auth.schemas";
 import { signIn, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -16,14 +16,12 @@ export async function getUserFromDatabase(
 ) {
   try {
     const validated = SignInSchema.safeParse(data);
-
     if (!validated.success) {
       return {
         success: false,
         message: validated.error.message,
       };
     }
-
     const { identifier, password } = validated.data;
 
     const existedUser = await prisma.user.findFirst({
@@ -31,18 +29,16 @@ export async function getUserFromDatabase(
         OR: [{ slug: identifier }, { email: identifier }],
       },
     });
-
     if (!existedUser) {
       return {
         success: false,
         message: "User not found",
       };
     }
-
     if (!existedUser.passwordHash) {
       return {
         success: false,
-        message: "Password not found",
+        message: "Account already exists on another provider",
       };
     }
 
@@ -63,7 +59,7 @@ export async function getUserFromDatabase(
       data: existedUser,
     };
   } catch (error: any) {
-    console.error("Error signing in credentials:", error);
+    console.log(error);
     return {
       success: false,
       message: error.message,
@@ -156,6 +152,18 @@ export async function signInCredentials(
 
     const { identifier, password } = validated.data;
 
+    const existedUser = await getUserFromDatabase({
+      identifier,
+      password,
+    });
+
+    if (!existedUser.success) {
+      return {
+        success: false,
+        message: existedUser.message,
+      };
+    }
+
     const formData = new FormData();
 
     formData.append("identifier", identifier);
@@ -182,7 +190,8 @@ export async function signInCredentials(
 
 export async function signInGoogle() {
   await signIn("google", {
-    redirect: false,
+    redirect: true,
+    redirectTo: process.env.NEXT_PUBLIC_BASE_URL!,
   });
 }
 

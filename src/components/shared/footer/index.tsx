@@ -2,7 +2,7 @@
 
 import { siteConfig } from "@/config/site";
 import Link from "next/link";
-import { Fabs } from "@/components/footer/fabs";
+import { Fabs } from "@/components/shared/footer/fabs";
 
 export function AppFooter() {
   return (

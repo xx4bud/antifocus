@@ -1,16 +1,7 @@
 "use client";
 
-import { CampaignData } from "@/types";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  CampaignsSchema,
-  CampaignsValues,
-} from "@/lib/validation";
-import { Heading } from "@/components/ui/heading";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -19,37 +10,47 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
-import { CloudinaryUploadWidgetResults } from "next-cloudinary";
-import { PhotoUpload } from "@/components/ui/photo-upload";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { PhotoUpload } from "@/components/ui/photo-upload";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import {
+  CategorySchema,
+  CategoryValues,
+} from "@/schemas/category.schemas";
+import { CategoryData } from "@/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CloudinaryUploadWidgetResults } from "next-cloudinary";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { CategoryPreview } from "./category-preview";
 
-interface CampaignsFormProps {
-  campaign: CampaignData | null;
+interface CategoryFormProps {
+  category: CategoryData | null
 }
 
-export function CampaignsForm({
-  campaign,
-}: CampaignsFormProps) {
-  const [isLoading, setIsLoading] = React.useState(false);
+export function CategoryForm({
+  category,
+}: CategoryFormProps) {
   const [error, setError] = React.useState<string>();
+  const [isLoading, setIsLoading] = React.useState(false);
   const [photosToDelete, setPhotosToDelete] =
     React.useState<string[]>([]);
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const form = useForm<CampaignsValues>({
-    resolver: zodResolver(CampaignsSchema),
-    defaultValues: campaign
+  const form = useForm<CategoryValues>({
+    resolver: zodResolver(CategorySchema),
+    defaultValues: category
       ? {
-          ...campaign,
-          photos: campaign.photos.map((photo) => ({
-            url: photo.url,
-            publicId: photo.publicId ?? undefined,
-            isCover: photo.isCover,
-          })),
+          ...category,
         }
       : {
-          photos: [],
           name: "",
+          photos: [],
         },
   });
 
@@ -93,10 +94,6 @@ export function CampaignsForm({
     cleanUpPhotos();
   }, []);
 
-  const onSubmit = async (values: CampaignsValues) => {
-    console.log(values);
-  };
-
   const handleUploadPhoto = (
     result: CloudinaryUploadWidgetResults
   ) => {
@@ -116,7 +113,7 @@ export function CampaignsForm({
 
       form.setValue("photos", [
         ...form.getValues("photos"),
-        { url, publicId },
+        { url, publicId, position: 0 },
       ]);
       form.trigger("photos");
     }
@@ -132,18 +129,30 @@ export function CampaignsForm({
     setPhotosToDelete((prev) => [...prev, publicId]);
   };
 
+  const handleSubmit = async (data: CategoryValues) => {
+    console.log(data);
+  };
+
+  const handleDelete = async () => {};
+
   return (
-    <>
-      <div className="grid grid-cols-1 px-4 py-2">
+    <div className="flex flex-1 flex-col sm:flex-row sm:space-x-4">
+      <div className="flex flex-1 flex-col">
         <Heading
-          title="Campaigns"
-          description="Manage our campaigns"
+          title={
+            category ? "Edit Category" : "Create Category"
+          }
+          description={
+            category
+              ? "Edit category details"
+              : "Create a new category"
+          }
         />
-        <Separator className="my-4" />
+        <Separator className="my-3" />
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-2"
           >
             <FormField
@@ -161,15 +170,14 @@ export function CampaignsForm({
                       onRemove={handleRemovePhoto}
                       onUpload={handleUploadPhoto}
                       disabled={isLoading}
-                      className="w-full"
-                      max={1}
+                      max={5}
+                
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="name"
@@ -178,7 +186,9 @@ export function CampaignsForm({
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter campaign name"
+                      type="text"
+                      disabled={isLoading}
+                      placeholder="Categories Name"
                       {...field}
                     />
                   </FormControl>
@@ -186,22 +196,29 @@ export function CampaignsForm({
                 </FormItem>
               )}
             />
-
-            <div className="flex flex-1 flex-col gap-4 pt-2">
-              <Separator className="my-2" />
+            <div className="grid grid-cols-2 justify-end gap-4 pt-2">
+              <Button
+                disabled={isLoading}
+                onClick={() => router.back()}
+                type="button"
+                variant={"outline"}
+              >
+                Cancel
+              </Button>
               <LoadingButton
-                type="submit"
                 loading={isLoading}
+                disabled={isLoading}
+                type="submit"
               >
                 Save
               </LoadingButton>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
             </div>
           </form>
         </Form>
       </div>
-    </>
+      <div className="flex-col hidden sm:flex h-fit border-l pl-4">
+        <CategoryPreview category={form.getValues()} />
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
-import { AppFooter } from "@/components/footer";
-import { AppHeader } from "@/components/header";
+import { AppFooter } from "@/components/shared/footer";
+import { AppHeader } from "@/components/shared/header";
 import { getSession } from "@/lib/utils";
 
 interface AppLayoutProps {

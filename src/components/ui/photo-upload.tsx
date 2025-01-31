@@ -10,9 +10,9 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface PhotoUploadProps {
-  value: { url: string; publicId: string }[];
+  value: { url: string; publicId: string | null }[];
   _onChange: (
-    newPhotos: { url: string; publicId: string }[]
+    newPhotos: { url: string; publicId: string | null }[]
   ) => void;
   onRemove: (publicId: string) => void;
   onUpload: (result: CloudinaryUploadWidgetResults) => void;
@@ -44,7 +44,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
     <div className="flex flex-wrap gap-4">
       {value.map((photo) => (
         <div
-          key={photo.publicId}
+          key={photo.url}
           className={cn(
             "relative flex h-[98px] w-[98px] items-center justify-center overflow-hidden rounded-lg border-2 border-muted-foreground/50",
             className
@@ -56,7 +56,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
               onClick={(e) => {
                 e.preventDefault();
                 if (!disabled) {
-                  onRemove(photo.publicId);
+                  onRemove(photo.publicId!);
                 }
               }}
               disabled={disabled}
@@ -88,7 +88,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
           }
           signatureEndpoint="/api/cloudinary"
           options={{
-            multiple: true, 
+            multiple: true,
             folder: "antifocus",
             resourceType: "image",
             maxFiles: max - value.length,

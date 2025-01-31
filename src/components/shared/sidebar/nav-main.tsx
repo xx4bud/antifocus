@@ -1,9 +1,11 @@
 "use client";
 
 import {
-  Airplay,
+  BoxesIcon,
   ChevronRight,
   HomeIcon,
+  InfoIcon,
+  PhoneIcon,
 } from "lucide-react";
 
 import {
@@ -22,10 +24,17 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { getAllFeaturedCategories } from "@/actions/category.actions";
 
-export function NavAdmin() {
+export function NavMain() {
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => getAllFeaturedCategories(),
+  });
+
   const { setOpen, setOpenMobile } = useSidebar();
   const pathname = usePathname();
 
@@ -37,19 +46,23 @@ export function NavAdmin() {
       isActive: false,
     },
     {
-      title: "Campaigns",
+      title: "Categories",
       url: "#",
-      icon: Airplay,
-      items: [
-        {
-          title: "List Campaigns",
-          url: "/admin/campaigns",
-        },
-        {
-          title: "Add Campaign",
-          url: "/admin/campaigns/new",
-        },
-      ],
+      icon: BoxesIcon,
+      items: categories?.map((category) => ({
+        title: category.name,
+        url: `/category/${category.slug}`,
+      })),
+    },
+    {
+      title: "About",
+      url: "/about",
+      icon: InfoIcon,
+    },
+    {
+      title: "Contact",
+      url: "/contact",
+      icon: PhoneIcon,
     },
   ];
 
@@ -91,16 +104,7 @@ export function NavAdmin() {
                         )}
                       />
                     )}
-                    <span
-                      className={
-                        pathname === item.items?.[0].url ||
-                        pathname === item.url
-                          ? "font-medium"
-                          : ""
-                      }
-                    >
-                      {item.title}
-                    </span>
+                    <span>{item.title}</span>
                     {item.items &&
                       item.items.length > 0 && (
                         <ChevronRight

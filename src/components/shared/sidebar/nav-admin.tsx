@@ -1,13 +1,10 @@
 "use client";
 
 import {
-  BoxesIcon,
+  Airplay,
   ChevronRight,
   HomeIcon,
-  InfoIcon,
-  PhoneIcon,
 } from "lucide-react";
-
 import {
   Collapsible,
   CollapsibleContent,
@@ -24,17 +21,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { getAllCategories } from "@/app/actions/product.actions";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export function NavMain() {
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => getAllCategories(),
-  });
-  const { setOpen, setOpenMobile } = useSidebar();
+export function NavAdmin() {
+  const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
 
   const data = [
@@ -47,28 +38,21 @@ export function NavMain() {
     {
       title: "Categories",
       url: "#",
-      icon: BoxesIcon,
-      items: categories
-        ? categories.map((category) => ({
-            title: category.name,
-            url: `/category/${category.slug}`,
-          }))
-        : [],
-    },
-    {
-      title: "About",
-      url: "/about",
-      icon: InfoIcon,
-    },
-    {
-      title: "Contact",
-      url: "/contact",
-      icon: PhoneIcon,
+      icon: Airplay,
+      items: [
+        {
+          title: "List Categories",
+          url: "/admin/categories",
+        },
+        {
+          title: "Add Category",
+          url: "/admin/categories/new",
+        },
+      ],
     },
   ];
 
   const onClick = () => {
-    setOpen(false);
     setOpenMobile(false);
   };
 
@@ -105,7 +89,16 @@ export function NavMain() {
                         )}
                       />
                     )}
-                    <span>{item.title}</span>
+                    <span
+                      className={
+                        pathname === item.items?.[0].url ||
+                        pathname === item.url
+                          ? "font-medium"
+                          : ""
+                      }
+                    >
+                      {item.title}
+                    </span>
                     {item.items &&
                       item.items.length > 0 && (
                         <ChevronRight

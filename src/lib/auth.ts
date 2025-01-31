@@ -1,4 +1,7 @@
-import NextAuth, { User, type NextAuthConfig } from "next-auth";
+import NextAuth, {
+  User,
+  type NextAuthConfig,
+} from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { Adapter } from "next-auth/adapters";
 import prisma from "@/lib/prisma";
@@ -6,8 +9,8 @@ import Google from "next-auth/providers/google";
 import { encode as defaultEncode } from "next-auth/jwt";
 import { v4 as uuid } from "uuid";
 import Credentials from "next-auth/providers/credentials";
-import { SignInSchema } from "./validation";
-import { getUserFromDatabase } from "@/app/actions/auth.actions";
+import { SignInSchema } from "@/schemas/auth.schemas";
+import { getUserFromDatabase } from "@/actions/auth.actions";
 
 const adapter = PrismaAdapter(prisma) as Adapter;
 
@@ -31,18 +34,16 @@ const authConfig: NextAuthConfig = {
         password: {},
       },
       async authorize(credentials) {
-        const validated = SignInSchema.safeParse(credentials);
-
+        const validated =
+          SignInSchema.safeParse(credentials);
+          
         if (!validated.success) {
           throw new Error(validated.error.message);
         }
 
         const { identifier, password } = validated.data;
 
-        const res = await getUserFromDatabase({
-          identifier,
-          password,
-        });
+        const res = await getUserFromDatabase({ identifier, password });
 
         if (res.success) {
           return res.data as User;

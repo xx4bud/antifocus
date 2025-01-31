@@ -1,6 +1,6 @@
-import { AppFooter } from "@/components/footer";
-import { DashboardHeader } from "@/components/header/dashboard";
-import { AppSidebar } from "@/components/sidebar";
+import { AppFooter } from "@/components/shared/footer";
+import { DashboardHeader } from "@/components/shared/header/dashboard";
+import { AppSidebar } from "@/components/shared/sidebar";
 import {
   SidebarInset,
   SidebarProvider,
@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={true}>
       <AppSidebar dashboard={true} user={user} />
       <SidebarInset>
         <div className="border-grid flex flex-1 flex-col">

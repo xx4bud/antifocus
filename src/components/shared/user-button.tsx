@@ -11,7 +11,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { UserMenu } from "@/components/menu/user-menu";
+import { UserMenu } from "./user-menu";
 
 interface UserButtonProps {
   label?: boolean;

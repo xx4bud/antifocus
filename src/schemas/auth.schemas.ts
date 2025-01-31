@@ -3,7 +3,6 @@ import * as z from "zod";
 const regexSlug = /^[a-zA-Z0-9._-]*$/;
 const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// SignUp Schema
 export const SignUpSchema = z
   .object({
     name: z
@@ -73,7 +72,6 @@ export const SignUpSchema = z
   );
 export type SignUpValues = z.infer<typeof SignUpSchema>;
 
-// SignIn Schema
 export const SignInSchema = z
   .object({
     identifier: z
@@ -120,26 +118,3 @@ export const SignInSchema = z
     }
   );
 export type SignInValues = z.infer<typeof SignInSchema>;
-
-// Photo Schema
-export const PhotoSchema = z.object({
-  url: z
-    .string()
-    .trim()
-    .url("Invalid image URL.")
-    .min(1, "Image URL is required."),
-  publicId: z.string().trim().min(1, "Public ID is required."),
-  isCover: z.boolean().optional(),
-});
-export type PhotoValues = z.infer<typeof PhotoSchema>;
-
-// Campaigns Schema
-export const CampaignsSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  photos: z
-    .array(PhotoSchema)
-    .min(1, "At least one image is required"),
-});
-export type CampaignsValues = z.infer<
-  typeof CampaignsSchema
->;

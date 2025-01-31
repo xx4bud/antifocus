@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FaRegUser, FaWhatsapp } from "react-icons/fa6";
 import { siteConfig } from "@/config/site";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { UserButton } from "@/components/menu/user-button";
+import { UserButton } from "@/components/shared/user-button";
 import { User } from "next-auth";
 
 interface AppHeaderProps {

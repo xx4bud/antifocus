@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import {
   SignInValues,
   SignInSchema,
-} from "@/lib/validation";
+} from "@/schemas/auth.schemas";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +29,7 @@ import Link from "next/link";
 import {
   signInCredentials,
   signInGoogle,
-} from "@/app/actions/auth.actions";
+} from "@/actions/auth.actions";
 import { GoogleButton } from "@/components/ui/google-button";
 
 export function SignInForm() {
@@ -71,7 +71,7 @@ export function SignInForm() {
       } else {
         toast({
           variant: "destructive",
-          description: "Email or password is incorrect",
+          description: res.message,
         });
         setActiveAuth(null);
       }

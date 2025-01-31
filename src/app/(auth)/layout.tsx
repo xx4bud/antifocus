@@ -1,4 +1,5 @@
-import { AppHeader } from "@/components/header";
+import { AppFooter } from "@/components/shared/footer";
+import { AppHeader } from "@/components/shared/header";
 import { getSession } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
@@ -11,7 +12,7 @@ export default async function AuthLayout({
   const session = await getSession();
   const user = session?.user;
 
-  if (session) {
+  if (user) {
     return redirect("/");
   }
 
@@ -21,6 +22,7 @@ export default async function AuthLayout({
       <main className="flex flex-1 flex-grow flex-col">
         {children}
       </main>
+      <AppFooter />
     </div>
   );
 }

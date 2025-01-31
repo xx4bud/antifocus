@@ -14,8 +14,8 @@ import {
   ShoppingBagIcon,
   UserIcon,
 } from "lucide-react";
-import { useSidebar } from "../ui/sidebar";
-import { signOutUser } from "@/app/actions/auth.actions";
+import { useSidebar } from "@/components/ui/sidebar";
+import { signOutUser } from "@/actions/auth.actions";
 
 interface UserMenuProps {
   username?: boolean;
@@ -50,9 +50,6 @@ export function UserMenu({
             {username ? user.name || user.slug : "Profile"}
           </Link>
         </DropdownMenuItem>
-      </DropdownMenuLabel>
-      <DropdownMenuSeparator />
-      <DropdownMenuGroup onClick={onClick}>
         {user.role === "ADMIN" && (
           <DropdownMenuItem asChild>
             <Link href={"/admin"}>
@@ -61,12 +58,16 @@ export function UserMenu({
             </Link>
           </DropdownMenuItem>
         )}
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup onClick={onClick}>
         <DropdownMenuItem>
           <ShoppingBagIcon />
           Cart
         </DropdownMenuItem>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
+
       <DropdownMenuItem onClick={handleSignOut}>
         <LogOutIcon />
         Logout
