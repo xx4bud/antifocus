@@ -3,9 +3,9 @@ import { CategoryForm } from "./category-form";
 import { getCategoryDataInclude } from "@/types";
 
 interface CategoriesSlugPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export default async function CategoriesSlugPage({
