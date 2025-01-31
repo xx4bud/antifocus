@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -29,7 +28,7 @@ import { useForm } from "react-hook-form";
 import { CategoryPreview } from "./category-preview";
 
 interface CategoryFormProps {
-  category: CategoryData | null
+  category: CategoryData | null;
 }
 
 export function CategoryForm({
@@ -98,14 +97,21 @@ export function CategoryForm({
     result: CloudinaryUploadWidgetResults
   ) => {
     if (result.info && typeof result.info === "object") {
-      const { secure_url: url, public_id: publicId } =
-        result.info;
+      const {
+        secure_url: url,
+        public_id: publicId,
+        position,
+      } = result.info;
+      console.log("event", result);
 
       const tempPhotos = JSON.parse(
         localStorage.getItem("tempPhotos") || "[]"
       );
 
-      const newPhotos = [...tempPhotos, { url, publicId }];
+      const newPhotos = [
+        ...tempPhotos,
+        { url, publicId, position },
+      ];
       localStorage.setItem(
         "tempPhotos",
         JSON.stringify(newPhotos)
@@ -116,6 +122,7 @@ export function CategoryForm({
         { url, publicId, position: 0 },
       ]);
       form.trigger("photos");
+      close();
     }
   };
 
@@ -136,7 +143,7 @@ export function CategoryForm({
   const handleDelete = async () => {};
 
   return (
-    <div className="flex flex-1 flex-col sm:flex-row sm:space-x-4">
+    <div className="flex min-h-screen flex-1 flex-col sm:flex-row sm:space-x-4">
       <div className="flex flex-1 flex-col">
         <Heading
           title={
@@ -169,15 +176,14 @@ export function CategoryForm({
                       }
                       onRemove={handleRemovePhoto}
                       onUpload={handleUploadPhoto}
-                      disabled={isLoading}
-                      max={5}
-                
+                      max={10}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="name"
@@ -216,7 +222,7 @@ export function CategoryForm({
           </form>
         </Form>
       </div>
-      <div className="flex-col hidden sm:flex h-fit border-l pl-4">
+      <div className="hidden h-fit flex-col border-l pl-4 sm:flex">
         <CategoryPreview category={form.getValues()} />
       </div>
     </div>

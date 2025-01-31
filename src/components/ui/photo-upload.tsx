@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CldUploadButton,
   CloudinaryUploadWidgetResults,
@@ -10,9 +10,9 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface PhotoUploadProps {
-  value: { url: string; publicId: string | null }[];
+  value: { url: string; publicId: string | null; position: number }[];
   _onChange: (
-    newPhotos: { url: string; publicId: string | null }[]
+    newPhotos: { url: string; publicId: string | null; position: number }[]
   ) => void;
   onRemove: (publicId: string) => void;
   onUpload: (result: CloudinaryUploadWidgetResults) => void;
@@ -44,7 +44,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
     <div className="flex flex-wrap gap-4">
       {value.map((photo) => (
         <div
-          key={photo.url}
+          key={photo.publicId!}
           className={cn(
             "relative flex h-[98px] w-[98px] items-center justify-center overflow-hidden rounded-lg border-2 border-muted-foreground/50",
             className
@@ -77,9 +77,8 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
       {/* Allow uploading only if there is space */}
       {value.length < max && (
         <CldUploadButton
-          onSuccess={(result, { close }) => {
+          onSuccess={(result) => {
             onUpload(result);
-            close();
           }}
           uploadPreset={
             process.env
