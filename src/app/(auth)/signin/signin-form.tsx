@@ -26,11 +26,8 @@ import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
-import {
-  signInCredentials,
-  signInGoogle,
-} from "@/actions/auth.actions";
 import { GoogleButton } from "@/components/ui/google-button";
+import { signInCredentials, signInGoogle } from "./actions";
 
 export function SignInForm() {
   const [activeAuth, setActiveAuth] = React.useState<
