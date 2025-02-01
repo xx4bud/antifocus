@@ -70,7 +70,7 @@ const SheetContent = React.forwardRef<
   (
     {
       side = "right",
-      closeButton = true,
+      closeButton,
       className,
       children,
       ...props
