@@ -58,6 +58,12 @@ const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
+    async redirect({ baseUrl, url }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
+    },
     async session({ session, user }) {
       session.user.id = user.id;
       session.user.role = user.role;

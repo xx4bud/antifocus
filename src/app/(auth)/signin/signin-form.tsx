@@ -27,7 +27,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
 import { GoogleButton } from "@/components/ui/google-button";
-import { signInCredentials, signInGoogle } from "../actions";
+import { signInCredentials } from "../actions";
 import { signIn } from "next-auth/react";
 
 export function SignInForm() {
@@ -36,6 +36,7 @@ export function SignInForm() {
   >(null);
   const router = useRouter();
   const params = useSearchParams();
+  const callbackUrl = params.get("callbackUrl") || "/";
   const isLoading = activeAuth !== null;
   const { toast } = useToast();
 
@@ -79,7 +80,7 @@ export function SignInForm() {
     setActiveAuth("google");
     await signIn("google", {
       redirect: true,
-      redirectTo: process.env.NEXT_PUBLIC_BASE_URL!,
+      redirectTo: callbackUrl,
     })
     setActiveAuth(null);
   };

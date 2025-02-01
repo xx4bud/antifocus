@@ -6,8 +6,8 @@ import { AppSidebar } from "@/components/shared/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { SessionProvider } from "next-auth/react";
-import { getSession } from "@/lib/utils";
 import { QueryProvider } from "@/components/query-provider";
+import { auth } from "@/lib/auth";
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ interface AppProvidersProps {
 export async function AppProviders({
   children,
 }: AppProvidersProps) {
-  const session = await getSession();
+  const session = await auth()
   const user = session?.user;
 
   return (

@@ -36,6 +36,7 @@ export function SignUpForm() {
   >(null);
   const router = useRouter();
   const params = useSearchParams();
+  const callbackUrl = params.get("callbackUrl") || "/";
   const isLoading = activeAuth !== null;
   const { toast } = useToast();
 
@@ -65,7 +66,7 @@ export function SignUpForm() {
     setActiveAuth("credentials");
     const res = await signUpCredentials(data);
     if (res.success) {
-      router.push("/signin");
+      router.push(callbackUrl);
       router.refresh();
     } else {
       toast({
@@ -81,7 +82,7 @@ export function SignUpForm() {
     setActiveAuth("google");
     await signIn("google", {
       redirect: true,
-      redirectTo: process.env.NEXT_PUBLIC_BASE_URL!,
+      redirectTo: callbackUrl,
     })
     setActiveAuth(null);
   };
