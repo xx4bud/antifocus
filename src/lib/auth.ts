@@ -10,12 +10,13 @@ import { encode as defaultEncode } from "next-auth/jwt";
 import { v4 as uuid } from "uuid";
 import Credentials from "next-auth/providers/credentials";
 import { SignInSchema } from "@/schemas/auth.schemas";
-import { getUserFromDatabase } from "@/app/(auth)/signup/actions";
+import { getUserFromDatabase } from "@/app/(auth)/actions";
 
 const adapter = PrismaAdapter(prisma) as Adapter;
 
 const authConfig: NextAuthConfig = {
   adapter,
+  trustHost: true,
   pages: {
     signIn: "/signin",
     newUser: "/signup",
@@ -24,8 +25,8 @@ const authConfig: NextAuthConfig = {
   providers: [
     Google({
       name: "google",
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     Credentials({
       name: "credentials",
@@ -36,17 +37,20 @@ const authConfig: NextAuthConfig = {
       async authorize(credentials) {
         const validated =
           SignInSchema.safeParse(credentials);
-          
-        if (!validated.success) {
-          throw new Error(validated.error.message);
-        }
 
-        const { identifier, password } = validated.data;
+        if (validated.success) {
+          const { identifier, password } = validated.data;
 
-        const res = await getUserFromDatabase({ identifier, password });
+          const user = await getUserFromDatabase({
+            identifier,
+            password,
+          });
 
-        if (res.success) {
-          return res.data as User;
+          if (!user.success) {
+            return null;
+          }
+
+          return user.data as User;
         }
 
         return null;

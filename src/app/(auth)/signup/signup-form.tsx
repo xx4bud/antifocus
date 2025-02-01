@@ -17,9 +17,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  signUpCredentials,
-} from "@/app/(auth)/signup/actions";
 import { useToast } from "@/hooks/use-toast";
 import {
   useRouter,
@@ -30,7 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
-import { signInGoogle } from "../signin/actions";
+import { signInGoogle, signUpCredentials } from "../actions";
 
 export function SignUpForm() {
   const [activeAuth, setActiveAuth] = React.useState<

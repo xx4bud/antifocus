@@ -1,6 +1,6 @@
 "use server";
 
-import { compare, genSalt, hash } from "bcryptjs";
+import { signIn, signOut } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import {
   SignInSchema,
@@ -8,7 +8,7 @@ import {
   SignUpSchema,
   SignUpValues,
 } from "@/schemas/auth.schemas";
-import { redirect } from "next/navigation";
+import { compare, genSalt, hash } from "bcryptjs";
 
 export async function getUserFromDatabase(
   data: SignInValues
@@ -56,6 +56,49 @@ export async function getUserFromDatabase(
     return {
       success: true,
       data: existedUser,
+    };
+  } catch (error: any) {
+    console.log(error);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
+
+export async function signInCredentials(
+  data: SignInValues
+) {
+  try {
+    SignInSchema.parse(data);
+    const { identifier, password } = data;
+
+    const existedUser = await getUserFromDatabase({
+      identifier,
+      password,
+    });
+
+    if (!existedUser.success) {
+      return {
+        success: false,
+        message: existedUser.message,
+      };
+    }
+
+    const formData = new FormData();
+
+    formData.append("identifier", identifier);
+    formData.append("password", password);
+
+    const res = await signIn("credentials", {
+      identifier,
+      password,
+      redirect: false,
+    });
+
+    return {
+      success: true,
+      data: res,
     };
   } catch (error: any) {
     console.log(error);
@@ -134,4 +177,15 @@ export async function signUpCredentials(
       message: error.message,
     };
   }
+}
+
+export async function signInGoogle() {
+  await signIn("google", {
+    redirect: true,
+    redirectTo: process.env.NEXT_PUBLIC_BASE_URL!,
+  });
+}
+
+export async function signOutUser() {
+  await signOut();
 }

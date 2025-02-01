@@ -14,7 +14,7 @@ import {
   ShoppingBagIcon,
   UserIcon,
 } from "lucide-react";
-import { signOutUser } from "@/app/(auth)/signup/actions";
+import { signOutUser } from "@/app/(auth)/actions";
 
 interface UserMenuProps {
   username?: boolean;
