@@ -28,6 +28,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
 import { signInGoogle, signUpCredentials } from "../actions";
+import { signIn } from "next-auth/react";
 
 export function SignUpForm() {
   const [activeAuth, setActiveAuth] = React.useState<
@@ -78,7 +79,10 @@ export function SignUpForm() {
 
   const googleSignUp = async () => {
     setActiveAuth("google");
-    await signInGoogle();
+    await signIn("google", {
+      redirect: true,
+      redirectTo: process.env.NEXT_PUBLIC_BASE_URL!,
+    })
     setActiveAuth(null);
   };
 
