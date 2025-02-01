@@ -14,7 +14,7 @@ export default async function AppLayout({
   return (
     <div className="border-grid flex flex-1 flex-col">
       <AppHeader user={user} />
-      <main className="flex flex-1 flex-grow flex-col">
+      <main className="flex flex-1 min-h-svh flex-grow flex-col">
         {children}
       </main>
       <AppFooter />

@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import {
   signUpCredentials,
   signInGoogle,
-} from "@/actions/auth.actions"
+} from "@/actions/auth.actions";
 import { useToast } from "@/hooks/use-toast";
 import {
   useRouter,
@@ -91,6 +91,8 @@ export function SignUpForm() {
     } catch (error: any) {
       console.error("Error signing in google:", error);
     } finally {
+      router.push("/");
+      router.refresh();
       setActiveAuth(null);
     }
   };

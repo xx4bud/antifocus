@@ -27,7 +27,7 @@ export default async function DashboardLayout({
       <SidebarInset>
         <div className="border-grid flex flex-1 flex-col">
           <DashboardHeader />
-          <main className="flex flex-1 flex-grow flex-col">
+          <main className="flex min-h-svh flex-1 flex-grow flex-col">
             {children}
           </main>
           <AppFooter />

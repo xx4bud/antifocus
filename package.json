@@ -21,6 +21,7 @@
     "@neondatabase/serverless": "^0.10.4",
     "@prisma/adapter-neon": "^6.3.0",
     "@prisma/client": "^6.3.0",
+    "@radix-ui/react-alert-dialog": "^1.1.5",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-collapsible": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.5",

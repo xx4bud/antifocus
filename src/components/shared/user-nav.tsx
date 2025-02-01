@@ -5,6 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -25,9 +26,15 @@ interface UserNavProps {
 }
 
 export function UserNav({ badge, user }: UserNavProps) {
+  const { setOpen, setOpenMobile } = useSidebar();
+
+  const onClick = () => {
+    setOpen(false);
+    setOpenMobile(false);
+  };
   return (
     <SidebarMenu>
-      <SidebarMenuItem>
+      <SidebarMenuItem onClick={onClick}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton

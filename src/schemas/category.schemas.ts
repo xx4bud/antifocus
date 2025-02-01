@@ -2,6 +2,7 @@ import * as z from "zod";
 import { PhotoSchema } from "./photo.schemas";
 
 export const CategorySchema = z.object({
+  id: z.string().optional(),
   name: z
     .string()
     .trim()

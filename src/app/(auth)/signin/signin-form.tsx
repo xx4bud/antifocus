@@ -85,10 +85,12 @@ export function SignInForm() {
   const googleSignUp = async () => {
     setActiveAuth("google");
     try {
-      await signInGoogle()
+      await signInGoogle();
     } catch (error: any) {
       console.error("Error signing in google:", error);
     } finally {
+      router.push("/");
+      router.refresh();
       setActiveAuth(null);
     }
   };
