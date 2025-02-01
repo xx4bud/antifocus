@@ -172,7 +172,6 @@ export async function signInCredentials(
     const res = await signIn("credentials", {
       identifier,
       password,
-      redirect: false,
     });
 
     return {
@@ -189,10 +188,7 @@ export async function signInCredentials(
 }
 
 export async function signInGoogle() {
-  await signIn("google", {
-    redirect: true,
-    redirectTo: process.env.NEXT_PUBLIC_BASE_URL!,
-  });
+  await signIn("google");
 }
 
 export async function signOutUser() {
