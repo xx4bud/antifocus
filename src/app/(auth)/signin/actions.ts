@@ -1,6 +1,6 @@
-import { getUserFromDatabase } from "@/actions/auth.actions";
+import { getUserFromDatabase } from "@/app/(auth)/signup/actions";
 import { SignInSchema, SignInValues } from "@/schemas/auth.schemas";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 
 export async function signInCredentials(
     data: SignInValues
@@ -55,3 +55,8 @@ export async function signInCredentials(
   export async function signInGoogle() {
     await signIn("google");
   }
+
+  export async function signOutUser() {
+    await signOut({ redirect: false });
+  }
+

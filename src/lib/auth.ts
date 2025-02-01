@@ -10,7 +10,7 @@ import { encode as defaultEncode } from "next-auth/jwt";
 import { v4 as uuid } from "uuid";
 import Credentials from "next-auth/providers/credentials";
 import { SignInSchema } from "@/schemas/auth.schemas";
-import { getUserFromDatabase } from "@/actions/auth.actions";
+import { getUserFromDatabase } from "@/app/(auth)/signup/actions";
 
 const adapter = PrismaAdapter(prisma) as Adapter;
 

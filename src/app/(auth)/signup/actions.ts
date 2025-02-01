@@ -8,7 +8,6 @@ import {
   SignUpSchema,
   SignUpValues,
 } from "@/schemas/auth.schemas";
-import { signIn, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export async function getUserFromDatabase(
@@ -135,13 +134,4 @@ export async function signUpCredentials(
       message: error.message,
     };
   }
-}
-
-
-
-
-
-export async function signOutUser() {
-  const redirectTo = await signOut({ redirect: false });
-  redirect(redirectTo.redirect);
 }
