@@ -63,36 +63,24 @@ export function SignInForm() {
 
   const onSubmit = async (data: SignInValues) => {
     setActiveAuth("credentials");
-    try {
-      const res = await signInCredentials(data);
-      if (res.success) {
-        router.push("/");
-        router.refresh();
-      } else {
-        toast({
-          variant: "destructive",
-          description: res.message,
-        });
-        setActiveAuth(null);
-      }
-    } catch (error: any) {
-      console.error("Error signing in:", error);
-    } finally {
+    const res = await signInCredentials(data);
+    if (res.success) {
+      router.push("/");
+      router.refresh();
+    } else {
+      toast({
+        variant: "destructive",
+        description: res.message,
+      });
       setActiveAuth(null);
     }
+    setActiveAuth(null);
   };
 
   const googleSignUp = async () => {
     setActiveAuth("google");
-    try {
-      await signInGoogle();
-    } catch (error: any) {
-      console.error("Error signing in google:", error);
-    } finally {
-      router.push("/");
-      router.refresh();
-      setActiveAuth(null);
-    }
+    await signInGoogle();
+    setActiveAuth(null);
   };
 
   return (
