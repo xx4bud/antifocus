@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   CategorySchema,
   CategoryValues,
-} from "@/schemas/category.schemas";
+} from "@/lib/validation";
 import { CategoryData } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CloudinaryUploadWidgetResults } from "next-cloudinary";

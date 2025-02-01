@@ -9,8 +9,8 @@ import Google from "next-auth/providers/google";
 import { encode as defaultEncode } from "next-auth/jwt";
 import { v4 as uuid } from "uuid";
 import Credentials from "next-auth/providers/credentials";
-import { SignInSchema } from "@/schemas/auth.schemas";
-import { getUserFromDatabase } from "@/app/(auth)/actions";
+import { SignInSchema } from "@/lib/validation";
+import { getUserFromDatabase } from "@/actions/auth";
 
 const adapter = PrismaAdapter(prisma) as Adapter;
 
@@ -58,12 +58,6 @@ const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async redirect({ baseUrl, url }) {
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
-    },
     async session({ session, user }) {
       session.user.id = user.id;
       session.user.role = user.role;

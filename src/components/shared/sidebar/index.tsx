@@ -27,10 +27,9 @@ export function AppSidebar({
   user,
   ...props
 }: AppSidebarProps) {
-  const { setOpen, setOpenMobile } = useSidebar();
+  const { setOpenMobile } = useSidebar();
 
   const onClick = () => {
-    setOpen(false);
     setOpenMobile(false);
   };
 

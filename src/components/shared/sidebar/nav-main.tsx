@@ -27,7 +27,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { getAllFeaturedCategories } from "@/actions/category.actions";
+import { getAllFeaturedCategories } from "@/actions/category";
 
 export function NavMain() {
   const { data: categories } = useQuery({
@@ -35,8 +35,12 @@ export function NavMain() {
     queryFn: () => getAllFeaturedCategories(),
   });
 
-  const { setOpen, setOpenMobile } = useSidebar();
+  const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
+
+  const onClick = () => {
+    setOpenMobile(false);
+  };
 
   const data = [
     {
@@ -65,11 +69,6 @@ export function NavMain() {
       icon: PhoneIcon,
     },
   ];
-
-  const onClick = () => {
-    setOpen(false);
-    setOpenMobile(false);
-  };
 
   return (
     <SidebarGroup>

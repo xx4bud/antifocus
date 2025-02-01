@@ -1,13 +1,13 @@
 "use server";
 
-import { signIn, signOut } from "@/lib/auth";
+import { signIn } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import {
   SignInSchema,
   SignInValues,
   SignUpSchema,
   SignUpValues,
-} from "@/schemas/auth.schemas";
+} from "@/lib/validation";
 import { compare, genSalt, hash } from "bcryptjs";
 
 export async function getUserFromDatabase(
@@ -37,7 +37,8 @@ export async function getUserFromDatabase(
     if (!existedUser.passwordHash) {
       return {
         success: false,
-        message: "Account already exists on another provider",
+        message:
+          "Account already exists on another provider",
       };
     }
 
@@ -177,15 +178,4 @@ export async function signUpCredentials(
       message: error.message,
     };
   }
-}
-
-export async function signInGoogle() {
-  await signIn("google", {
-    redirect: true,
-    redirectTo: process.env.NEXT_PUBLIC_BASE_URL!,
-  });
-}
-
-export async function signOutUser() {
-  await signOut();
 }

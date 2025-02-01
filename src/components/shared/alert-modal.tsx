@@ -48,7 +48,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
             disabled={loading}
             onClick={onConfirm}
           >
-            {loading ? "Processing..." : "Confirm"}
+            {loading ? "Processing..." : "Continue"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import {
   SignInValues,
   SignInSchema,
-} from "@/schemas/auth.schemas";
+} from "@/lib/validation";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,9 +26,9 @@ import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
-import { GoogleButton } from "@/components/ui/google-button";
-import { signInCredentials } from "../actions";
+import { signInCredentials } from "@/actions/auth";
 import { signIn } from "next-auth/react";
+import { GoogleButton } from "@/components/ui/google-button";
 
 export function SignInForm() {
   const [activeAuth, setActiveAuth] = React.useState<
@@ -79,9 +79,8 @@ export function SignInForm() {
   const googleSignUp = async () => {
     setActiveAuth("google");
     await signIn("google", {
-      redirect: true,
       redirectTo: callbackUrl,
-    })
+    });
     setActiveAuth(null);
   };
 

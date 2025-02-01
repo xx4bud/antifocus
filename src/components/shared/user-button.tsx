@@ -28,7 +28,7 @@ export function UserButton({
         <div
           className={`${label ? "min-w-44 cursor-pointer hover:opacity-90" : ""} flex items-center space-x-3`}
         >
-          <Avatar className="size-9 rounded-full cursor-pointer hover:opacity-90">
+          <Avatar className="size-9 cursor-pointer rounded-full hover:opacity-90">
             <AvatarImage
               src={
                 user.photos?.[0].url ||

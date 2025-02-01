@@ -115,7 +115,6 @@
       @apply min-[1800px]:border-t;
     }
   }
-  
 
   ::-webkit-scrollbar {
     width: 7px;

@@ -14,7 +14,7 @@ import {
   ShoppingBagIcon,
   UserIcon,
 } from "lucide-react";
-import { signOutUser } from "@/app/(auth)/actions";
+import { signOut } from "next-auth/react";
 
 interface UserMenuProps {
   username?: boolean;
@@ -25,13 +25,8 @@ export function UserMenu({
   username = true,
   user,
 }: UserMenuProps) {
-
   const handleSignOut = async () => {
-    try {
-      await signOutUser();
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
+    await signOut();
   };
 
   return (

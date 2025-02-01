@@ -1,4 +1,3 @@
-
 export default function HomePage() {
   return (
     <div className="container flex flex-1 flex-col">

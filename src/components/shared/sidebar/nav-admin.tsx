@@ -28,6 +28,10 @@ export function NavAdmin() {
   const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
 
+  const onClick = () => {
+    setOpenMobile(false);
+  };
+
   const data = [
     {
       title: "Home",
@@ -51,10 +55,6 @@ export function NavAdmin() {
       ],
     },
   ];
-
-  const onClick = () => {
-    setOpenMobile(false);
-  };
 
   return (
     <SidebarGroup>

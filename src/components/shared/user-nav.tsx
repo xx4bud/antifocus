@@ -26,10 +26,9 @@ interface UserNavProps {
 }
 
 export function UserNav({ badge, user }: UserNavProps) {
-  const { setOpen, setOpenMobile } = useSidebar();
+  const { setOpenMobile } = useSidebar();
 
   const onClick = () => {
-    setOpen(false);
     setOpenMobile(false);
   };
   return (

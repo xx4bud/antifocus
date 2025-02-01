@@ -29,12 +29,12 @@ export function getCategoryDataSelect() {
     name: true,
     slug: true,
     isFeatured: true,
-    photos: true
+    photos: true,
   } satisfies Prisma.CategorySelect;
 }
 export function getCategoryDataInclude() {
   return {
-    photos: true
+    photos: true,
   } satisfies Prisma.CategoryInclude;
 }
 export type CategoryData = Prisma.CategoryGetPayload<{

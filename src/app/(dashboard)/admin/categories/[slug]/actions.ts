@@ -6,7 +6,7 @@ import { getSession, slugify } from "@/lib/utils";
 import {
   CategorySchema,
   CategoryValues,
-} from "@/schemas/category.schemas";
+} from "@/lib/validation";
 import { getCategoryDataInclude } from "@/types";
 import { revalidatePath, revalidateTag } from "next/cache";
 

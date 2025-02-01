@@ -1,10 +1,10 @@
 "use client";
 
 import { forwardRef, useState } from "react";
-import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Input, InputProps } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { FaEye, FaEyeSlash } from "react-icons/fa6";
 
 const PasswordInput = forwardRef<
   HTMLInputElement,
@@ -36,12 +36,9 @@ const PasswordInput = forwardRef<
         disabled={disabled}
       >
         {showPassword && !disabled ? (
-          <FaRegEye
-            className="h-4 w-4"
-            aria-hidden="true"
-          />
+          <FaEye className="h-4 w-4" aria-hidden="true" />
         ) : (
-          <FaRegEyeSlash
+          <FaEyeSlash
             className="h-4 w-4"
             aria-hidden="true"
           />

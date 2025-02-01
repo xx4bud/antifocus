@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import {
   SignUpValues,
   SignUpSchema,
-} from "@/schemas/auth.schemas";
+} from "@/lib/validation";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,7 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Link from "next/link";
-import { signInGoogle, signUpCredentials } from "../actions";
+import { signUpCredentials } from "@/actions/auth";
 import { signIn } from "next-auth/react";
 
 export function SignUpForm() {
@@ -81,9 +81,8 @@ export function SignUpForm() {
   const googleSignUp = async () => {
     setActiveAuth("google");
     await signIn("google", {
-      redirect: true,
       redirectTo: callbackUrl,
-    })
+    });
     setActiveAuth(null);
   };
 
