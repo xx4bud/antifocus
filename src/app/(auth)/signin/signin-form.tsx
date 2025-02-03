@@ -64,7 +64,7 @@ export function SignInForm() {
     setActiveAuth("credentials");
     const res = await signInCredentials(data);
     if (res.success) {
-      router.push("/");
+      router.push(callbackUrl);
       router.refresh();
     } else {
       toast({
@@ -78,7 +78,10 @@ export function SignInForm() {
 
   const googleSignUp = async () => {
     setActiveAuth("google");
-    await signIn("google");
+    await signIn("google", {
+      redirect: true,
+      redirectTo: callbackUrl
+    });
     setActiveAuth(null);
   };
 

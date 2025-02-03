@@ -14,7 +14,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="container-wrapper flex flex-1 flex-col px-4 py-2">
+    <div className="container-wrapper flex flex-1 flex-col p-4">
       {children}
     </div>
   );

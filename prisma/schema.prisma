@@ -85,15 +85,30 @@ enum Role {
 // ==============
 
 model Category {
-  id         String   @id @default(cuid())
-  name       String
-  slug       String   @unique
-  isFeatured Boolean  @default(true)
-  photos     Photo[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  isFeatured    Boolean       @default(true)
+  photos        Photo[]
+  subCategories SubCategory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@map("categories")
+}
+
+model SubCategory {
+  id         String    @id @default(cuid())
+  name       String
+  slug       String    @unique
+  isFeatured Boolean   @default(true)
+  photos     Photo[]
+  categoryId String?   @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("sub_categories")
 }
 
 // ==============
@@ -101,16 +116,18 @@ model Category {
 // ==============
 
 model Photo {
-  id         String    @id @default(cuid())
-  url        String
-  publicId   String?
-  position   Int       @default(0)
-  userId     String?   @map("user_id")
-  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryId String?   @map("category_id")
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id            String       @id @default(cuid())
+  url           String
+  publicId      String?
+  position      Int          @default(0)
+  userId        String?      @map("user_id")
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId    String?      @map("category_id")
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategoryId String?      @map("sub_category_id")
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@map("photos")
 }

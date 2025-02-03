@@ -126,10 +126,21 @@ export const PhotoSchema = z.object({
     .url("Invalid image URL.")
     .min(1, "Image URL is required."),
   publicId: z.string().trim().nullable(),
-  position: z.coerce.number().default(0),
+  position: z.coerce.number().int().default(0),
 });
 
-export type PhotoValues = z.infer<typeof PhotoSchema>;
+export const SubCategorySchema = z.object({
+  id: z.string().optional(),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required.")
+    .max(250, "Name must be less than 250 characters."),
+  photos: z
+    .array(PhotoSchema)
+    .min(1, "At least one image is required."),
+  isFeatured: z.boolean().optional().default(true),
+});
 
 export const CategorySchema = z.object({
   id: z.string().optional(),
@@ -141,6 +152,11 @@ export const CategorySchema = z.object({
   photos: z
     .array(PhotoSchema)
     .min(1, "At least one image is required."),
+  isFeatured: z.boolean().optional().default(true),
+  subCategories: z
+    .array(SubCategorySchema)
+    .optional()
+    .default([]),
 });
 
 export type CategoryValues = z.infer<typeof CategorySchema>;

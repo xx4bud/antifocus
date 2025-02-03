@@ -42,7 +42,11 @@ export function AppSidebar({
         {user ? (
           <UserNav user={user} badge={true} />
         ) : (
-          <Link href={"/signin"} onClick={onClick}>
+          <Link
+            href={"/signin"}
+            onClick={onClick}
+            className="py-1.5"
+          >
             <Button className="w-full">
               <FaRegUser />
               SignIn

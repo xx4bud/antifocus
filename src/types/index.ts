@@ -20,6 +20,27 @@ export type PhotoData = Prisma.PhotoGetPayload<{
   select: ReturnType<typeof getPhotoDataSelect>;
 }>;
 
+// SubCategory Data
+export function getSubCategoryDataSelect() {
+  return {
+    createdAt: true,
+    updatedAt: true,
+    id: true,
+    name: true,
+    slug: true,
+    isFeatured: true,
+    photos: true,
+  } satisfies Prisma.SubCategorySelect;
+}
+export function getSubCategoryDataInclude() {
+  return {
+    photos: true,
+  } satisfies Prisma.SubCategoryInclude;
+}
+export type SubCategoryData = Prisma.SubCategoryGetPayload<{
+  include: ReturnType<typeof getSubCategoryDataInclude>;
+}>;
+
 // Category Data
 export function getCategoryDataSelect() {
   return {
@@ -34,7 +55,12 @@ export function getCategoryDataSelect() {
 }
 export function getCategoryDataInclude() {
   return {
-    photos: true,
+    photos: {
+      select: getPhotoDataSelect(),
+    },
+    subCategories: {
+      select: getSubCategoryDataSelect(),
+    },
   } satisfies Prisma.CategoryInclude;
 }
 export type CategoryData = Prisma.CategoryGetPayload<{

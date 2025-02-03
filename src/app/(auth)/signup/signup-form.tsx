@@ -80,7 +80,10 @@ export function SignUpForm() {
 
   const googleSignUp = async () => {
     setActiveAuth("google");
-    await signIn("google");
+    await signIn("google", {
+      redirect: true,
+      redirectTo: callbackUrl
+    });
     setActiveAuth(null);
   };
 

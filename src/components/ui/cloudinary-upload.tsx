@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-interface PhotoUploadProps {
+interface CloudinaryUploadProps {
   value: {
     url: string;
     publicId: string | null;
@@ -37,7 +37,7 @@ interface PhotoUploadProps {
   className?: string;
 }
 
-export const PhotoUpload: React.FC<PhotoUploadProps> = ({
+export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({
   value,
   onChange,
   onRemove,
@@ -92,7 +92,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
             <div
               key={photo.publicId!}
               className={cn(
-                "relative items-center justify-center rounded-lg border-2 border-muted-foreground/50 bg-muted",
+                "relative items-center justify-center rounded-lg border-2 border-muted-foreground/50 bg-background",
                 disabled && "opacity-80",
                 className
               )}
@@ -128,7 +128,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
                 maxFiles: max - value.length,
               }}
               className={cn(
-                "relative flex h-[98px] w-[98px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-muted",
+                "relative flex h-[98px] w-[98px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-background",
                 disabled && "opacity-80",
                 className
               )}

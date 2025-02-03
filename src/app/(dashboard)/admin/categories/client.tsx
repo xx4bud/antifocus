@@ -1,6 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Heading } from "@/components/ui/heading";
+import { Separator } from "@/components/ui/separator";
 import { CategoryData } from "@/types";
+import { Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
@@ -14,31 +18,20 @@ export function CategoriesClient({
 }: CategoriesClientProps) {
   return (
     <div className="flex flex-1 flex-col">
-      {categories.map((category) => {
-        const coverPhoto = category.photos.find(
-          (photo) => photo.position === 0
-        );
-
-        return (
-          <div key={category.id}>
-            <Link
-              href={`/admin/categories/${category.slug}`}
-            >
-              <div>
-                <div>{category.name}</div>
-                {coverPhoto && (
-                  <Image
-                    src={coverPhoto.url}
-                    width={100}
-                    height={100}
-                    alt={category.name}
-                  />
-                )}
-              </div>
+      <Heading
+        title="Categories"
+        amount={categories.length}
+        description="Manage our categories"
+        button={
+          <Button asChild>
+            <Link href={"/admin/categories/new"}>
+              <Plus />
+              Create
             </Link>
-          </div>
-        );
-      })}
+          </Button>
+        }
+      />
+      <Separator className="my-3" />
     </div>
   );
 }

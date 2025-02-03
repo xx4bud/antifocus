@@ -38,14 +38,6 @@ export function UserMenu({
             {username ? user.name || user.slug : "Profile"}
           </Link>
         </DropdownMenuItem>
-        {user.role === "ADMIN" && (
-          <DropdownMenuItem asChild>
-            <Link href={"/admin"}>
-              <LockIcon />
-              Admin
-            </Link>
-          </DropdownMenuItem>
-        )}
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
@@ -55,7 +47,14 @@ export function UserMenu({
         </DropdownMenuItem>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
-
+      {user.role === "ADMIN" && (
+        <DropdownMenuItem asChild>
+          <Link href={"/admin"}>
+            <LockIcon />
+            Admin
+          </Link>
+        </DropdownMenuItem>
+      )}
       <DropdownMenuItem onClick={handleSignOut}>
         <LogOutIcon />
         Logout

@@ -12,7 +12,7 @@ import {
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { PhotoUpload } from "@/components/ui/photo-upload";
+import { CloudinaryUpload } from "@/components/ui/cloudinary-upload";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -24,7 +24,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CloudinaryUploadWidgetResults } from "next-cloudinary";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import {
   deleteCategory,
   submitCategory,
@@ -32,6 +32,8 @@ import {
 } from "./actions";
 import { AlertModal } from "@/components/shared/alert-modal";
 import { Loader2, Trash } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SubCategoryFields } from "./subcategory-fields";
 
 interface CategoryFormProps {
   category: CategoryData | null;
@@ -44,20 +46,10 @@ export function CategoryForm({
   const [photosToDelete, setPhotosToDelete] =
     React.useState<string[]>([]);
   const [openAlert, setOpenAlert] = React.useState(false);
+  const [removedSubcategories, setRemovedSubcategories] =
+    React.useState<any[]>([]);
   const router = useRouter();
   const { toast } = useToast();
-
-  const form = useForm<CategoryValues>({
-    resolver: zodResolver(CategorySchema),
-    defaultValues: category
-      ? {
-          ...category,
-        }
-      : {
-          name: "",
-          photos: [],
-        },
-  });
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -98,6 +90,59 @@ export function CategoryForm({
     cleanUpPhotos();
   }, []);
 
+  const form = useForm<CategoryValues>({
+    resolver: zodResolver(CategorySchema),
+    mode: "onChange",
+    defaultValues: category
+      ? {
+          ...category,
+        }
+      : {
+          name: "",
+          photos: [],
+          isFeatured: true,
+          subCategories: [
+            {
+              name: "",
+              photos: [],
+              isFeatured: true,
+            },
+          ],
+        },
+  });
+
+  const {
+    fields: subCategoriesFields,
+    append: appendSubCategory,
+    remove: removeSubCategory,
+  } = useFieldArray({
+    control: form.control,
+    name: "subCategories",
+  });
+
+  const handleAddSubcategory = () => {
+    const lastRemoved = removedSubcategories.pop();
+    const newSubCategory = lastRemoved || {
+      name: "",
+      photos: [],
+      isFeatured: true,
+    };
+
+    appendSubCategory(newSubCategory);
+    setRemovedSubcategories(removedSubcategories);
+  };
+
+  const handleRemoveSubCategory = (index: number) => {
+    const removedData = form.getValues(
+      `subCategories.${index}`
+    );
+    setRemovedSubcategories((prev) => [
+      ...prev,
+      removedData,
+    ]);
+    removeSubCategory(index);
+  };
+
   const handleUploadPhoto = (
     result: CloudinaryUploadWidgetResults
   ) => {
@@ -126,6 +171,37 @@ export function CategoryForm({
     }
   };
 
+  const handleUploadSubPhoto = (
+    result: CloudinaryUploadWidgetResults,
+    index: number
+  ) => {
+    if (result.info && typeof result.info === "object") {
+      const { secure_url: url, public_id: publicId } =
+        result.info;
+
+      const tempPhotos = JSON.parse(
+        localStorage.getItem("tempPhotos") || "[]"
+      );
+      const newPhotos = [
+        ...tempPhotos,
+        { url, publicId, position: tempPhotos.length },
+      ];
+      localStorage.setItem(
+        "tempPhotos",
+        JSON.stringify(newPhotos)
+      );
+
+      const currentPhotos = form.getValues(
+        `subCategories.${index}.photos`
+      );
+      form.setValue(`subCategories.${index}.photos`, [
+        ...currentPhotos,
+        { url, publicId, position: currentPhotos.length },
+      ]);
+      form.trigger(`subCategories.${index}.photos`);
+    }
+  };
+
   const handleRemovePhoto = async (publicId: string) => {
     const updatedPhotos = form
       .getValues("photos")
@@ -136,9 +212,25 @@ export function CategoryForm({
     setPhotosToDelete((prev) => [...prev, publicId]);
   };
 
-  const handleSubmit = async (data: CategoryValues) => {
-    setIsLoading(true);
+  const handleRemoveSubPhoto = async (
+    publicId: string,
+    index: number
+  ) => {
+    const updatedPhotos = form
+      .getValues(`subCategories.${index}.photos`)
+      .filter((photo) => photo.publicId !== publicId);
+    form.setValue(
+      `subCategories.${index}.photos`,
+      updatedPhotos
+    );
+    form.trigger(`subCategories.${index}.photos`);
 
+    setPhotosToDelete((prev) => [...prev, publicId]);
+  };
+
+  const handleSubmit = async (data: CategoryValues) => {
+    console.log(JSON.stringify(data, null, 2));
+    setIsLoading(true);
     let res;
     if (category) {
       res = await updateCategory({
@@ -171,7 +263,9 @@ export function CategoryForm({
       router.push("/admin/categories");
       router.refresh();
     } else {
+      console.log(res);
       toast({
+        variant: "destructive",
         description: res.message,
       });
     }
@@ -180,15 +274,18 @@ export function CategoryForm({
 
   const handleDelete = async () => {
     setIsLoading(true);
-
     const res = await deleteCategory(category!.id);
-
     if (res.success) {
       toast({
         description: res.message,
       });
       router.push("/admin/categories");
       router.refresh();
+    } else {
+      toast({
+        variant: "destructive",
+        description: res.message,
+      });
     }
     setIsLoading(false);
   };
@@ -199,45 +296,46 @@ export function CategoryForm({
         open={openAlert}
         title="Are you sure?"
         description="This action cannot be undone. It will permanently delete the category and its subcategories."
-        loading={isLoading}
         onConfirm={handleDelete}
         onClose={() => setOpenAlert(false)}
       />
-      <div className="flex flex-1 flex-col sm:flex-row sm:space-x-4">
-        <div className="flex flex-1 flex-col">
-          <Heading
-            title={
-              category ? "Edit Category" : "Create Category"
-            }
-            description={
-              category
-                ? "Edit category details"
-                : "Create a new category"
-            }
-            button={
-              category && (
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => setOpenAlert(true)}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <Trash />
-                  )}
-                </Button>
-              )
-            }
-          />
-          <Separator className="my-3" />
-
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleSubmit)}
-              className="space-y-2"
-            >
+      <div className="flex flex-1 flex-col md:flex-row sm:space-x-4">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="flex flex-1 flex-col space-y-4"
+          >
+            <div className="space-y-2 rounded-lg border bg-card p-4 pt-3">
+              <Heading
+                title={
+                  category
+                    ? "Edit Category"
+                    : "Create Category"
+                }
+                description={
+                  category
+                    ? "Edit category details"
+                    : "Create a new category"
+                }
+                button={
+                  category && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      type="button"
+                      onClick={() => setOpenAlert(true)}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <Trash />
+                      )}
+                    </Button>
+                  )
+                }
+              />
+              <Separator className="my-3" />
               <FormField
                 control={form.control}
                 name="photos"
@@ -245,7 +343,7 @@ export function CategoryForm({
                   <FormItem>
                     <FormLabel>Photos</FormLabel>
                     <FormControl>
-                      <PhotoUpload
+                      <CloudinaryUpload
                         disabled={isLoading}
                         value={field.value}
                         onChange={(newPhotos) =>
@@ -260,7 +358,6 @@ export function CategoryForm({
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="name"
@@ -279,12 +376,55 @@ export function CategoryForm({
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 justify-end gap-4 pt-2">
+              <FormField
+                control={form.control}
+                name="isFeatured"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-2 space-y-0 py-1">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+
+                    <FormLabel>Featured</FormLabel>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {subCategoriesFields.map((_, index) => (
+                <SubCategoryFields
+                  key={index}
+                  index={index}
+                  onRemove={() =>
+                    handleRemoveSubCategory(index)
+                  }
+                  onUploadPhoto={handleUploadSubPhoto}
+                  onRemovePhoto={handleRemoveSubPhoto}
+                  loading={isLoading}
+                />
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <Button
+                onClick={handleAddSubcategory}
+                disabled={!form.formState.isValid || isLoading}
+              >
+                Add SubCategory
+              </Button>
+              <Separator />
+              <div className="flex flex-1 flex-row gap-4">
                 <Button
                   disabled={isLoading}
                   onClick={() => router.back()}
                   type="button"
                   variant={"outline"}
+                  className="w-full"
                 >
                   Cancel
                 </Button>
@@ -292,13 +432,15 @@ export function CategoryForm({
                   loading={isLoading}
                   disabled={isLoading}
                   type="submit"
+                  className="w-full"
                 >
                   Save
                 </LoadingButton>
               </div>
-            </form>
-          </Form>
-        </div>
+            </div>
+          </form>
+        </Form>
+
         <div className="hidden h-fit w-1/3 flex-col border-l pl-4 sm:flex">
           {/* Category Preview */}
           <div className="flex flex-col gap-4">

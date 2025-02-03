@@ -23,7 +23,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <AppSidebar dashboard={true} user={user} />
+      <AppSidebar user={user} dashboard={true} />
       <SidebarInset>
         <div className="border-grid flex flex-1 flex-col">
           <DashboardHeader />
