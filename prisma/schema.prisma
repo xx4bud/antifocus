@@ -1,0 +1,560 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// ==============
+// AUTH
+// ==============
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==============
+// USER
+// ==============
+model User {
+  id    String  @id @default(cuid())
+  name  String?
+  slug  String  @unique
+  email String? @unique
+  phone String? @unique
+  image String?
+
+  media     Media[]
+  addresses Address[]
+  designs   Design[]
+  carts     Cart[]
+  orders    Order[]
+  payments  Payment[]
+  reviews   Review[]
+
+  role          UserRole  @default(USER)
+  emailVerified DateTime? @map("email_verified")
+  passwordHash  String?
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model Address {
+  id          String       @id @default(cuid())
+  label       AddressLabel @default(HOME)
+  receipient  String
+  phone       String
+  province    String?
+  city        String?
+  district    String?
+  subDistrict String?      @map("sub_district")
+  postalCode  String?      @map("postal_code")
+  fullAddress String       @map("full_address")
+  notes       String?
+  default     Boolean      @default(true)
+
+  shipping Shipping[]
+
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, default], map: "default_user_address")
+  @@index([userId])
+  @@map("addresses")
+}
+
+enum AddressLabel {
+  HOME
+  WORK
+  OTHER
+}
+
+// ==============
+// CATALOG
+// ==============
+model Category {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  featured    Boolean @default(true)
+  views       Int     @default(0)
+  image       String?
+
+  media         Media[]
+  subCategories SubCategory[]
+  products      Product[]     @relation("products_to_categories")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  featured    Boolean @default(true)
+  views       Int     @default(0)
+  image       String?
+
+  media    Media[]
+  products Product[] @relation("products_to_subcategories")
+
+  categoryId String?   @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([categoryId])
+  @@map("subcategories")
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  media         Media[]
+  image         String?
+  sku           String?       @unique
+  slug          String        @unique
+  name          String
+  description   String?
+  price         Decimal       @default(0)
+  stock         Int           @default(0)
+  minOrder      Int           @default(0) @map("min_order")
+  maxOrder      Int?          @map("max_order")
+  weight        Decimal       @default(0)
+  length        Decimal?
+  width         Decimal?
+  height        Decimal?
+  categories    Category[]    @relation("products_to_categories")
+  subCategories SubCategory[] @relation("products_to_subcategories")
+
+  designs    Design[]
+  specs      Spec[]
+  variants   Variant[]
+  options    Option[]
+  views      Int         @default(0)
+  sales      Int         @default(0)
+  ratings    Decimal     @default(0)
+  reviews    Review[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  status    ProductStatus @default(DRAFT)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+
+enum ProductStatus {
+  DRAFT
+  AVAILABLE
+  OUT_OF_STOCK
+  ARCHIVED
+}
+
+// ==============
+// VARIANTS
+// ==============
+model Spec {
+  id     String @id @default(cuid())
+  label  String
+  values Json
+
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("specs")
+}
+
+model Variant {
+  id       String   @id @default(cuid())
+  media    Media[]
+  image    String?
+  sku      String?  @unique
+  label    String
+  value    String
+  options  Option[]
+  price    Decimal  @default(0)
+  stock    Int      @default(0)
+  minOrder Int      @default(0) @map("min_order")
+  maxOrder Int?     @map("max_order")
+  weight   Decimal  @default(0)
+  length   Decimal?
+  width    Decimal?
+  height   Decimal?
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("variants")
+}
+
+model Option {
+  id       String  @id @default(cuid())
+  label    String
+  value    String
+  price    Decimal @default(0)
+  minOrder Int     @default(0) @map("min_order")
+  maxOrder Int?    @map("max_order")
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String?  @map("variant_id")
+  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([variantId])
+  @@map("options")
+}
+
+// ==============
+// CUSTOM
+// ==============
+model Design {
+  id         String      @id @default(cuid())
+  label      String
+  data       Json
+  media      Media[]
+  image      String?
+  orderItems OrderItem[]
+
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([productId])
+  @@map("designs")
+}
+
+// ==============
+// CART
+// ==============
+model Cart {
+  id            String     @id @default(cuid())
+  cartItems     CartItem[]
+  totalQuantity Int        @default(1) @map("total_quantity")
+  totalAmount   Decimal    @default(0) @map("total_amount")
+
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("carts")
+}
+
+model CartItem {
+  id       String  @id @default(cuid())
+  data     Json
+  quantity Int     @default(1)
+  amount   Decimal @default(0)
+
+  cartId    String?  @map("cart_id")
+  cart      Cart?    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String?  @map("variant_id")
+  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionId  String?  @map("option_id")
+  option    Option?  @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([optionId])
+  @@map("cart_items")
+}
+
+// ==============
+// ORDER
+// ==============
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @map("order_number")
+  orderItems    OrderItem[]
+  totalQuantity Int         @default(1) @map("total_quantity")
+  totalAmount   Decimal     @default(0) @map("total_amount")
+  status        OrderStatus @default(DRAFT)
+  payments      Payment[]
+  shippings     Shipping[]
+
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY_TO_SHIP
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+  COMPLETED
+  FAILED
+}
+
+model OrderItem {
+  id       String  @id @default(cuid())
+  data     Json
+  quantity Int     @default(1)
+  amount   Decimal @default(0)
+
+  orderId   String?  @map("order_id")
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  designId  String?  @map("design_id")
+  design    Design?  @relation(fields: [designId], references: [id], onDelete: Cascade)
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String?  @map("variant_id")
+  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionId  String?  @map("option_id")
+  option    Option?  @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([designId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([optionId])
+  @@map("order_items")
+}
+
+// ==============
+// PAYMENT
+// ==============
+model Payment {
+  id            String        @id @default(cuid())
+  transactionId String        @map("transaction_id")
+  amount        Decimal       @default(0)
+  method        PaymentMethod @default(BANK_TRANSFER)
+  status        PaymentStatus @default(PENDING)
+  media         Media[]
+  image         String?
+
+  userId  String? @map("user_id")
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId String? @map("order_id")
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  E_WALLET
+  CASH
+  BCA
+  BRI
+  OVO
+  GOPAY
+  DANA
+  LINKAJA
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+// ==============
+// SHIPPING
+// ==============
+model Shipping {
+  id         String          @id @default(cuid())
+  trackingId String          @map("tracking_id")
+  courier    ShippingCourier @default(JNT)
+  service    String
+  cost       Decimal         @default(0)
+  status     ShippingStatus  @default(PENDING)
+
+  addressId String?  @map("address_id")
+  address   Address? @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  orderId   String?  @map("order_id")
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@map("shippings")
+}
+
+enum ShippingCourier {
+  JNT
+  JNE
+  POS
+  SICEPAT
+  ANTERAJA
+}
+
+enum ShippingStatus {
+  PENDING
+  PROCESSING
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+  RETURNED
+}
+
+// ==============
+// REVIEW
+// ==============
+model Review {
+  id      String  @id @default(cuid())
+  media   Media[]
+  image   String?
+  rating  Decimal @default(0)
+  comment String?
+
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([productId])
+  @@map("reviews")
+}
+
+// ==============
+// MEDIA
+// ==============
+model Media {
+  id       String    @id @default(cuid())
+  type     MediaType @default(IMAGE)
+  url      String
+  publicId String?   @map("public_id")
+  alt      String?
+  order    Int?      @default(0) // 0 = cover, 1 = gallery
+  width    Int?
+  height   Int?
+  size     Int?
+  maxSize  Int?      @map("max_size")
+
+  userId        String?      @map("user_id")
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  designId      String?      @map("design_id")
+  design        Design?      @relation(fields: [designId], references: [id], onDelete: Cascade)
+  paymentId     String?      @map("payment_id")
+  payment       Payment?     @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  productId     String?      @map("product_id")
+  product       Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId     String?      @map("variant_id")
+  variant       Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  categoryId    String?      @map("category_id")
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategoryId String?      @map("sub_category_id")
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  reviewId      String?      @map("review_id")
+  review        Review?      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@map("media")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  PDF
+  VECTOR
+  DOCUMENT
+  OTHER
+}
