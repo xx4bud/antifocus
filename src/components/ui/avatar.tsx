@@ -37,6 +37,7 @@ const AvatarImage = React.forwardRef<
     alt={alt}
     width={36}
     height={36}
+    sizes="(max-width: 768px) 100vw, 36px"
     {...props}
   />
 ));

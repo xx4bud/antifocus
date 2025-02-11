@@ -16,6 +16,7 @@ export function LogoBar() {
         width={152}
         height={36}
         quality={50}
+        sizes="(max-width: 768px) 100vw, 152px"
       />
     </Link>
   );

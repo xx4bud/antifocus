@@ -51,6 +51,7 @@ export function ImageSwiper({
               width={400}
               height={400}
               quality={50}
+              sizes="(max-width: 768px) 100vw, 400px"
               className="aspect-square h-full w-full object-cover"
             />
           </SwiperSlide>

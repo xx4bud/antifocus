@@ -27,11 +27,8 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { GoogleButton } from "@/components/ui/google-button";
 import Link from "next/link";
-// import { signIn } from "next-auth/react";
-import {
-  signInWithGoogle,
-  signUpCredentials,
-} from "../actions";
+import { signUpCredentials } from "../actions";
+import { signIn } from "next-auth/react";
 
 export function SignUpForm() {
   const [activeAuth, setActiveAuth] = useState<
@@ -41,6 +38,7 @@ export function SignUpForm() {
   const router = useRouter();
   const params = useSearchParams();
   const isLoading = activeAuth !== null;
+  const callbackUrl = params.get("callbackUrl") || "/";
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(SignUpSchema),
@@ -80,7 +78,10 @@ export function SignUpForm() {
 
   const googleSignUp = async () => {
     setActiveAuth("google");
-    await signInWithGoogle();
+    await signIn("google", {
+      redirect: true,
+      redirectTo: callbackUrl,
+    });
     setActiveAuth(null);
   };
 
@@ -90,7 +91,6 @@ export function SignUpForm() {
         <h1 className="text-2xl font-bold">SignUp</h1>
         <GoogleButton
           onClick={googleSignUp}
-          loading={activeAuth === "google"}
           disabled={isLoading}
         />
         <Separator className="relative my-4">

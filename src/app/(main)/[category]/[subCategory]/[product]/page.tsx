@@ -53,6 +53,7 @@ export default async function ProductPage({
                   height={80}
                   quality={30}
                   decoding="sync"
+                  sizes="(max-width: 768px) 100vw, 80px"
                   loading="eager"
                   className="aspect-square h-full w-full rounded object-cover"
                 />
@@ -70,6 +71,7 @@ export default async function ProductPage({
                 quality={50}
                 decoding="sync"
                 loading="eager"
+                sizes="(max-width: 768px) 100vw, 500px"
                 className="h-full w-full rounded object-cover"
               />
             </div>

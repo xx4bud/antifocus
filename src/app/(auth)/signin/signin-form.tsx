@@ -76,7 +76,10 @@ export function SignInForm() {
 
   const googleSignIn = async () => {
     setActiveAuth("google");
-    await signIn("google");
+    await signIn("google", {
+      redirect: true,
+      redirectTo: callbackUrl
+    });
     setActiveAuth(null);
   };
 
@@ -86,7 +89,6 @@ export function SignInForm() {
         <h1 className="text-2xl font-bold">SignIn</h1>
         <GoogleButton
           onClick={googleSignIn}
-          loading={activeAuth === "google"}
           disabled={isLoading}
         />
         <Separator className="relative my-4">

@@ -1,42 +1,41 @@
 "use client";
 
 import React from "react";
-import { LoadingButton } from "@/components/ui/loading-button";
-import Image from "next/image";
-import { ButtonProps } from "@/components/ui/button";
+import {
+  Button,
+  ButtonProps,
+} from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-interface GoogleButtonProps extends ButtonProps {
-  loading?: boolean;
-}
+import Image from "next/image";
 
 export function GoogleButton({
-  loading,
   onClick,
   disabled,
   className,
   ...props
-}: GoogleButtonProps) {
+}: {
+  onClick: () => void;
+  disabled: boolean;
+  className?: string;
+} & ButtonProps) {
   return (
-    <LoadingButton
+    <Button
       variant="outline"
-      loading={loading}
       disabled={disabled}
       onClick={onClick}
       className={cn("w-full", className)}
       {...props}
     >
-      {!loading && (
-        <Image
-          src={"/assets/icons/google.svg"}
-          alt="Google Logo"
-          width={20}
-          height={20}
-        />
-      )}
-      {loading
+      <Image
+        src={"/assets/icons/google.svg"}
+        alt="Google Logo"
+        width={20}
+        height={20}
+        sizes="20px"
+      />
+      {disabled
         ? "Redirecting to Google..."
         : "Continue with Google"}
-    </LoadingButton>
+    </Button>
   );
 }

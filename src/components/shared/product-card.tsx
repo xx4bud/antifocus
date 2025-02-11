@@ -32,6 +32,7 @@ export function ProductCard({ product }: ProductCardProps) {
           height={500}
           quality={50}
           className="aspect-square h-full w-full rounded-t-lg object-cover"
+          sizes="(max-width: 768px) 100vw, 500px"
         />
       </div>
       <div className="flex flex-col gap-2 p-2 pb-3">

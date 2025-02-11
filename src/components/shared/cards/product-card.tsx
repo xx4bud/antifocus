@@ -10,15 +10,15 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   return (
-    <div className="relative overflow-hidden rounded-lg border transition-transform hover:scale-[1.02]">
-      <div className="relative aspect-square overflow-hidden rounded-t-lg">
+    <div className="relative overflow-hidden flex flex-col rounded-lg border transition-transform hover:scale-[1.02]">
+      <div className="aspect-square overflow-hidden rounded-t-lg">
         <ImageSwiper
           media={product.media}
           alt={product.name}
         />
       </div>
       <div className="flex flex-col gap-2 p-2 pb-3">
-        <p className="line-clamp-2 text-sm font-medium md:text-lg">
+        <p className="line-clamp-1 font-medium">
           {product.name}
         </p>
         <p className="line-clamp-2 text-xs text-muted-foreground">
