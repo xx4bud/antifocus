@@ -29,12 +29,4 @@ export function formatCurrency(value: number | string): string {
   }).format(numericValue);
 }
 
-export function formatRating(rating: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "decimal",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(rating);
-}
-
 export const getSession = cache(auth)

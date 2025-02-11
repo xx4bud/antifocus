@@ -41,7 +41,6 @@ export function SignUpForm() {
   const router = useRouter();
   const params = useSearchParams();
   const isLoading = activeAuth !== null;
-  const callbackUrl = params.get("callbackUrl") || "/";
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(SignUpSchema),

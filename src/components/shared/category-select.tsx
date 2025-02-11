@@ -16,14 +16,7 @@ import {
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-type SortOption =
-  | "popular"
-  | "bestSeller"
-  | "latest"
-  | "priceLowToHigh"
-  | "priceHighToLow"
-  | "rating";
+import { Prelink } from "../ui/prelink";
 
 interface Category {
   id: string;
@@ -40,15 +33,7 @@ interface SubCategory {
 
 interface ProductsFilterProps {
   categories?: Category[];
-subCategories?: SubCategory[];
-onApply?: (filters: {
-  query: string;
-  sortOption: SortOption;
-  minPrice: number | null;
-  maxPrice: number | null;
-  selectedCategoryIds: string[];
-  selectedSubCategoryIds: string[];
-}) => void;
+  subCategories?: SubCategory[];
 }
 
 export function CategorySelect({
@@ -116,16 +101,22 @@ export function CategorySelect({
               {filterSubCategories(cat.subCategories).map(
                 (sub) => (
                   <AccordionContent key={sub.id}>
-                    <Link href={`/${cat.slug}/${sub.slug}`}>
+                    <Prelink
+                      prefetch={true}
+                      href={`/${cat.slug}/${sub.slug}`}
+                    >
                       {sub.name}
-                    </Link>
+                    </Prelink>
                   </AccordionContent>
                 )
               )}
               <AccordionContent>
-                <Link href={`/${cat.slug}`}>
+                <Prelink
+                  prefetch={true}
+                  href={`/${cat.slug}`}
+                >
                   All {cat.name}
-                </Link>
+                </Prelink>
               </AccordionContent>
             </AccordionItem>
           ))}

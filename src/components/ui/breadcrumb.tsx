@@ -2,7 +2,6 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Prelink } from "./prelink";
 
 const Breadcrumb = React.forwardRef<
   HTMLElement,
@@ -21,7 +20,7 @@ const BreadcrumbList = React.forwardRef<
   <ol
     ref={ref}
     className={cn(
-      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5",
+      "flex flex-wrap items-center gap-1 break-words text-sm text-muted-foreground",
       className
     )}
     {...props}
@@ -50,13 +49,12 @@ const BreadcrumbLink = React.forwardRef<
     asChild?: boolean;
   }
 >(({ asChild, className, href, ...props }, ref) => {
-  const Comp = asChild ? Slot : Prelink
+  const Comp = asChild ? Slot : "a";
 
   return (
     <Comp
       ref={ref}
       href={href as string}
-      prefetch={true}
       className={cn(
         "transition-colors hover:text-foreground",
         className

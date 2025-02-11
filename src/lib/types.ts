@@ -10,6 +10,9 @@ import type {
   UserRole,
 } from "@prisma/client";
 
+// local
+export type SortOrder = "asc" | "desc";
+
 // User Data
 export type userRole = UserRole;
 export function getUserDataInclude() {

@@ -12,23 +12,25 @@ interface FabsProps {
 
 export function Fabs({ className }: FabsProps) {
   return (
-    <nav
+    <div
       className={cn(
-        "fixed bottom-6 right-6 flex items-center justify-center",
+        "fixed bottom-6 right-6 z-50 flex items-center justify-center",
         className
       )}
     >
-      <Link
-        href={siteConfig.links.whatsapp}
-        target="_blank"
+      <Button
+        size={"icon"}
+        className="size-12 [&_svg]:size-7"
+        asChild
       >
-        <Button
-          size={"icon"}
-          className="size-12 [&_svg]:size-7"
+        <Link
+          href={siteConfig.links.whatsapp}
+          target="_blank"
+          aria-label="Chat on WhatsApp"
         >
           <FaWhatsapp />
-        </Button>
-      </Link>
-    </nav>
+        </Link>
+      </Button>
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { usePathname } from "next/navigation";
 import {
   Breadcrumb,
@@ -10,6 +9,8 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
+import { Fragment } from "react";
+import { Prelink } from "@/components/ui/prelink";
 
 export function AppBreadcrumb() {
   const pathname = usePathname();
@@ -38,10 +39,14 @@ export function AppBreadcrumb() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <Prelink prefetch={true} href="/">
+                Home
+              </Prelink>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           {pathSegments.map((segment, index) => (
-            <React.Fragment key={index}>
+            <Fragment key={index}>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 {index === pathSegments.length - 1 ? (
@@ -50,14 +55,19 @@ export function AppBreadcrumb() {
                   </BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink
-                    href={buildPath(index)}
                     className="max-w-24 truncate md:max-w-none"
+                    asChild
                   >
-                    {formatSegment(segment)}
+                    <Prelink
+                      prefetch={true}
+                      href={buildPath(index)}
+                    >
+                      {formatSegment(segment)}
+                    </Prelink>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
-            </React.Fragment>
+            </Fragment>
           ))}
         </BreadcrumbList>
       </Breadcrumb>
