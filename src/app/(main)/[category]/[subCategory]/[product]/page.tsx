@@ -1,14 +1,9 @@
+import { getProduct } from "@/app/actions/product";
 import NotFound from "@/app/not-found";
-import { AppBreadcrumb } from "@/components/shared/breadcrumb";
+import { AppBreadcrumb } from "@/components/shared/app-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import prisma from "@/lib/prisma";
-import {
-  getCategoryBySlug,
-  getProductBySlug,
-  getSubCategoryBySlug,
-} from "@/lib/queries/slug";
-import { VariantData } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { Metadata } from "next";
 import Image from "next/image";
@@ -17,8 +12,6 @@ import { FaWhatsapp } from "react-icons/fa6";
 
 interface ProductPageProps {
   params: Promise<{
-    category: string;
-    subCategory: string;
     product: string;
   }>;
 }
@@ -26,13 +19,10 @@ interface ProductPageProps {
 export default async function ProductPage({
   params,
 }: ProductPageProps) {
-  const { category, subCategory, product } = await params;
-  const Category = await getCategoryBySlug(category);
-  const SubCategory =
-    await getSubCategoryBySlug(subCategory);
-  const Product = await getProductBySlug(product);
-  if (!Category || !SubCategory || !Product)
-    return <NotFound />;
+  const { product } = await params;
+  const productData = await getProduct(product);
+
+  if (!productData) return <NotFound />;
 
   return (
     <>
@@ -42,13 +32,13 @@ export default async function ProductPage({
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="flex flex-row gap-4">
             <div className="hidden flex-col gap-4 md:flex">
-              <div className="relative size-20 aspect-square">
+              <div className="relative aspect-square size-20">
                 <Image
                   src={
-                    Product.media[0]?.url ||
+                    productData.media[0]?.url ||
                     "/placeholder.svg"
                   }
-                  alt={Product.name}
+                  alt={productData.name}
                   width={80}
                   height={80}
                   quality={30}
@@ -62,10 +52,10 @@ export default async function ProductPage({
             <div className="relative aspect-square h-full w-full">
               <Image
                 src={
-                  Product.media[0]?.url ||
+                  productData.media[0]?.url ||
                   "/placeholder.svg"
                 }
-                alt={Product.name}
+                alt={productData.name}
                 width={500}
                 height={500}
                 quality={50}
@@ -78,23 +68,19 @@ export default async function ProductPage({
           </div>
           <div className="flex flex-col gap-2">
             <h1 className="line-clamp-2 text-xl font-bold">
-              {Product.name}
+              {productData.name}
             </h1>
             <p className="text-md text-muted-foreground">
-              {Product.description}
+              {productData.description}
             </p>
             <div className="flex flex-col gap-2">
-              {Product.variants.map(
-                (variant: VariantData) => (
-                  <div key={variant.id}>
-                    <span className="text-lg font-semibold">
-                      {formatCurrency(
-                        Number(variant.price)
-                      )}
-                    </span>
-                  </div>
-                )
-              )}
+              {productData.variants.map((variant: any) => (
+                <div key={variant.id}>
+                  <span className="text-lg font-semibold">
+                    {formatCurrency(Number(variant.price))}
+                  </span>
+                </div>
+              ))}
             </div>
             <Button asChild>
               <Link
@@ -107,12 +93,6 @@ export default async function ProductPage({
             </Button>
           </div>
         </section>
-
-        {/* Review Produk */}
-        {/* <section className="flex flex-col gap-2">
-          <h2 className="text-xl font-bold">Reviews</h2>
-          <p>{Product.reviews.length} Review</p>
-        </section> */}
       </div>
     </>
   );
@@ -145,8 +125,8 @@ export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
   const { product } = await params;
-  const Product = await getProductBySlug(product);
+  const Product = await getProduct(product);
   return {
-    title: Product?.name || "Product | " + siteConfig.name,
+    title: Product?.name || "Product",
   };
 }

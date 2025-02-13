@@ -1,25 +1,44 @@
-import React from "react";
+"use client";
+
+import banner1 from "@assets/images/carousel-1.webp";
+import banner2 from "@assets/images/carousel-2.webp";
+import { useRef } from "react";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
 import Image from "next/image";
-import { StaticImageData } from "next/image";
+import Autoplay from "embla-carousel-autoplay";
 
-interface Banner {
-  id: number;
-  src: string | StaticImageData;
-  alt: string;
-}
+export const banners = [
+  {
+    id: 1,
+    src: banner1,
+    alt: "Antifocus Banner 1",
+  },
+  {
+    id: 2,
+    src: banner2,
+    alt: "Antifocus Banner 2",
+  },
+];
 
-interface BannerProps {
-  banners: Banner[];
-}
-
-export function Banner({ banners }: BannerProps) {
+export function AppBanner() {
+  const plugin = useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: true })
+  );
   return (
-    <Carousel>
+    <Carousel
+      dir="ltr"
+      plugins={[plugin.current]}
+      className="mx-auto w-full"
+      onMouseEnter={() => plugin.current.stop()}
+      onMouseLeave={() => plugin.current.play()}
+      opts={{
+        loop: true,
+      }}
+    >
       <CarouselContent>
         {banners.map((banner) => (
           <CarouselItem key={banner.id}>

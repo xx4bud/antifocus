@@ -1,6 +1,5 @@
-// src/app/(main)/layout.tsx
-import { AppFooter } from "@/components/shared/footer";
-import { AppHeader } from "@/components/shared/header";
+import { AppFooter } from "@/components/shared/app-footer";
+import { AppHeader } from "@/components/shared/app-header";
 import { getSession } from "@/lib/utils";
 
 interface MainLayoutProps {

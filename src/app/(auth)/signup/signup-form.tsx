@@ -86,7 +86,7 @@ export function SignUpForm() {
   };
 
   return (
-    <Card className="flex h-screen w-full flex-col items-center justify-center p-6 sm:h-full sm:max-w-md">
+    <Card className="flex h-screen w-full flex-col items-center justify-center p-6 sm:h-fit sm:max-w-md">
       <div className="flex w-full flex-col gap-2 text-center">
         <h1 className="text-2xl font-bold">SignUp</h1>
         <GoogleButton

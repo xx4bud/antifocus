@@ -1,34 +1,18 @@
-import FeaturedCategories from "@/components/main/home/featured-categories";
-import FeaturedProducts from "@/components/main/home/featured-products";
-import { Banner } from "@/components/shared/banner";
-import { getProducts } from "@/lib/queries/product";
-import { getFeaturedCategories } from "@/lib/queries/slug";
-import banner1 from "@assets/images/carousel-1.webp";
-import banner2 from "@assets/images/carousel-2.webp";
-
-export const homeBanners = [
-  {
-    id: 1,
-    src: banner1,
-    alt: "Antifocus Banner 1",
-  },
-  {
-    id: 2,
-    src: banner2,
-    alt: "Antifocus Banner 2",
-  },
-];
-
+import { FeaturedCategories } from "@/components/shared/featured-categories";
+import { AppBanner } from "@/components/shared/app-banner";
+import { getCategories } from "@/app/actions/category";
+import { getProducts } from "@/app/actions/product";
+import { FeaturedProducts } from "@/components/shared/featured-products";
 
 export default async function HomePage() {
   const [categories, products] = await Promise.all([
-    getFeaturedCategories(),
+    getCategories(),
     getProducts({}, "", 1, 12),
-  ])
+  ]);
 
   return (
     <div className="flex flex-1 flex-col gap-3 py-3">
-      <Banner banners={homeBanners} />
+      <AppBanner />
       <FeaturedCategories categories={categories} />
       <FeaturedProducts products={products.products} />
     </div>

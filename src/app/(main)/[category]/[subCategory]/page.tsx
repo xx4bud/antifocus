@@ -1,17 +1,12 @@
+import { getSubCategory } from "@/app/actions/category";
+import { getProducts } from "@/app/actions/product";
 import NotFound from "@/app/not-found";
-import { AppBreadcrumb } from "@/components/shared/breadcrumb";
-import { ProductCard } from "@/components/shared/cards/product-card";
-import { CategorySelect } from "@/components/shared/category-select";
+import { AppBreadcrumb } from "@/components/shared/app-breadcrumb";
+import { ProductCard } from "@/components/shared/product-card";
+import { SortFilter } from "@/components/shared/sort-filter";
 import { Prelink } from "@/components/ui/prelink";
-import { siteConfig } from "@/config/site";
 import prisma from "@/lib/prisma";
-import {
-  getCategories,
-  getCategoryBySlug,
-  getProductsBySubCategory,
-  getSubCategoryBySlug,
-} from "@/lib/queries/slug";
-import { ProductData } from "@/lib/types";
+import { FiltersQuery } from "@/lib/types";
 import { Metadata } from "next";
 
 interface SubCategoryPageProps {
@@ -19,44 +14,55 @@ interface SubCategoryPageProps {
     category: string;
     subCategory: string;
   }>;
+  searchParams: Promise<FiltersQuery>;
 }
 
 export default async function SubCategoryPage({
   params,
+  searchParams,
 }: SubCategoryPageProps) {
   const { category, subCategory } = await params;
-  const [Category, SubCategory, Categories, Products] =
-    await Promise.all([
-      getCategoryBySlug(category),
-      getSubCategoryBySlug(subCategory),
-      getCategories(),
-      getProductsBySubCategory(subCategory),
-    ]);
-  if (!Category || !SubCategory || !Categories || !Products)
+  const { q, maxPrice, minPrice, option, variant, sort } =
+    await searchParams;
+  const [subCategoryData, productsData] = await Promise.all(
+    [
+      getSubCategory(subCategory),
+      getProducts(
+        {
+          q,
+          minPrice: Number(minPrice) || 0,
+          maxPrice:
+            Number(maxPrice) || Number.MAX_SAFE_INTEGER,
+          category,
+          subCategory,
+          option,
+          variant,
+        },
+        sort
+      ),
+    ]
+  );
+
+  if (!subCategoryData || !productsData)
     return <NotFound />;
 
   return (
     <>
-      {/* Breadcrumb */}
       <AppBreadcrumb />
-      <div className="flex flex-1 flex-col gap-3 px-2 pb-3 md:flex-row">
+      <div className="relative flex flex-1 flex-col md:flex-row">
         {/* Sidebar */}
-        <aside className="md:w-1/5">
-          <CategorySelect categories={Categories} />
-        </aside>
-        <div className="md:w-4/5">
-          {/* Product List */}
-          <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4">
-            {Products.map((product: ProductData) => (
+        {/* <aside className="md:w-1/5">sidebar</aside> */}
+        {/* Products */}
+        <div className="flex flex-1 flex-col md:w-4/5">
+          <SortFilter/>
+          <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 md:grid-cols-4">
+            {productsData.products.map((product: any) => (
               <Prelink
                 key={product.id}
                 prefetch={true}
                 href={`/${product.categories[0].slug}/${product.subCategories[0].slug}/${product.slug}`}
               >
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                />
+                <ProductCard product={product} />
               </Prelink>
             ))}
           </div>
@@ -86,10 +92,10 @@ export async function generateMetadata({
 }: SubCategoryPageProps): Promise<Metadata> {
   const { subCategory } = await params;
   const SubCategory =
-    await getSubCategoryBySlug(subCategory);
+    await getSubCategory(subCategory);
   return {
     title:
       SubCategory?.name ||
-      "SubCategory | " + siteConfig.name,
+      "SubCategory",
   };
 }

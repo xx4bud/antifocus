@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductCard } from "@/components/shared/cards/product-card";
+import { ProductCard } from "@/components/shared/product-card";
 import { Button } from "@/components/ui/button";
 import { Prelink } from "@/components/ui/prelink";
 import { ProductData } from "@/lib/types";
@@ -10,21 +10,20 @@ interface FeaturedProductsProps {
   products: ProductData[];
 }
 
-export default function FeaturedProducts({
+export function FeaturedProducts({
   products,
 }: FeaturedProductsProps) {
   return (
-    <div>
+    <section className="space-y-2">
       <div className="flex flex-col gap-2 text-center">
         <h1 className="-my-1 text-xl font-bold sm:text-2xl">
           Discovery Product
         </h1>
         <p className="text-sm text-muted-foreground sm:text-lg">
-          We curate a selection of products based on trends
-          and preferences.
+          Explore our collection of products
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-3.5 pt-4 md:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {products?.map((product) => (
           <Prelink
             prefetch={true}
@@ -41,6 +40,6 @@ export default function FeaturedProducts({
           <ArrowRight />
         </Button>
       </div>
-    </div>
+    </section>
   );
 }

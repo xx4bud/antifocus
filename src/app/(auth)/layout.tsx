@@ -1,6 +1,6 @@
 // src/app/(auth)/layout.tsx
-import { AppFooter } from "@/components/shared/footer";
-import { AppHeader } from "@/components/shared/header";
+import { AppFooter } from "@/components/shared/app-footer";
+import { AppHeader } from "@/components/shared/app-header";
 import { getSession } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
@@ -21,7 +21,7 @@ export default async function AuthLayout({
   return (
     <div className="border-grid relative flex flex-1 flex-col">
       <AppHeader user={user} />
-      <div className="flex min-h-screen flex-1 flex-grow flex-col">
+      <div className="flex min-h-svh flex-1 flex-grow flex-col">
         {children}
       </div>
       <AppFooter />

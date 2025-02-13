@@ -5,8 +5,9 @@ import * as React from "react";
 import {
   Sidebar,
   SidebarHeader,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { UserNav } from "../user-nav";
+import { UserNav } from "./user-nav";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FaRegUser } from "react-icons/fa6";
@@ -34,6 +35,7 @@ export function AppSidebar({
           </Link>
         )}
       </SidebarHeader>
+      <SidebarSeparator />
     </Sidebar>
   );
 }

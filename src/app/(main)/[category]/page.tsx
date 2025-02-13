@@ -1,50 +1,73 @@
+import { getCategory } from "@/app/actions/category";
+import { getProducts } from "@/app/actions/product";
 import NotFound from "@/app/not-found";
-import { AppBreadcrumb } from "@/components/shared/breadcrumb";
-import { ProductCard } from "@/components/shared/cards/product-card";
-import { CategorySelect } from "@/components/shared/category-select";
+import { AppBreadcrumb } from "@/components/shared/app-breadcrumb";
+import { ProductCard } from "@/components/shared/product-card";
+import { SortFilter } from "@/components/shared/sort-filter";
+import { Input } from "@/components/ui/input";
 import { Prelink } from "@/components/ui/prelink";
-import { siteConfig } from "@/config/site";
 import prisma from "@/lib/prisma";
-import {
-  getCategories,
-  getCategoryBySlug,
-  getProductsByCategory,
-} from "@/lib/queries/slug";
-import { ProductData } from "@/lib/types";
+import { FiltersQuery } from "@/lib/types";
 import { Metadata } from "next";
 
 interface CategoryPageProps {
-  params: Promise<{
-    category: string;
-  }>;
+  params: Promise<{ category: string }>;
+  searchParams: Promise<FiltersQuery>;
 }
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: CategoryPageProps) {
   const { category } = await params;
-  const [Category, Categories, Products] =
-    await Promise.all([
-      getCategoryBySlug(category),
-      getCategories(),
-      getProductsByCategory(category),
-    ]);
-  if (!Category || !Categories || !Products)
-    return <NotFound />;
+  const {
+    q,
+    subCategory,
+    maxPrice,
+    minPrice,
+    option,
+    variant,
+    sort,
+  } = await searchParams;
+  const [categoryData, productsData] = await Promise.all([
+    getCategory(category),
+    getProducts(
+      {
+        q,
+        minPrice: Number(minPrice) || 0,
+        maxPrice:
+          Number(maxPrice) || Number.MAX_SAFE_INTEGER,
+        category,
+        subCategory,
+        option,
+        variant,
+      },
+      sort
+    ),
+  ]);
+
+  if (!categoryData || !productsData) return <NotFound />;
 
   return (
     <>
-      {/* Breadcrumb */}
       <AppBreadcrumb />
-      <div className="flex flex-1 flex-col gap-3 px-2 pb-3 md:flex-row">
+      <div className="flex flex-1 flex-col md:flex-row">
         {/* Sidebar */}
-        <aside className="md:w-1/5">
-          <CategorySelect categories={Categories} />
+        <aside className="hidden md:flex md:w-1/5">
+          sidebar
         </aside>
-        <div className="md:w-4/5">
-          {/* Product List */}
-          <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4">
-            {Products.map((product: ProductData) => (
+        {/* Products */}
+        <div className="flex flex-1 flex-col md:w-4/5">
+          <div className="flex w-full items-center">
+            <div className="flex w-full md:w-1/2">
+              <SortFilter />
+            </div>
+            <div className="hidden md:block md:w-1/2">
+              <Input placeholder="search by.." />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 md:grid-cols-4">
+            {productsData.products.map((product: any) => (
               <Prelink
                 key={product.id}
                 prefetch={true}
@@ -69,9 +92,9 @@ export async function generateMetadata({
   params,
 }: CategoryPageProps): Promise<Metadata> {
   const { category } = await params;
-  const categoryData = await getCategoryBySlug(category);
+  const categoryData = await getCategory(category);
   return {
     title:
-      categoryData?.name || "Category | " + siteConfig.name,
+      categoryData?.name || "Category",
   };
 }

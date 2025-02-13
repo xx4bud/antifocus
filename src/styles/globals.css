@@ -2,20 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body,
-:root {
-  height: 100%;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-  scrollbar-width: thin;
-}
-
-html body[data-scroll-locked] {
-  overflow: auto !important;
-  margin-right: 0 !important;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%; /* HSL(0, 0%, 100%) */
@@ -91,6 +77,20 @@ html body[data-scroll-locked] {
 @layer base {
   * {
     @apply border-border outline-none ring-0;
+  }
+
+  html,
+  body,
+  :root {
+    height: 100%;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+  }
+
+  html body[data-scroll-locked] {
+    overflow: auto !important;
+    margin-right: 0 !important;
   }
 
   body {

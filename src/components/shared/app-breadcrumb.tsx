@@ -11,8 +11,15 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Fragment } from "react";
 import { Prelink } from "@/components/ui/prelink";
+import { cn } from "@/lib/utils";
 
-export function AppBreadcrumb() {
+interface AppBreadcrumbProps {
+  className?: string;
+}
+
+export function AppBreadcrumb({
+  className,
+}: AppBreadcrumbProps) {
   const pathname = usePathname();
   const pathSegments = pathname
     .split("/")
@@ -35,7 +42,7 @@ export function AppBreadcrumb() {
   };
 
   return (
-    <div className="p-1 py-3">
+    <div className={cn("flex w-full p-1", className)}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

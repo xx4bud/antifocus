@@ -14,9 +14,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Search } from "lucide-react";
+import { Prelink } from "@/components/ui/prelink";
+import { Component, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Prelink } from "../ui/prelink";
 
 interface Category {
   id: string;
@@ -36,52 +36,18 @@ interface ProductsFilterProps {
   subCategories?: SubCategory[];
 }
 
-function CategoryAccordion({
-  filteredCategories,
-  openItems,
-  setOpenItems,
-  filterSubCategories,
-}: {
-  filteredCategories?: Category[];
-  openItems: string[];
-  setOpenItems: (items: string[]) => void;
-  filterSubCategories: (subs: SubCategory[]) => SubCategory[];
-}) {
-  return (
-    <Accordion
-      type="multiple"
-      value={openItems}
-      onValueChange={(values) => setOpenItems(values)}
-    >
-      {filteredCategories?.map((cat) => (
-        <AccordionItem key={cat.id} value={cat.id}>
-          <AccordionTrigger>{cat.name}</AccordionTrigger>
-          {filterSubCategories(cat.subCategories).map((sub) => (
-            <Prelink
-              key={sub.id}
-              prefetch={true}
-              href={`/${cat.slug}/${sub.slug}`}
-            >
-              <AccordionContent>{sub.name}</AccordionContent>
-            </Prelink>
-          ))}
-          <Prelink prefetch={true} href={`/${cat.slug}`}>
-            <AccordionContent>All {cat.name}</AccordionContent>
-          </Prelink>
-        </AccordionItem>
-      ))}
-    </Accordion>
-  );
-}
-
-export function CategorySelect({ categories }: ProductsFilterProps) {
+export function CategorySelect({
+  categories,
+}: ProductsFilterProps) {
   const [query, setQuery] = useState("");
   const [openItems, setOpenItems] = useState<string[]>([]);
   const normalizedQuery = query.trim().toLowerCase();
 
   const filteredCategories = categories?.filter((cat) => {
     if (normalizedQuery.length === 0) return true;
-    const catMatch = cat.name.toLowerCase().includes(normalizedQuery);
+    const catMatch = cat.name
+      .toLowerCase()
+      .includes(normalizedQuery);
     const subMatch = cat.subCategories.some((sub) =>
       sub.name.toLowerCase().includes(normalizedQuery)
     );
@@ -108,9 +74,8 @@ export function CategorySelect({ categories }: ProductsFilterProps) {
     }
   }, [normalizedQuery, categories]);
 
-  // Komponen Accordion yang dapat digunakan di desktop dan mobile
   const accordionContent = (
-    <CategoryAccordion
+    <CategoryList
       filteredCategories={filteredCategories}
       openItems={openItems}
       setOpenItems={setOpenItems}
@@ -120,7 +85,7 @@ export function CategorySelect({ categories }: ProductsFilterProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Versi Desktop */} 
+      {/* Versi Desktop */}
       <div className="hidden flex-col gap-1.5 md:flex">
         <div className="relative">
           <Input
@@ -139,6 +104,7 @@ export function CategorySelect({ categories }: ProductsFilterProps) {
         <Popover>
           <PopoverTrigger asChild>
             <Button className="w-full" variant={"outline"}>
+              <Component />
               Select Category
             </Button>
           </PopoverTrigger>
@@ -160,5 +126,51 @@ export function CategorySelect({ categories }: ProductsFilterProps) {
         </Popover>
       </div>
     </div>
+  );
+}
+
+function CategoryList({
+  filteredCategories,
+  openItems,
+  setOpenItems,
+  filterSubCategories,
+}: {
+  filteredCategories?: Category[];
+  openItems: string[];
+  setOpenItems: (items: string[]) => void;
+  filterSubCategories: (
+    subs: SubCategory[]
+  ) => SubCategory[];
+}) {
+  return (
+    <Accordion
+      type="multiple"
+      value={openItems}
+      onValueChange={(values) => setOpenItems(values)}
+    >
+      {filteredCategories?.map((cat) => (
+        <AccordionItem key={cat.id} value={cat.id}>
+          <AccordionTrigger>{cat.name}</AccordionTrigger>
+          {filterSubCategories(cat.subCategories).map(
+            (sub) => (
+              <Prelink
+                key={sub.id}
+                prefetch={true}
+                href={`/${cat.slug}/${sub.slug}`}
+              >
+                <AccordionContent>
+                  {sub.name}
+                </AccordionContent>
+              </Prelink>
+            )
+          )}
+          <Prelink prefetch={true} href={`/${cat.slug}`}>
+            <AccordionContent>
+              All {cat.name}
+            </AccordionContent>
+          </Prelink>
+        </AccordionItem>
+      ))}
+    </Accordion>
   );
 }

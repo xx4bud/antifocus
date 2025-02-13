@@ -4,13 +4,13 @@ import { useEffect, useRef } from "react";
 import { Autoplay } from "swiper/modules";
 import Image from "next/image";
 
-interface SimpleMediaData {
+interface ImageData {
   id: string;
   url: string;
 }
 
 interface ImageSwiperProps {
-  media: SimpleMediaData[];
+  media: ImageData[];
   alt: string;
 }
 

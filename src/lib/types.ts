@@ -13,6 +13,17 @@ import type {
 // local
 export type SortOrder = "asc" | "desc";
 
+export type FiltersQuery = {
+  q?: string;
+  category?: string;
+  subCategory?: string;
+  sort?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  option?: string;
+  variant?: string;
+};
+
 // User Data
 export type userRole = UserRole;
 export function getUserDataInclude() {

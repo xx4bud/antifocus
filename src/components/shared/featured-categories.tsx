@@ -7,28 +7,28 @@ import {
 } from "@/components/ui/carousel";
 import Link from "next/link";
 import { CircleArrowRight } from "lucide-react";
-import { FeaturedCategoriesData } from "@/lib/queries/slug";
-import { CategoryCard } from "@/components/shared/cards/category-card";
+import { CategoryCard } from "@/components/shared/category-card";
+import { CategoryData } from "@/lib/types";
 
 interface FeaturedCategoriesProps {
-  categories: FeaturedCategoriesData[];
+  categories: CategoryData[]
 }
 
-export default function FeaturedCategories({
+export function FeaturedCategories({
   categories,
 }: FeaturedCategoriesProps) {
   return (
-    <div>
+    <section className="space-y-2">
       <div className="flex flex-col gap-2 text-center">
         <h1 className="-my-1 text-xl font-bold sm:text-2xl">
-          Shop by category
+          Shop By Category
         </h1>
         <p className="text-sm text-muted-foreground sm:text-lg">
-          Explore our curated product categories
+          Explore our collection of categories
         </p>
       </div>
       <Carousel>
-        <CarouselContent className="pt-3">
+        <CarouselContent>
           {categories?.map((category) => (
             <CarouselItem
               key={category.id}
@@ -39,19 +39,21 @@ export default function FeaturedCategories({
               </Link>
             </CarouselItem>
           ))}
-          {/* View All Category */}
+          {/* All Categories */}
           <CarouselItem className="basis-1/3 sm:basis-1/4 md:basis-1/6">
-            <div className="relative h-full overflow-hidden rounded-lg border p-6 transition-transform duration-300 hover:scale-[1.03]">
-              <div className="flex aspect-square items-center justify-center">
-                <CircleArrowRight className="size-14" />
+            <Link href="/categories">
+              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-lg border py-4 transition-transform duration-300 hover:scale-[1.02]">
+                <div className="flex size-[80%] items-center justify-center rounded-full">
+                  <CircleArrowRight className="size-16 text-primary" />
+                </div>
+                <p className="line-clamp-2 text-center text-sm font-medium md:text-lg">
+                  View All
+                </p>
               </div>
-              <p className="line-clamp-2 pt-2 text-center text-sm font-medium md:text-lg">
-                View All
-              </p>
-            </div>
+            </Link>
           </CarouselItem>
         </CarouselContent>
       </Carousel>
-    </div>
+    </section>
   );
 }

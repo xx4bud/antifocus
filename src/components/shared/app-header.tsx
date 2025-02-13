@@ -5,9 +5,10 @@ import { LogoBar } from "@/components/ui/logobar";
 import { siteConfig } from "@/config/site";
 import { User } from "next-auth";
 import { FaRegUser, FaWhatsapp } from "react-icons/fa6";
-import { UserButton } from "../user-button";
+import { UserButton } from "./user-button";
 import Link from "next/link";
 import { Suspense } from "react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface AppHeaderProps {
   user?: User;
@@ -47,19 +48,7 @@ export function AppHeader({ user }: AppHeaderProps) {
               </Link>
             </div>
             <div className="flex max-w-md items-center gap-3 md:hidden">
-              {/* <SidebarTrigger /> */}
-              <Suspense>
-                {user ? (
-                  <UserButton user={user} />
-                ) : (
-                  <Link href={"/signin"}>
-                    <Button variant={"bordered"}>
-                      <FaRegUser />
-                      SignIn
-                    </Button>
-                  </Link>
-                )}
-              </Suspense>
+              <SidebarTrigger />
             </div>
           </div>
         </div>
