@@ -24,9 +24,8 @@ export function SortFilter({ className }: SortFilterProps) {
   const searchParams = useSearchParams();
   const params = new URLSearchParams(searchParams);
   const pathname = usePathname();
-  const { replace } = useRouter();
+  const { push } = useRouter();
 
-  // Ambil query "sort" dari URL, default ke "popular"
   const sortQuery = params.get("sort") || "popular";
   const [sort, setSort] = useState(sortQuery);
 
@@ -34,31 +33,25 @@ export function SortFilter({ className }: SortFilterProps) {
     setSort(sortQuery);
   }, [sortQuery]);
 
-  // Fungsi untuk mengupdate query param "sort"
   const handleSort = (newSort: string) => {
     params.set("sort", newSort);
-    replace(`${pathname}?${params.toString()}`);
+    push(`${pathname}?${params.toString()}`);
   };
 
-  // Jika sort merupakan price sort, kita anggap currentTab sebagai "price"
   const currentTab = sort.startsWith("price-")
     ? "price"
     : sort;
   const isPriceSort = sort.startsWith("price-");
 
-  // Jika belum memilih price sort, default ikon panah ke atas (ascending)
   const PriceIcon =
     !isPriceSort || sort === "price-low-to-high"
       ? ArrowUp
       : ArrowDown;
 
-  // Handler khusus untuk tab Price
   const handlePriceToggle = () => {
     if (!isPriceSort) {
-      // Jika belum aktif, pilih ascending (harga terendah)
       handleSort("price-low-to-high");
     } else {
-      // Toggle antara ascending dan descending
       if (sort === "price-low-to-high") {
         handleSort("price-high-to-low");
       } else {
@@ -89,12 +82,11 @@ export function SortFilter({ className }: SortFilterProps) {
             {opt.name}
           </TabsTrigger>
         ))}
-        {/* Tab Price khusus */}
         <TabsTrigger
           value="price"
           className="flex basis-1/4 items-center justify-center"
           onClick={(e) => {
-            e.preventDefault(); // cegah pemilihan otomatis dari Tabs
+            e.preventDefault();
             handlePriceToggle();
           }}
         >
