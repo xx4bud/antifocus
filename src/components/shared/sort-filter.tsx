@@ -1,14 +1,10 @@
 "use client";
 
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Prelink } from "@/components/ui/prelink";
 
 const sortOptions = [
   { name: "Popular", query: "popular" },
@@ -22,76 +18,61 @@ interface SortFilterProps {
 
 export function SortFilter({ className }: SortFilterProps) {
   const searchParams = useSearchParams();
-  const params = new URLSearchParams(searchParams);
   const pathname = usePathname();
-  const { push } = useRouter();
 
-  const sortQuery = params.get("sort") || "popular";
-  const [sort, setSort] = useState(sortQuery);
+  const sortQuery = searchParams.get("sort") || "popular";
 
-  useEffect(() => {
-    setSort(sortQuery);
-  }, [sortQuery]);
-
-  const handleSort = (newSort: string) => {
-    params.set("sort", newSort);
-    push(`${pathname}?${params.toString()}`);
-  };
-
-  const currentTab = sort.startsWith("price-")
-    ? "price"
-    : sort;
-  const isPriceSort = sort.startsWith("price-");
+  // Tentukan active tab: jika sortQuery diawali "price-", maka active tab adalah "price"
+  const currentTab = sortQuery.startsWith("price-") ? "price" : sortQuery;
+  const isPriceSort = sortQuery.startsWith("price-");
 
   const PriceIcon =
-    !isPriceSort || sort === "price-low-to-high"
-      ? ArrowUp
-      : ArrowDown;
+    !isPriceSort || sortQuery === "price-low-to-high" ? ArrowUp : ArrowDown;
 
-  const handlePriceToggle = () => {
-    if (!isPriceSort) {
-      handleSort("price-low-to-high");
-    } else {
-      if (sort === "price-low-to-high") {
-        handleSort("price-high-to-low");
-      } else {
-        handleSort("price-low-to-high");
-      }
-    }
+  // Fungsi untuk menghasilkan URL baru dengan query sort yang baru
+  const getSortLink = (newSort: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sort", newSort);
+    return `${pathname}?${params.toString()}`;
+  };
+
+  // Untuk tab Price, toggle antara ascending dan descending
+  const getPriceToggleLink = () => {
+    const newSort =
+      isPriceSort && sortQuery === "price-low-to-high"
+        ? "price-high-to-low"
+        : "price-low-to-high";
+    return getSortLink(newSort);
   };
 
   return (
-    <Tabs
-      value={currentTab}
-      onValueChange={(value) => {
-        if (value !== "price") {
-          handleSort(value);
-        }
-      }}
-      className="flex w-full flex-1"
-    >
-      <TabsList
-        className={cn("flex w-full p-1", className)}
-      >
+    <Tabs value={currentTab} className="flex w-full flex-1">
+      <TabsList className={cn("flex w-full p-1", className)}>
         {sortOptions.map((opt) => (
           <TabsTrigger
             key={opt.query}
             value={opt.query}
-            className="basis-1/4"
+            className="flex basis-1/4 items-center justify-center"
           >
-            {opt.name}
+            <Prelink
+              href={getSortLink(opt.query)}
+              className="w-full text-center"
+            >
+              {opt.name}
+            </Prelink>
           </TabsTrigger>
         ))}
         <TabsTrigger
           value="price"
           className="flex basis-1/4 items-center justify-center"
-          onClick={(e) => {
-            e.preventDefault();
-            handlePriceToggle();
-          }}
         >
-          <span className="mr-2">Price</span>
-          <PriceIcon size={16} />
+          <Prelink
+            href={getPriceToggleLink()}
+            className="w-full text-center flex items-center justify-center"
+          >
+            <span className="mr-2">Price</span>
+            <PriceIcon size={16} />
+          </Prelink>
         </TabsTrigger>
       </TabsList>
     </Tabs>
