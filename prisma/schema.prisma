@@ -1,0 +1,147 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// ==============
+// AUTH
+// ==============
+model Account {
+  id                String  @id @default(cuid())
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  expires      DateTime
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==============
+// USER
+// ==============
+model User {
+  id    String  @id @default(cuid())
+  slug  String? @unique
+  name  String?
+  email String? @unique
+  phone String?
+  image String?
+  media Media[]
+
+  role          String    @default("USER") // as UserRole
+  status        String    @default("ONLINE") // as UserStatus
+  emailVerified DateTime?  @map("email_verified")
+  password      String?    @db.Text
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// ==============
+// PRODUCT
+// ==============
+model Product {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  sku         String?       @unique
+  media       Media[]
+  name        String
+  description String?
+  price       Decimal
+  status      String        @default("LIVE") // as ProductStatus
+  views       Int           @default(0)
+
+  categories Category[] @relation("product_category")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  media       Media[]
+  name        String
+  description String?
+  order       Int?    @default(0) // 0 = root, 1 = child, 2 = grandchild
+  featured    Boolean @default(false)
+  views       Int     @default(0)
+
+  children Category[] @relation("category_children")
+  products Product[]  @relation("product_category")
+
+  parentId String?   @map("parent_id")
+  parent   Category? @relation("category_children", fields: [parentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model Media {
+  id       String      @id @default(cuid())
+  format   String?
+  url      String
+  publicId String?     @map("public_id") // Cloudinary
+  alt      String?
+  order    Int?        @default(0) // 0 = cover, 1 = gallery
+  width    Int?
+  height   Int?
+  size     Int?
+  metadata Json?
+
+  userId     String?   @map("user_id")
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String?   @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  productId  String?   @map("product_id")
+  product    Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("media")
+}
