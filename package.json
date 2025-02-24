@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write . --ignore-path .gitignore",
-    "ui": "pnpm dlx shadcn@latest add"
+    "ui": "pnpm dlx shadcn@latest add",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
