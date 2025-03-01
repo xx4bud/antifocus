@@ -4,12 +4,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 import { DataTableRowActions } from "@/components/ui/data-table-row-actions";
 import { UserData } from "@/lib/types";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, Row } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 import { deleteUser } from "@/app/admin/user/[slug]/actions";
 import { toast } from "sonner";
 
-const ActionCell = ({ row }: { row: any }) => {
+interface ActionCellProps {
+  row: Row<UserData>;
+}
+
+const ActionCell = ({ row }: ActionCellProps) => {
   const router = useRouter();
 
   const handleEdit = (data: UserData) => {
@@ -30,7 +34,10 @@ const ActionCell = ({ row }: { row: any }) => {
     } catch (error) {
       console.error(error);
       toast.error("Something went wrong");
-      return { success: false, message: "Something went wrong" };
+      return {
+        success: false,
+        message: "Something went wrong",
+      };
     }
   };
 
@@ -150,9 +157,7 @@ export const columns: ColumnDef<UserData>[] = [
   {
     id: "actions",
     header: () => {
-      return (
-        <span className="text-xs">Action</span>
-      );
+      return <span className="text-xs">Action</span>;
     },
     cell: ({ row }) => <ActionCell row={row} />,
     enableSorting: false,

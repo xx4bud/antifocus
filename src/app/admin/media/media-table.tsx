@@ -14,30 +14,14 @@ interface MediaTableProps {
 
 export function MediaTable({ media }: MediaTableProps) {
   const defaultVisibility = {
-    format: false,
+    url: false,
     size: false,
-    dimensions: false,
   };
 
   const searchableColumns = [
     {
-      id: "alt",
-      title: "Alt Text",
-    },
-    {
-      id: "format",
-      title: "Format",
-    },
-  ];
-
-  const filterableColumns = [
-    {
-      id: "order",
-      title: "Order",
-      options: [
-        { value: "0", label: "Cover" },
-        { value: "1", label: "Gallery" },
-      ],
+      id: "publicId",
+      title: "Name",
     },
   ];
 
@@ -55,13 +39,13 @@ export function MediaTable({ media }: MediaTableProps) {
           </Button>
         }
       />
+
       <DataTable
         columns={columns}
         data={media}
         searchableColumns={searchableColumns}
-        filterableColumns={filterableColumns}
         defaultColumnVisibility={defaultVisibility}
-      />
+        />
     </div>
   );
 }

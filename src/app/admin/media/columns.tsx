@@ -2,14 +2,18 @@
 
 import { MediaData } from "@/lib/types";
 import Image from "next/image";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, Row } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 import { DataTableRowActions } from "@/components/ui/data-table-row-actions";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 
-const ActionCell = ({ row }: { row: any }) => {
+interface ActionCellProps {
+  row: Row<MediaData>;
+}
+
+const ActionCell = ({ row }: ActionCellProps) => {
   const router = useRouter();
 
   const handleEdit = (data: MediaData) => {

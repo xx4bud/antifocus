@@ -2,10 +2,7 @@
 import { getSession } from "@/actions/user";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import {
-  MediaFormSchema,
-  MediaFormValue,
-} from "@/lib/schemas";
+import { MediaFormSchema, MediaFormValue } from "@/lib/schemas";
 import { Prisma } from "@prisma/client";
 import cloudinary from "@/lib/cloudinary";
 
@@ -17,8 +14,7 @@ export async function submitMedia(data: MediaFormValue) {
     if (!isAdmin) {
       return {
         success: false,
-        message:
-          "Anda tidak memiliki izin untuk membuat media",
+        message: "Anda tidak memiliki izin untuk membuat media",
       };
     }
 
@@ -31,26 +27,17 @@ export async function submitMedia(data: MediaFormValue) {
       };
     }
 
-    if (!data.media?.url) {
-      return {
-        success: false,
-        message: "URL media harus diisi",
-      };
-    }
-
     const newMedia = await prisma.media.create({
       data: {
-        url: data.media.url,
-        publicId: data.media.publicId || "",
-        alt: data.media.alt || "",
-        format: data.media.format || "OTHER",
-        order: data.media.order || 0,
-        width: data.media.width || null,
-        height: data.media.height || null,
-        size: data.media.size || null,
-        metadata: data.media.metadata
-          ? (data.media.metadata as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
+        url: data.media?.url || '',
+        publicId: data.media?.publicId,
+        alt: data.media?.alt,
+        format: data.media?.format || "IMAGE",
+        order: data.media?.order || 0,
+        width: data.media?.width || null,
+        height: data.media?.height || null,
+        size: data.media?.size || null,
+        metadata: data.media?.metadata ? (data.media.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
 
@@ -76,8 +63,7 @@ export async function editMedia(
     if (!isAdmin) {
       return {
         success: false,
-        message:
-          "Anda tidak memiliki izin untuk mengedit media",
+        message: "Anda tidak memiliki izin untuk mengedit media",
       };
     }
 
@@ -87,13 +73,6 @@ export async function editMedia(
         success: false,
         message: "Data tidak valid",
         errors: validated.error.flatten(),
-      };
-    }
-
-    if (!data.media?.url) {
-      return {
-        success: false,
-        message: "URL media harus diisi",
       };
     }
 
@@ -108,29 +87,23 @@ export async function editMedia(
       };
     }
 
-   if (
-      existingMedia.publicId &&
-      existingMedia.publicId !== data.media.publicId
-    ) {
-      await cloudinary.v2.uploader.destroy(
-        existingMedia.publicId
-      );
+    // Delete old media from Cloudinary if publicId has changed
+    if (existingMedia.publicId && existingMedia.publicId !== data.media?.publicId) {
+      await cloudinary.v2.uploader.destroy(existingMedia.publicId);
     }
 
     const updatedMedia = await prisma.media.update({
       where: { id: mediaId },
       data: {
-        url: data.media.url,
-        publicId: data.media.publicId || "",
-        alt: data.media.alt || "",
-        format: data.media.format || "OTHER",
-        order: data.media.order || 0,
-        width: data.media.width || null,
-        height: data.media.height || null,
-        size: data.media.size || null,
-        metadata: data.media.metadata
-          ? (data.media.metadata as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
+        url: data.media?.url,
+        publicId: data.media?.publicId,
+        alt: data.media?.alt,
+        format: data.media?.format || "IMAGE",
+        order: data.media?.order || 0,
+        width: data.media?.width || null,
+        height: data.media?.height || null,
+        size: data.media?.size || null,
+        metadata: data.media?.metadata ? (data.media.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
 
@@ -153,8 +126,7 @@ export async function deleteMedia(mediaId: string) {
     if (!isAdmin) {
       return {
         success: false,
-        message:
-          "Anda tidak memiliki izin untuk menghapus media",
+        message: "Anda tidak memiliki izin untuk menghapus media",
       };
     }
 
@@ -169,10 +141,9 @@ export async function deleteMedia(mediaId: string) {
       };
     }
 
-   if (existingMedia.publicId) {
-      await cloudinary.v2.uploader.destroy(
-        existingMedia.publicId
-      );
+    // Delete media from Cloudinary
+    if (existingMedia.publicId) {
+      await cloudinary.v2.uploader.destroy(existingMedia.publicId);
     }
 
     await prisma.media.delete({

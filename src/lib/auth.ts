@@ -7,6 +7,10 @@ import { v4 as uuid } from "uuid";
 import { prisma } from "./prisma";
 import { getUserInclude } from "./types";
 import { UserRole, UserStatus } from "./constants";
+import { SignInFormSchema } from "./schemas";
+import { getUserFromDatabase } from "@/actions/auth";
+import { User } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 
 const adapter = PrismaAdapter(prisma) as Adapter;
 
@@ -17,6 +21,38 @@ const authConfig: NextAuthConfig = {
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
+    Credentials({
+      credentials: {
+        identifier: {},
+        password: {},
+      },
+      async authorize(credentials) {
+        try {
+          const validated =
+            SignInFormSchema.safeParse(credentials);
+
+          if (!validated.success) {
+            return null;
+          }
+
+          const { identifier, password } = validated.data;
+
+          const res = await getUserFromDatabase({
+            identifier,
+            password,
+          });
+
+          if (res.success) {
+            return res.data as User;
+          }
+
+          return null;
+        } catch (error) {
+          console.error("Authorization error:", error);
+          return null;
+        }
+      },
     }),
   ],
   callbacks: {

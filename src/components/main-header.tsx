@@ -8,6 +8,7 @@ import Link from "next/link";
 import { UserIcon } from "lucide-react";
 import { UserButton } from "./user-button";
 import { FaWhatsapp } from "react-icons/fa6";
+import { siteConfig } from "@/config/site";
 
 interface MainHeaderProps {
   user?: User;
@@ -36,7 +37,10 @@ export default function MainHeader({
           </Button>
         )}
         <Button asChild variant={"secondary"}>
-          <Link href={"/signin"}>
+          <Link
+            href={siteConfig.links.whatsapp}
+            target="_blank"
+          >
             <FaWhatsapp />
             WhatsApp
           </Link>

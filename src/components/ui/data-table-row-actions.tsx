@@ -15,8 +15,8 @@ import { AlertModal } from "@/components/ui/alert-modal";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
-  onEdit?: (row: TData) => void;
-  onDelete?: (row: TData) => Promise<{ success: boolean; message?: string }>;
+  onEdit?: (data: TData) => void;
+  onDelete?: (data: TData) => Promise<{ success: boolean; message?: string }>;
 }
 
 export function DataTableRowActions<TData>({ 

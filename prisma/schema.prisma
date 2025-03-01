@@ -105,7 +105,6 @@ model Category {
   media       Media[]
   name        String
   description String?
-  order       Int?    @default(0) // 0 = root, 1 = child, 2 = grandchild
   featured    Boolean @default(false)
   views       Int     @default(0)
 

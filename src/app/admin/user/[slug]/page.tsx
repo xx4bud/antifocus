@@ -14,14 +14,3 @@ export default async function UserSlug({
 
   return <UserForm user={user} />;
 }
-
-export async function generateStaticParams() {
-  const users = await prisma.user.findMany({
-    select: {
-      slug: true,
-    },
-  });
-  return users.map((user) => ({
-    slug: user.slug?.toString(),
-  }));
-}
