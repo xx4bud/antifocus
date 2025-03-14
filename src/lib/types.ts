@@ -1,6 +1,13 @@
 import { Prisma } from "@prisma/client";
 import { UserRole, UserStatus } from "./constants";
 import { DefaultSession } from "next-auth";
+import { StaticImport } from "next/dist/shared/lib/get-img-props";
+
+export type FeaturedBanner = {
+  id: number;
+  src: StaticImport;
+  alt: string;
+};
 
 declare module "next-auth" {
   interface Session {
@@ -80,3 +87,4 @@ export function getMediaInclude() {
 export type MediaData = Prisma.MediaGetPayload<{
   include: ReturnType<typeof getMediaInclude>;
 }>;
+
