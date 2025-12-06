@@ -1,17 +1,17 @@
 import {
-  notificationType,
-  notificationChannel,
-  notificationStatus,
-  notificationPriority,
-  notifications,
-  notificationPreferences,
   emailLogs,
-  smsLogs,
-  pushTokens,
-  pushLogs,
+  notificationChannel,
+  notificationPreferences,
+  notificationPriority,
+  notificationStatus,
+  notifications,
   notificationTemplates,
+  notificationType,
+  pushLogs,
+  pushTokens,
+  smsLogs,
 } from "@antifocus/db/notification/schema";
-import { createSelectSchema, createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod/v4-mini";
 
 // ============================================================================
@@ -22,7 +22,8 @@ export const notificationTypeSchema = createSelectSchema(notificationType);
 
 export type NotificationTypeData = z.infer<typeof notificationTypeSchema>;
 
-export const notificationChannelSchema = createSelectSchema(notificationChannel);
+export const notificationChannelSchema =
+  createSelectSchema(notificationChannel);
 
 export type NotificationChannelData = z.infer<typeof notificationChannelSchema>;
 
@@ -30,17 +31,24 @@ export const notificationStatusSchema = createSelectSchema(notificationStatus);
 
 export type NotificationStatusData = z.infer<typeof notificationStatusSchema>;
 
-export const notificationPrioritySchema = createSelectSchema(notificationPriority);
+export const notificationPrioritySchema =
+  createSelectSchema(notificationPriority);
 
-export type NotificationPriorityData = z.infer<typeof notificationPrioritySchema>;
+export type NotificationPriorityData = z.infer<
+  typeof notificationPrioritySchema
+>;
 
 export const notificationsSchema = createSelectSchema(notifications);
 
 export type NotificationsData = z.infer<typeof notificationsSchema>;
 
-export const notificationPreferencesSchema = createSelectSchema(notificationPreferences);
+export const notificationPreferencesSchema = createSelectSchema(
+  notificationPreferences
+);
 
-export type NotificationPreferencesData = z.infer<typeof notificationPreferencesSchema>;
+export type NotificationPreferencesData = z.infer<
+  typeof notificationPreferencesSchema
+>;
 
 export const emailLogsSchema = createSelectSchema(emailLogs);
 
@@ -58,9 +66,13 @@ export const pushLogsSchema = createSelectSchema(pushLogs);
 
 export type PushLogsData = z.infer<typeof pushLogsSchema>;
 
-export const notificationTemplatesSchema = createSelectSchema(notificationTemplates);
+export const notificationTemplatesSchema = createSelectSchema(
+  notificationTemplates
+);
 
-export type NotificationTemplatesData = z.infer<typeof notificationTemplatesSchema>;
+export type NotificationTemplatesData = z.infer<
+  typeof notificationTemplatesSchema
+>;
 
 // ============================================================================
 // INSERT SCHEMAS
@@ -70,9 +82,13 @@ export const insertNotificationsSchema = createInsertSchema(notifications);
 
 export type InsertNotifications = z.infer<typeof insertNotificationsSchema>;
 
-export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences);
+export const insertNotificationPreferencesSchema = createInsertSchema(
+  notificationPreferences
+);
 
-export type InsertNotificationPreferences = z.infer<typeof insertNotificationPreferencesSchema>;
+export type InsertNotificationPreferences = z.infer<
+  typeof insertNotificationPreferencesSchema
+>;
 
 export const insertEmailLogsSchema = createInsertSchema(emailLogs);
 
@@ -90,9 +106,13 @@ export const insertPushLogsSchema = createInsertSchema(pushLogs);
 
 export type InsertPushLogs = z.infer<typeof insertPushLogsSchema>;
 
-export const insertNotificationTemplatesSchema = createInsertSchema(notificationTemplates);
+export const insertNotificationTemplatesSchema = createInsertSchema(
+  notificationTemplates
+);
 
-export type InsertNotificationTemplates = z.infer<typeof insertNotificationTemplatesSchema>;
+export type InsertNotificationTemplates = z.infer<
+  typeof insertNotificationTemplatesSchema
+>;
 
 // ============================================================================
 // UPDATE SCHEMAS
@@ -102,9 +122,12 @@ export const updateNotificationsSchema = insertNotificationsSchema.partial();
 
 export type UpdateNotifications = z.infer<typeof updateNotificationsSchema>;
 
-export const updateNotificationPreferencesSchema = insertNotificationPreferencesSchema.partial();
+export const updateNotificationPreferencesSchema =
+  insertNotificationPreferencesSchema.partial();
 
-export type UpdateNotificationPreferences = z.infer<typeof updateNotificationPreferencesSchema>;
+export type UpdateNotificationPreferences = z.infer<
+  typeof updateNotificationPreferencesSchema
+>;
 
 export const updateEmailLogsSchema = insertEmailLogsSchema.partial();
 
@@ -122,6 +145,9 @@ export const updatePushLogsSchema = insertPushLogsSchema.partial();
 
 export type UpdatePushLogs = z.infer<typeof updatePushLogsSchema>;
 
-export const updateNotificationTemplatesSchema = insertNotificationTemplatesSchema.partial();
+export const updateNotificationTemplatesSchema =
+  insertNotificationTemplatesSchema.partial();
 
-export type UpdateNotificationTemplates = z.infer<typeof updateNotificationTemplatesSchema>;
+export type UpdateNotificationTemplates = z.infer<
+  typeof updateNotificationTemplatesSchema
+>;

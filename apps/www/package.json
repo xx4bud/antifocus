@@ -13,9 +13,11 @@
     "with:env": "dotenv -e ../../.env --"
   },
   "dependencies": {
+    "@antifocus/auth": "workspace:*",
     "@antifocus/config": "workspace:*",
     "@antifocus/db": "workspace:*",
     "@antifocus/env": "workspace:*",
+    "@node-rs/argon2": "^2.0.2",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

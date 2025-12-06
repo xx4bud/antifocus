@@ -9,7 +9,10 @@ await jiti.import("./src/lib/env");
 const nextConfig = {
   reactCompiler: true,
 
+  serverExternalPackages: ["@node-rs/argon2"],
+
   transpilePackages: [
+    "@antifocus/auth",
     "@antifocus/env",
     "@antifocus/db",
     "@antifocus/config",

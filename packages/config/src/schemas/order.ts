@@ -1,22 +1,22 @@
 import {
-  orderStatus,
-  paymentStatus,
-  paymentMethod,
+  fulfillmentItems,
   fulfillmentStatus,
-  shippingMethod,
+  fulfillments,
+  invoices,
+  orderItems,
+  orderStatus,
+  orders,
+  paymentMethod,
+  paymentStatus,
+  payments,
+  refundItems,
   refundReason,
   refundStatus,
-  orders,
-  orderItems,
-  payments,
-  fulfillments,
-  fulfillmentItems,
-  shipments,
   refunds,
-  refundItems,
-  invoices,
+  shipments,
+  shippingMethod,
 } from "@antifocus/db/order/schema";
-import { createSelectSchema, createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod/v4-mini";
 
 // ============================================================================
@@ -107,9 +107,12 @@ export const insertFulfillmentsSchema = createInsertSchema(fulfillments);
 
 export type InsertFulfillments = z.infer<typeof insertFulfillmentsSchema>;
 
-export const insertFulfillmentItemsSchema = createInsertSchema(fulfillmentItems);
+export const insertFulfillmentItemsSchema =
+  createInsertSchema(fulfillmentItems);
 
-export type InsertFulfillmentItems = z.infer<typeof insertFulfillmentItemsSchema>;
+export type InsertFulfillmentItems = z.infer<
+  typeof insertFulfillmentItemsSchema
+>;
 
 export const insertShipmentsSchema = createInsertSchema(shipments);
 
@@ -147,9 +150,12 @@ export const updateFulfillmentsSchema = insertFulfillmentsSchema.partial();
 
 export type UpdateFulfillments = z.infer<typeof updateFulfillmentsSchema>;
 
-export const updateFulfillmentItemsSchema = insertFulfillmentItemsSchema.partial();
+export const updateFulfillmentItemsSchema =
+  insertFulfillmentItemsSchema.partial();
 
-export type UpdateFulfillmentItems = z.infer<typeof updateFulfillmentItemsSchema>;
+export type UpdateFulfillmentItems = z.infer<
+  typeof updateFulfillmentItemsSchema
+>;
 
 export const updateShipmentsSchema = insertShipmentsSchema.partial();
 

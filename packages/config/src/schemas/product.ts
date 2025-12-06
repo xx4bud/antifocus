@@ -1,22 +1,22 @@
 import {
-  productStatus,
-  designStatus,
-  printProviderStatus,
-  templateCategory,
   categories,
-  tags,
-  products,
-  productVariants,
-  productImages,
-  productTags,
-  designs,
-  templates,
-  collections,
   collectionProducts,
+  collections,
+  designStatus,
+  designs,
+  printProviderStatus,
   printProviders,
+  productImages,
   productPrintProviders,
+  productStatus,
+  products,
+  productTags,
+  productVariants,
+  tags,
+  templateCategory,
+  templates,
 } from "@antifocus/db/product/schema";
-import { createSelectSchema, createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod/v4-mini";
 
 // ============================================================================
@@ -31,7 +31,8 @@ export const designStatusSchema = createSelectSchema(designStatus);
 
 export type DesignStatusData = z.infer<typeof designStatusSchema>;
 
-export const printProviderStatusSchema = createSelectSchema(printProviderStatus);
+export const printProviderStatusSchema =
+  createSelectSchema(printProviderStatus);
 
 export type PrintProviderStatusData = z.infer<typeof printProviderStatusSchema>;
 
@@ -83,9 +84,13 @@ export const printProvidersSchema = createSelectSchema(printProviders);
 
 export type PrintProvidersData = z.infer<typeof printProvidersSchema>;
 
-export const productPrintProvidersSchema = createSelectSchema(productPrintProviders);
+export const productPrintProvidersSchema = createSelectSchema(
+  productPrintProviders
+);
 
-export type ProductPrintProvidersData = z.infer<typeof productPrintProvidersSchema>;
+export type ProductPrintProvidersData = z.infer<
+  typeof productPrintProvidersSchema
+>;
 
 // ============================================================================
 // INSERT SCHEMAS
@@ -127,17 +132,24 @@ export const insertCollectionsSchema = createInsertSchema(collections);
 
 export type InsertCollections = z.infer<typeof insertCollectionsSchema>;
 
-export const insertCollectionProductsSchema = createInsertSchema(collectionProducts);
+export const insertCollectionProductsSchema =
+  createInsertSchema(collectionProducts);
 
-export type InsertCollectionProducts = z.infer<typeof insertCollectionProductsSchema>;
+export type InsertCollectionProducts = z.infer<
+  typeof insertCollectionProductsSchema
+>;
 
 export const insertPrintProvidersSchema = createInsertSchema(printProviders);
 
 export type InsertPrintProviders = z.infer<typeof insertPrintProvidersSchema>;
 
-export const insertProductPrintProvidersSchema = createInsertSchema(productPrintProviders);
+export const insertProductPrintProvidersSchema = createInsertSchema(
+  productPrintProviders
+);
 
-export type InsertProductPrintProviders = z.infer<typeof insertProductPrintProvidersSchema>;
+export type InsertProductPrintProviders = z.infer<
+  typeof insertProductPrintProvidersSchema
+>;
 
 // ============================================================================
 // UPDATE SCHEMAS
@@ -155,7 +167,8 @@ export const updateProductsSchema = insertProductsSchema.partial();
 
 export type UpdateProducts = z.infer<typeof updateProductsSchema>;
 
-export const updateProductVariantsSchema = insertProductVariantsSchema.partial();
+export const updateProductVariantsSchema =
+  insertProductVariantsSchema.partial();
 
 export type UpdateProductVariants = z.infer<typeof updateProductVariantsSchema>;
 
@@ -179,14 +192,20 @@ export const updateCollectionsSchema = insertCollectionsSchema.partial();
 
 export type UpdateCollections = z.infer<typeof updateCollectionsSchema>;
 
-export const updateCollectionProductsSchema = insertCollectionProductsSchema.partial();
+export const updateCollectionProductsSchema =
+  insertCollectionProductsSchema.partial();
 
-export type UpdateCollectionProducts = z.infer<typeof updateCollectionProductsSchema>;
+export type UpdateCollectionProducts = z.infer<
+  typeof updateCollectionProductsSchema
+>;
 
 export const updatePrintProvidersSchema = insertPrintProvidersSchema.partial();
 
 export type UpdatePrintProviders = z.infer<typeof updatePrintProvidersSchema>;
 
-export const updateProductPrintProvidersSchema = insertProductPrintProvidersSchema.partial();
+export const updateProductPrintProvidersSchema =
+  insertProductPrintProvidersSchema.partial();
 
-export type UpdateProductPrintProviders = z.infer<typeof updateProductPrintProvidersSchema>;
+export type UpdateProductPrintProviders = z.infer<
+  typeof updateProductPrintProvidersSchema
+>;

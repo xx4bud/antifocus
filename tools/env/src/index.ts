@@ -61,7 +61,7 @@ export const isClient = typeof window !== "undefined";
 /**
  * Get base URL based on environment
  */
-export function baseUrl(appUrl: Env | string, port?: number) {
+export function baseUrl(appUrl: Env | string, port?: number): string {
   if (isClient) {
     return window.location.origin;
   }
@@ -74,7 +74,7 @@ export function baseUrl(appUrl: Env | string, port?: number) {
     return `https://${env.VERCEL_URL}`;
   }
 
-  if (appUrl) {
+  if (typeof appUrl === "string") {
     return appUrl;
   }
 

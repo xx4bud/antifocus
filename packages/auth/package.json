@@ -1,5 +1,5 @@
 {
-  "name": "@antifocus/env",
+  "name": "@antifocus/auth",
   "type": "module",
   "private": true,
   "scripts": {
@@ -10,11 +10,18 @@
     "check:all": "pnpm check:lint && pnpm check:types"
   },
   "dependencies": {
-    "@t3-oss/env-core": "^0.13.8",
-    "zod": "catalog:"
+    "@antifocus/config": "workspace:*",
+    "@antifocus/db": "workspace:*",
+    "@antifocus/env": "workspace:*",
+    "@arcjet/ip": "1.0.0-beta.15",
+    "@arcjet/next": "1.0.0-beta.15",
+    "@better-auth/expo": "catalog:",
+    "@node-rs/argon2": "^2.0.2",
+    "better-auth": "catalog:"
   },
   "devDependencies": {
     "@antifocus/tsconfig": "workspace:*",
+    "@better-auth/cli": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:"
   },
@@ -22,6 +29,10 @@
     ".": {
       "default": "./src/index.ts",
       "types": "./dist/index.d.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts",
+      "types": "./dist/*.d.ts"
     }
   }
 }

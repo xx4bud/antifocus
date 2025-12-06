@@ -1,0 +1,5 @@
+{
+  "extends": "@antifocus/tsconfig/compiled.json",
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
