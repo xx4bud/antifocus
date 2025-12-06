@@ -9,7 +9,11 @@ await jiti.import("./src/lib/env");
 const nextConfig = {
   reactCompiler: true,
 
-  transpilePackages: ["@antifocus/config"],
+  transpilePackages: [
+    "@antifocus/env",
+    "@antifocus/db",
+    "@antifocus/config",
+  ],
 };
 
 export default nextConfig;

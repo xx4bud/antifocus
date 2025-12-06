@@ -22,4 +22,5 @@ catalog:
   zod: ^4.1.13
 
 onlyBuiltDependencies:
+  - esbuild
   - sharp

@@ -16,8 +16,21 @@
   },
   "linter": {
     "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off"
+      },
+      "performance": {
+        "noNamespaceImport": "off",
+        "useTopLevelRegex": "off"
+      },
+      "suspicious": {
+        "noAssignInExpressions": "off",
+        "useAwait": "off"
+      },
       "style": {
-        "noExportedImports": "off"
+        "noExportedImports": "off",
+        "useForOf": "off",
+        "useNumericSeparators": "off"
       }
     }
   }

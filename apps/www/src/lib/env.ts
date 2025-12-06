@@ -1,2 +1,6 @@
-/** biome-ignore-all lint/performance/noBarrelFile: false */
-export { env } from "@antifocus/config/env";
+import { env } from "@antifocus/env";
+
+/**
+ * Re-export from @antifocus/config
+ */
+export { env };

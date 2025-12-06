@@ -29,7 +29,7 @@
       "cache": false
     }
   },
-  "globalEnv": ["PUBLIC_*", "DB_URL_*", "AUTH_*", "GOOGLE_*"],
+  "globalEnv": ["PUBLIC_*", "DB_URL_*", "AUTH_*", "GOOGLE_*", "ARCJET_*"],
   "globalPassThroughEnv": [
     "NODE_ENV",
     "CI",

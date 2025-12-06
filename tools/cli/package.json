@@ -1,5 +1,5 @@
 {
-  "name": "@antifocus/config",
+  "name": "@antifocus/cli",
   "type": "module",
   "private": true,
   "scripts": {
@@ -7,22 +7,14 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "check:lint": "biome check --write --unsafe .",
     "check:types": "tsc --noEmit",
-    "check:all": "pnpm check:lint && pnpm check:types"
-  },
-  "dependencies": {
-    "@antifocus/db": "workspace:*",
-    "drizzle-zod": "^0.8.3",
-    "zod": "catalog:"
+    "check:all": "pnpm check:lint && pnpm check:types",
+    "gen:schemas": "tsx src/generate-schemas.ts",
+    "gen:schemas:all": "tsx src/generate-schemas.ts --all"
   },
   "devDependencies": {
     "@antifocus/tsconfig": "workspace:*",
     "@types/node": "catalog:",
+    "tsx": "^4.21.0",
     "typescript": "catalog:"
-  },
-  "exports": {
-    "./schemas/*": {
-      "default": "./src/schemas/*.ts",
-      "types": "./dist/schemas/*.d.ts"
-    }
   }
 }

@@ -29,6 +29,8 @@ export const env = createEnv({
     // Providers
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
+    GOOGLE_USER_ID: z.string().min(1),
+    GOOGLE_REFRESH_TOKEN: z.string().min(1),
   },
 
   clientPrefix: "PUBLIC_",
@@ -55,3 +57,33 @@ export const isTest = env.NODE_ENV === "test";
 
 export const isServer = typeof window === "undefined";
 export const isClient = typeof window !== "undefined";
+
+/**
+ * Get base URL based on environment
+ */
+export function baseUrl(appUrl: Env | string, port?: number) {
+  if (isClient) {
+    return window.location.origin;
+  }
+
+  if (env.VERCEL_ENV === "production") {
+    return `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+
+  if (env.VERCEL_ENV === "preview") {
+    return `https://${env.VERCEL_URL}`;
+  }
+
+  if (appUrl) {
+    return appUrl;
+  }
+
+  return `http://localhost:${port}`;
+}
+
+/**
+ * Get API base URL
+ */
+export function apiUrl(appUrl: Env | string, port?: number): string {
+  return `${baseUrl(appUrl, port)}/api`;
+}

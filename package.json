@@ -12,6 +12,8 @@
     "check:deps": "sherif --fix",
     "bump:deps": "pnpm dlx npm-check-updates --deep -u -x geist",
     "postinstall": "sherif",
+    "gen:schemas": "pnpm --filter @antifocus/cli gen:schemas",
+    "gen:schemas:all": "pnpm --filter @antifocus/cli gen:schemas:all",
     "prepare": "husky"
   },
   "devDependencies": {

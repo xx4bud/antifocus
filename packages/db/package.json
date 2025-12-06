@@ -1,0 +1,57 @@
+{
+  "name": "@antifocus/db",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "check:lint": "biome check --write --unsafe .",
+    "check:types": "tsc --noEmit",
+    "check:all": "pnpm check:lint && pnpm check:types",
+
+    "gen:analytics": "pnpm with:env drizzle-kit generate --config drizzle.config.analytics.ts",
+    "gen:auth": "pnpm with:env drizzle-kit generate --config drizzle.config.auth.ts",
+    "gen:notification": "pnpm with:env drizzle-kit generate --config drizzle.config.notification.ts",
+    "gen:order": "pnpm with:env drizzle-kit generate --config drizzle.config.order.ts",
+    "gen:product": "pnpm with:env drizzle-kit generate --config drizzle.config.product.ts",
+    "gen:storage": "pnpm with:env drizzle-kit generate --config drizzle.config.storage.ts",
+    "gen:all": "pnpm gen:analytics && pnpm gen:auth && pnpm gen:notification && pnpm gen:order && pnpm gen:product && pnpm gen:storage",
+
+    "push:analytics": "pnpm with:env drizzle-kit push --config drizzle.config.analytics.ts",
+    "push:auth": "pnpm with:env drizzle-kit push --config drizzle.config.auth.ts",
+    "push:notification": "pnpm with:env drizzle-kit push --config drizzle.config.notification.ts",
+    "push:order": "pnpm with:env drizzle-kit push --config drizzle.config.order.ts",
+    "push:product": "pnpm with:env drizzle-kit push --config drizzle.config.product.ts",
+    "push:storage": "pnpm with:env drizzle-kit push --config drizzle.config.storage.ts",
+    "push:all": "pnpm push:analytics && pnpm push:auth && pnpm push:notification && pnpm push:order && pnpm push:product && pnpm push:storage",
+
+    "with:env": "dotenv -e ../../.env --"
+  },
+  "dependencies": {
+    "@antifocus/env": "workspace:*",
+    "@neondatabase/serverless": "^1.0.2",
+    "drizzle-orm": "^0.45.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@antifocus/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "drizzle-kit": "^0.31.8",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./dist/index.d.ts"
+    },
+    "./*": {
+      "default": "./src/*/index.ts",
+      "types": "./dist/*/index.d.ts"
+    },
+    "./*/schema": {
+      "default": "./src/*/schema.ts",
+      "types": "./dist/*/schema.d.ts"
+    }
+  }
+}
