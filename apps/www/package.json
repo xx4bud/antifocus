@@ -1,0 +1,31 @@
+{
+  "name": "@antifocus/www",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm with:env next dev --port 3000",
+    "build": "pnpm with:env next build",
+    "start": "pnpm with:env next start",
+    "clean": "git clean -xdf .cache .next .turbo node_modules",
+    "check:lint": "biome check --write --unsafe .",
+    "check:types": "pnpm with:env tsc --noEmit",
+    "check:all": "pnpm check:lint && pnpm check:types",
+    "with:env": "dotenv -e ../../.env --"
+  },
+  "dependencies": {
+    "@antifocus/config": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@antifocus/tailwind": "workspace:*",
+    "@antifocus/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "babel-plugin-react-compiler": "1.0.0",
+    "jiti": "^2.6.1",
+    "typescript": "catalog:"
+  }
+}

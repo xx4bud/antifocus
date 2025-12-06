@@ -2,19 +2,40 @@
   "name": "antifocus",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "clean": "git clean -xdf node_modules",
+    "clean:workspaces": "turbo clean",
+    "check:lint": "biome check --write --unsafe .",
+    "check:types": "turbo check:types",
+    "check:all": "pnpm check:lint && pnpm check:types",
+    "check:deps": "sherif --fix",
+    "bump:deps": "pnpm dlx npm-check-updates --deep -u -x geist",
+    "postinstall": "sherif",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
+    "@biomejs/biome": "catalog:",
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "dotenv-cli": "^11.0.0",
+    "husky": "^9.1.7",
+    "sherif": "^1.9.0",
     "turbo": "^2.6.3",
-    "typescript": "5.9.2"
+    "typescript": "catalog:",
+    "ultracite": "6.3.9"
   },
-  "packageManager": "pnpm@9.0.0",
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "overrides": {
+    "@biomejs/biome": "catalog:"
+  },
   "engines": {
-    "node": ">=18"
-  }
+    "node": "22.x",
+    "pnpm": "10.x"
+  },
+  "packageManager": "pnpm@10.24.0"
 }

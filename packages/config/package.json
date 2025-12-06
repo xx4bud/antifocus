@@ -1,0 +1,27 @@
+{
+  "name": "@antifocus/config",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "check:lint": "biome check --write --unsafe .",
+    "check:types": "tsc --noEmit",
+    "check:all": "pnpm check:lint && pnpm check:types"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.8",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@antifocus/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    "./*": {
+      "default": "./src/*.ts",
+      "types": "./dist/*.d.ts"
+    }
+  }
+}

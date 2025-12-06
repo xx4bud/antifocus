@@ -2,20 +2,39 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
   "tasks": {
+    "topo": {
+      "dependsOn": ["^topo"]
+    },
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+      "inputs": ["$TURBO_DEFAULT$", ".env"],
+      "outputs": ["build/**", "dist/**", ".cache/tsbuildinfo.json"]
     },
     "dev": {
+      "dependsOn": ["^dev"],
       "cache": false,
-      "persistent": true
+      "persistent": false
+    },
+    "check:lint": {
+      "dependsOn": ["^topo", "^build"]
+    },
+    "check:types": {
+      "dependsOn": ["^topo", "^build"],
+      "outputs": [".cache/tsbuildinfo.json"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "//#clean": {
+      "cache": false
     }
-  }
+  },
+  "globalEnv": ["PUBLIC_*", "DB_URL_*", "AUTH_*", "GOOGLE_*"],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "VERCEL",
+    "VERCEL_ENV",
+    "VERCEL_URL"
+  ]
 }

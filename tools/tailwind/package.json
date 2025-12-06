@@ -1,0 +1,32 @@
+{
+  "name": "@antifocus/tailwind",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc && pnpm exec postcss ./theme.css -c ./postcss.config.mjs -o ./dist/theme.css",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "check:lint": "biome check --write --unsafe .",
+    "check:types": "tsc --noEmit",
+    "check:all": "pnpm check:lint && pnpm check:types"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "catalog:"
+  },
+  "devDependencies": {
+    "@antifocus/tsconfig": "workspace:*",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    "./theme": {
+      "default": "./src/theme.css",
+      "types": "./dist/theme.css"
+    },
+    "./postcss.config": {
+      "default": "./src/postcss.config.mjs",
+      "types": "./dist/postcss.config.d.mts"
+    }
+  }
+}

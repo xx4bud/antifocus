@@ -1,0 +1,21 @@
+{
+  "extends": "@antifocus/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+    "plugins": [{ "name": "next" }]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts",
+    "next.config.mjs",
+    "postcss.config.mjs"
+  ],
+  "exclude": ["node_modules"]
+}

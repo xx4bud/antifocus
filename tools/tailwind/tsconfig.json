@@ -1,0 +1,5 @@
+{
+  "extends": "@antifocus/tsconfig/compiled.json",
+  "include": ["theme.css", "postcss.config.mjs"],
+  "exclude": ["node_modules"]
+}
