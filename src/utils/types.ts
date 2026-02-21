@@ -1,3 +1,7 @@
+import "next-intl";
+import type { _Translator } from "next-intl";
+import type { LOCALES } from "~/i18n/locales";
+
 // ==============================
 // ENTITY
 // ==============================
@@ -122,4 +126,21 @@ export interface Query {
 export interface QueryResult<T> {
   data: T[];
   pagination: Pagination;
+}
+
+// ==============================
+// I18N
+// ==============================
+
+export type Locale = keyof typeof LOCALES;
+
+export type Messages = (typeof LOCALES)[Locale];
+
+export type Translator = _Translator<Messages>;
+
+declare module "next-intl" {
+  interface AppConfig {
+    Locale: Locale;
+    Messages: Messages;
+  }
 }
