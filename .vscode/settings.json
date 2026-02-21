@@ -1,0 +1,111 @@
+{
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  },
+
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": false,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "editor.trimAutoWhitespace": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "editor.semanticHighlighting.enabled": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.inlineSuggest.enabled": true,
+  "editor.minimap.enabled": false,
+  "editor.fontSize": 12,
+  "editor.fontLigatures": true,
+  "editor.fontFamily": "'SF Mono', monospace",
+  "editor.glyphMargin": false,
+
+  "emmet.showExpandedAbbreviation": "always",
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
+  },
+  "emmet.triggerExpansionOnTab": true,
+  "emmet.showSuggestionsAsSnippets": true,
+  "emmet.syntaxProfiles": {
+    "javascript": "jsx",
+    "typescript": "jsx"
+  },
+
+  "explorer.confirmDragAndDrop": false,
+
+  "files.eol": "\n",
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "files.autoSave": "afterDelay",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  "terminal.integrated.defaultProfile.osx": "bash",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.fontSize": 12,
+  "terminal.integrated.fontFamily": "'SF Mono', monospace",
+
+  "javascript.suggest.autoImports": true,
+  "javascript.suggest.includeAutomaticOptionalChainCompletions": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "next/router.d.ts",
+    "next/dist/client/router.d.ts"
+  ],
+  "typescript.preferences.autoImportSpecifierExcludeRegexes": [
+    "node:test",
+    "styled-jsx"
+  ],
+  "typescript.preferences.quoteStyle": "double",
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "typescript.preferences.jsxAttributeCompletionStyle": "auto",
+  "typescript.suggest.autoImports": true,
+  "typescript.suggest.completeFunctionCalls": true,
+  "typescript.suggest.includeAutomaticOptionalChainCompletions": true,
+  "typescript.suggest.includeCompletionsForImportStatements": true,
+  "typescript.suggest.enabled": true,
+
+  "workbench.editor.highlightModifiedTabs": true,
+  "workbench.editor.tabSizing": "fit",
+  "workbench.activityBar.location": "default",
+  "workbench.sideBar.location": "left",
+  "workbench.statusBar.visible": true,
+  "workbench.colorTheme": "One Dark Pro",
+  "workbench.iconTheme": "material-icon-theme",
+
+  "tailwindCSS.classFunctions": ["cva", "cx", "cn"],
+  "tailwindCSS.experimental.configFile": "src/styles/globals.css"
+}

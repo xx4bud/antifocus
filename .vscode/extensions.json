@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "zhuangtongfa.Material-theme",
+    "PKief.material-icon-theme",
+    "kilocode.Kilo-Code",
+    "dsznajder.es7-react-js-snippets",
+    "formulahendry.auto-close-tag",
+    "yoavbls.pretty-ts-errors",
+    "bradlc.vscode-tailwindcss",
+    "Lokalise.i18n-ally",
+    "Prisma.prisma"
+  ]
+}
