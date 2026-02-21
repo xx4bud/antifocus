@@ -8,6 +8,7 @@
   },
   "files": {
     "ignoreUnknown": true,
+    "maxSize": 9999999,
     "includes": ["!node_modules", "!.next", "!.cache", "!dist", "!build"]
   },
   "linter": {

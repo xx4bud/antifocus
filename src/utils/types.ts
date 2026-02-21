@@ -1,5 +1,7 @@
+import type { Icon } from "@tabler/icons-react";
 import "next-intl";
 import type { _Translator } from "next-intl";
+import type { Href } from "~/components/ui/nav-link";
 import type { LOCALES } from "~/i18n/locales";
 import type { auth } from "~/lib/auth";
 import type { schema } from "~/lib/db";
@@ -162,3 +164,16 @@ export type Auth = typeof auth;
 export type AuthSession = Auth["$Infer"]["Session"];
 
 export type AuthUser = AuthSession["user"];
+
+// ==============================
+// NAVIGATION
+// ==============================
+
+export type NavItem = {
+  label: string;
+  href?: Href;
+  icon?: Icon;
+  isActive?: boolean;
+  children?: NavItem[];
+  onClick?: () => void;
+};
