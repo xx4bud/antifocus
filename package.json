@@ -11,6 +11,11 @@
     "check:lint": "ultracite fix",
     "check:types": "pnpm with:env next typegen && tsc --noEmit",
     "check:all": "pnpm check:lint && pnpm check:types",
+    "auth:generate": "dotenv -e .env -- pnpx @better-auth/cli generate --config src/lib/auth/index.ts --output ./auth-schema.ts --yes",
+    "db:push": "pnpm with:env drizzle-kit push --config drizzle.config.ts",
+    "db:generate": "pnpm with:env drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate": "pnpm with:env drizzle-kit migrate --config drizzle.config.ts",
+    "db:seed": "pnpm with:env tsx scripts/seed-main.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -39,10 +44,10 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
     "embla-carousel-react": "^8.6.0",
     "googleapis": "^171.4.0",
     "input-otp": "^1.4.2",
-    "lucide-react": "^0.575.0",
     "next": "^16.1.6",
     "next-intl": "^4.8.3",
     "next-themes": "^0.4.6",

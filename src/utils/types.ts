@@ -1,6 +1,8 @@
 import "next-intl";
 import type { _Translator } from "next-intl";
 import type { LOCALES } from "~/i18n/locales";
+import type { auth } from "~/lib/auth";
+import type { schema } from "~/lib/db";
 
 // ==============================
 // ENTITY
@@ -144,3 +146,19 @@ declare module "next-intl" {
     Messages: Messages;
   }
 }
+
+// ==============================
+// DATABASE
+// ==============================
+
+export type Schema = typeof schema;
+
+// ==============================
+// AUTH
+// ==============================
+
+export type Auth = typeof auth;
+
+export type AuthSession = Auth["$Infer"]["Session"];
+
+export type AuthUser = AuthSession["user"];
