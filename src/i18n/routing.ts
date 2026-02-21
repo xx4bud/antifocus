@@ -17,6 +17,8 @@ export const routing = defineRouting({
 
     // auth
     "/sign-in": "/sign-in",
+    "/sign-in/phone": "/sign-in/phone",
+    "/sign-up": "/sign-up",
 
     // user
     "/account": "/account",
