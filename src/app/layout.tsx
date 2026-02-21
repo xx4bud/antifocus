@@ -13,9 +13,9 @@ import { AppProvider } from "~/components/providers/app-provider";
 import { routing } from "~/i18n/routing";
 import { fontMono, fontSans } from "~/styles/fonts";
 import { getLocaleURL } from "~/utils/locales";
+import { createMetadata } from "~/utils/seo";
 import { cn } from "~/utils/styles";
 import { baseURL } from "~/utils/urls";
-import { createMetadata } from "~/utils/seo";
 
 export default async function RootLayout({
   children,
