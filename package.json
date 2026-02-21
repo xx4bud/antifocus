@@ -1,27 +1,47 @@
 {
   "name": "antifocus",
-  "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write"
+    "with:env": "dotenv -e .env --",
+    "dev": "pnpm with:env next dev --port 3000",
+    "build": "pnpm clean && pnpm with:env next build",
+    "start": "pnpm with:env next start",
+    "clean": "git clean -xdf .cache .next",
+    "check:lint": "ultracite fix",
+    "check:types": "pnpm with:env next typegen && tsc --noEmit",
+    "check:all": "pnpm check:lint && pnpm check:types",
+    "prepare": "husky"
   },
   "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "dotenv": "^17.3.1",
+    "next": "^16.1.6",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@biomejs/biome": "^2.4.0",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
+    "@tailwindcss/postcss": "^4.2.0",
+    "@types/node": "^22.19.11",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "dotenv-cli": "^11.0.0",
+    "husky": "^9.1.7",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.2.0",
+    "typescript": "^5.9.3",
+    "ultracite": "7.2.3"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "engines": {
+    "node": ">=22.x.x || <=25.x.x",
+    "pnpm": ">=10.x.x"
   }
 }
