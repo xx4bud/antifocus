@@ -43,4 +43,8 @@ export function NavLink({
   );
 }
 
-export type Href = LinkProps["href"] | `http${string}` | `https${string}`;
+export type Href =
+  | LinkProps["href"]
+  | `http${string}`
+  | `https${string}`
+  | undefined;

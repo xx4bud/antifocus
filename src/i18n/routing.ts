@@ -14,13 +14,16 @@ export const routing = defineRouting({
     "/": "/",
     "/callback": "/callback",
     "/[...slug]": "/[...slug]",
+    "/search": "/search",
 
     // auth
     "/sign-in": "/sign-in",
     "/sign-in/phone": "/sign-in/phone",
     "/sign-up": "/sign-up",
+    "/forgot-password": "/forgot-password",
 
     // user
     "/account": "/account",
+    "/order": "/order",
   },
 });

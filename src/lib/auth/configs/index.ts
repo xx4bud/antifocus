@@ -1,9 +1,15 @@
 import type { BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { emailVerification } from "~/lib/auth/configs/email-verification";
+import { verification } from "~/lib/auth/configs/verification";
 import { authPlugins } from "~/lib/auth/plugins";
 import { db, schema } from "~/lib/db";
 import { isProduction } from "~/utils/env";
 import { uuid } from "~/utils/ids";
+import { account } from "./account";
+import { emailAndPassword } from "./credential";
+import { session } from "./session";
+import { user } from "./user";
 
 export const authConfigs = {
   database: drizzleAdapter(db, {
@@ -21,6 +27,13 @@ export const authConfigs = {
       generateId: () => uuid(),
     },
   },
+
+  account,
+  emailAndPassword,
+  session,
+  user,
+  verification,
+  emailVerification,
 
   plugins: [...authPlugins],
 

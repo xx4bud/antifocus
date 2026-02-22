@@ -1,5 +1,7 @@
 import { NavLink } from "~/components/ui/nav-link";
+import { Separator } from "~/components/ui/separator";
 import { AuthSocialButton } from "~/features/auth/components/auth-social-button";
+import { SignInForm } from "~/features/auth/components/sign-in-form";
 
 export function SignInPage() {
   return (
@@ -12,7 +14,7 @@ export function SignInPage() {
           </p>
           <AuthSocialButton provider="google" />
           <div className="relative my-4">
-            {/* <Separator /> */}
+            <Separator />
             <div className="absolute inset-0 flex items-center">
               <span className="mx-auto bg-muted px-2 text-muted-foreground text-xs uppercase">
                 Atau masuk dengan email
@@ -20,7 +22,7 @@ export function SignInPage() {
             </div>
           </div>
         </div>
-        {/* <SignInForm /> */}
+        <SignInForm />
         <div className="mt-2 flex flex-col items-center">
           <div className="text-muted-foreground text-sm">
             Belum punya akun?{" "}
