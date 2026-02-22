@@ -1,6 +1,6 @@
-import { type BetterAuthPlugin, betterAuth } from "better-auth";
-import { nextCookies } from "better-auth/next-js";
+import { betterAuth } from "better-auth";
 import { env } from "~/env";
+import { authPlugins } from "~/lib/auth/plugins";
 import { isDevelopment } from "~/utils/env";
 import { authConfigs } from "./configs";
 
@@ -8,7 +8,6 @@ interface AuthOptions {
   baseURL: string;
   googleClientId: string;
   googleClientSecret: string;
-  plugins?: BetterAuthPlugin[];
   productionURL: string;
   secret: string;
 }
@@ -29,6 +28,8 @@ export function initAuth(opts: AuthOptions) {
       },
     },
 
+    plugins: [...authPlugins],
+
     trustedOrigins: [
       "antifocus://",
       opts.baseURL,
@@ -44,5 +45,4 @@ export const auth = initAuth({
   secret: env.BETTER_AUTH_SECRET,
   googleClientId: env.GOOGLE_CLIENT_ID,
   googleClientSecret: env.GOOGLE_CLIENT_SECRET,
-  plugins: [nextCookies()],
 });

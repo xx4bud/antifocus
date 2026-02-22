@@ -33,7 +33,7 @@ export function SignInForm() {
         const result = await signIn(value);
 
         if (result.success) {
-          toast.success("Berhasil masuk, selamat datang kem!");
+          toast.success("Berhasil masuk, selamat datang kembali!");
           router.push("/");
           return;
         }
@@ -45,6 +45,7 @@ export function SignInForm() {
 
   return (
     <form
+      className="w-full"
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
