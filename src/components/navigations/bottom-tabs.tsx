@@ -24,7 +24,7 @@ export function BottomTabs({ className }: BottomTabsProps) {
     <nav
       aria-label="Bottom navigation"
       className={cn(
-        "fixed right-0 bottom-0 left-0 z-50 border-gray-200 border-t bg-white shadow-lg",
+        "fixed right-0 bottom-0 left-0 z-50 border-t bg-background shadow-lg",
         className
       )}
     >
@@ -39,7 +39,9 @@ export function BottomTabs({ className }: BottomTabsProps) {
               aria-label={tab.label}
               className={cn(
                 "flex flex-1 flex-col items-center justify-center transition-colors duration-200 focus:outline-none",
-                isActive ? "text-primary" : "text-gray-400 hover:text-primary"
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-primary"
               )}
               href={tab.href ?? "/"}
               key={tab.label}

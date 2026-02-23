@@ -101,5 +101,6 @@
   "engines": {
     "node": ">=22.x.x || <=25.x.x",
     "pnpm": ">=10.x.x"
-  }
+  },
+  "packageManager": "pnpm@10.30.1"
 }
