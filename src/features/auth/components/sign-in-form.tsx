@@ -38,6 +38,18 @@ export function SignInForm() {
           return;
         }
 
+        if (result.error?.code === "EMAIL_NOT_VERIFIED") {
+          toast.error("Email belum diverifikasi", {
+            description: "Kirim ulang untuk mendapatkan link.",
+            action: {
+              label: "Kirim Ulang",
+              onClick: () => router.push("/verify-email"),
+            },
+            duration: 6000,
+          });
+          return;
+        }
+
         toast.error(result.error.message);
       });
     },

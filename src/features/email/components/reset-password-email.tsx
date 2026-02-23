@@ -34,7 +34,7 @@ export const ResetPasswordEmail = (props: ResetPasswordEmailProps) => {
                   alt="Antifocus Logo"
                   className="mx-auto"
                   height="36"
-                  src="https://antifocus.vercel.app/assets/logo-black.svg"
+                  src="https://antifocus.vercel.app/logo-black.svg"
                   width="152"
                 />
               </Link>

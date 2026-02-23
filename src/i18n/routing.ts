@@ -12,7 +12,7 @@ export const routing = defineRouting({
   pathnames: {
     // public
     "/": "/",
-    "/callback": "/callback",
+    "/callbackURL": "/callbackURL",
     "/[...slug]": "/[...slug]",
     "/search": "/search",
 
@@ -24,6 +24,7 @@ export const routing = defineRouting({
 
     // user
     "/account": "/account",
+    "/verify-email": "/verify-email",
     "/order": "/order",
   },
 });

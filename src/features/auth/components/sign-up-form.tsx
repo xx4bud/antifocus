@@ -34,7 +34,12 @@ export function SignUpForm() {
         const result = await signUp(value);
 
         if (result.success) {
-          toast.success("Akun berhasil dibuat. Silakan masuk ke akun Anda!");
+          toast.success(
+            "Akun berhasil dibuat! Email verifikasi telah dikirim.",
+            {
+              description: "Silakan cek inbox Anda untuk verifikasi email.",
+            }
+          );
           router.push("/sign-in");
           return;
         }

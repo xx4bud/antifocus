@@ -6,7 +6,7 @@ import { db, schema } from "~/lib/db";
 import { isProduction } from "~/utils/env";
 import { uuid } from "~/utils/ids";
 import { account } from "./account";
-import { emailAndPassword } from "./credential";
+import { emailAndPassword } from "./email-password";
 import { session } from "./session";
 import { user } from "./user";
 

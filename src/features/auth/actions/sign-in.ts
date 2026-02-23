@@ -204,12 +204,26 @@ export async function signIn(
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      const code = result?.code || "auth_api_error";
+
+      if (code === "EMAIL_NOT_VERIFIED") {
+        return {
+          success: false,
+          error: {
+            message: "Email belum diverifikasi",
+            code: "EMAIL_NOT_VERIFIED",
+            statusCode: 403,
+          },
+        };
+      }
+
       return {
         success: false,
         error: {
           message:
-            result?.message || "Gagal masuk akun, silahkan coba lagi nanti",
-          code: result?.code || "auth_api_error",
+            result?.message ||
+            "Gagal masuk akun. Silakan coba beberapa saat lagi.",
+          code,
           statusCode: response.status,
         },
       };
