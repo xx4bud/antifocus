@@ -47,6 +47,7 @@ pids
 # source
 .agents
 .backups
+skills.lock.json
 
 # outputs
 dist
