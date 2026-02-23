@@ -21,6 +21,21 @@
       "sourceType": "github",
       "computedHash": "7380d0bcb68bfa28639bb1b7ca27f3eca1857899b885c66a7004070ec0640e50"
     },
+    "google-labs-code-shadcn-ui": {
+      "source": "smithery/ai",
+      "sourceType": "well-known",
+      "computedHash": "5b7f2cae1f73a134384c2a22fe5db5597e5a7be61a2f6a9d7f1c6c36a06047ee"
+    },
+    "josechifflet-trpc": {
+      "source": "smithery/ai",
+      "sourceType": "well-known",
+      "computedHash": "f96c409ceb156c18ba6fd1ffc8da7d7cb2fa058af7ee065086e2905b623eae7f"
+    },
+    "lobehub-drizzle": {
+      "source": "smithery/ai",
+      "sourceType": "well-known",
+      "computedHash": "6e935980b08f54bcabe82973cf15efbf6390d1ade2daab7793c436937653bfda"
+    },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
       "sourceType": "github",
@@ -40,6 +55,11 @@
       "source": "better-auth/skills",
       "sourceType": "github",
       "computedHash": "dc08ccb8c3a5c468437894aea27731c06ca655553a39b5dffd67d0e429a70c6b"
+    },
+    "tanstack-query-best-practices": {
+      "source": "DeckardGer/tanstack-agent-skills",
+      "sourceType": "github",
+      "computedHash": "addf4358803d7746f7fe0475a3370d835775217e00dd5fc7bbd8a7d6c53d81e5"
     },
     "two-factor-authentication-best-practices": {
       "source": "better-auth/skills",
