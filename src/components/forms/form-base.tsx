@@ -10,7 +10,7 @@ import {
 import { useFieldContext } from "./form-hooks";
 
 export type FormControlProps = {
-  label: ReactNode;
+  label?: ReactNode;
   labelRight?: ReactNode;
   description?: string;
 };

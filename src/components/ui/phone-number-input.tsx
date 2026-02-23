@@ -16,6 +16,7 @@ import {
 import { Input } from "~/components/ui/input";
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
@@ -35,27 +36,37 @@ const PhoneNumberInput: React.ForwardRefExoticComponent<PhoneInputProps> =
     React.ComponentRef<typeof RPNInput.default>,
     PhoneInputProps
   >(({ className, onChange, value, ...props }, ref) => {
+    const [open, setOpen] = React.useState(false);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const [width, setWidth] = React.useState<number>(0);
+
+    React.useEffect(() => {
+      if (open && containerRef.current) {
+        setWidth(containerRef.current.offsetWidth);
+      }
+    }, [open]);
+
     return (
-      <RPNInput.default
-        className={cn("flex", className)}
-        countrySelectComponent={CountrySelect}
-        flagComponent={FlagComponent}
-        inputComponent={InputComponent}
-        onChange={(newValue) => onChange?.(newValue || ("" as RPNInput.Value))}
-        ref={ref}
-        smartCaret={false}
-        /**
-         * Handles the onChange event.
-         *
-         * react-phone-number-input might trigger the onChange event as undefined
-         * when a valid phone number is not entered. To prevent this,
-         * the value is coerced to an empty string.
-         *
-         * @param {E164Number | undefined} value - The entered value
-         */
-        value={value || undefined}
-        {...props}
-      />
+      <Popover modal onOpenChange={setOpen} open={open}>
+        <PopoverAnchor asChild>
+          <div className={cn("flex w-full", className)} ref={containerRef}>
+            <RPNInput.default
+              className="flex w-full"
+              countrySelectComponent={CountrySelect}
+              countrySelectProps={{ onOpenChange: setOpen, open, width }}
+              flagComponent={FlagComponent}
+              inputComponent={InputComponent}
+              onChange={(newValue) =>
+                onChange?.(newValue || ("" as RPNInput.Value))
+              }
+              ref={ref}
+              smartCaret={false}
+              value={value || undefined}
+              {...props}
+            />
+          </div>
+        </PopoverAnchor>
+      </Popover>
     );
   });
 PhoneNumberInput.displayName = "PhoneNumberInput";
@@ -79,6 +90,9 @@ type CountrySelectProps = {
   value: RPNInput.Country;
   options: CountryEntry[];
   onChange: (country: RPNInput.Country) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  width?: number;
 };
 
 const CountrySelect = ({
@@ -86,22 +100,21 @@ const CountrySelect = ({
   value: selectedCountry,
   options: countryList,
   onChange,
+  open,
+  onOpenChange,
+  width,
 }: CountrySelectProps) => {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const [searchValue, setSearchValue] = React.useState("");
-  const [isOpen, setIsOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setSearchValue("");
+    }
+  }, [open]);
 
   return (
-    <Popover
-      modal
-      onOpenChange={(open) => {
-        setIsOpen(open);
-        if (open) {
-          setSearchValue("");
-        }
-      }}
-      open={isOpen}
-    >
+    <>
       <PopoverTrigger asChild>
         <Button
           className="flex gap-1 rounded-s-lg rounded-e-none border-r-0 px-3 focus:z-10"
@@ -121,7 +134,11 @@ const CountrySelect = ({
           />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[400px] p-0">
+      <PopoverContent
+        align="start"
+        className="p-0"
+        style={{ width: width ? `${width}px` : "auto" }}
+      >
         <Command>
           <CommandInput
             onValueChange={(value) => {
@@ -151,7 +168,7 @@ const CountrySelect = ({
                       countryName={label}
                       key={value}
                       onChange={onChange}
-                      onSelectComplete={() => setIsOpen(false)}
+                      onSelectComplete={() => onOpenChange(false)}
                       selectedCountry={selectedCountry}
                     />
                   ) : null
@@ -161,7 +178,7 @@ const CountrySelect = ({
           </CommandList>
         </Command>
       </PopoverContent>
-    </Popover>
+    </>
   );
 };
 

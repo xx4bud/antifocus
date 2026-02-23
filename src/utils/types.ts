@@ -177,3 +177,16 @@ export type NavItem = {
   children?: NavItem[];
   onClick?: () => void;
 };
+
+// ==============================
+// EMAIL
+// ==============================
+
+export interface EmailOptions {
+  from?: string;
+  html: React.ReactElement;
+  replyTo?: string;
+  subject: string;
+  text?: string;
+  to: string | string[];
+}
