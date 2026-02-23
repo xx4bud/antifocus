@@ -73,7 +73,7 @@ export function NavUser({ user, variant = "dropdown" }: NavUserProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="cursor-pointer rounded-lg grayscale">
+        <Avatar className="cursor-pointer rounded-lg">
           <AvatarImage alt={user.name} src={user.image ?? undefined} />
           <AvatarFallback className="rounded-lg">{user.name[0]}</AvatarFallback>
         </Avatar>

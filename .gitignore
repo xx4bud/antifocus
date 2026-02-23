@@ -53,6 +53,7 @@ skills.lock.json
 dist
 build
 out
+public/uploads
 
 # turborepo
 .turbo

@@ -24,6 +24,8 @@ export const routing = defineRouting({
 
     // user
     "/account": "/account",
+    "/account/profile": "/account/profile",
+    "/account/security": "/account/security",
     "/verify-email": "/verify-email",
     "/order": "/order",
   },

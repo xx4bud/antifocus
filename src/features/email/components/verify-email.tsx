@@ -32,7 +32,7 @@ export const VerifyEmail = (props: VerifyEmailProps) => {
                   alt="Antifocus Logo"
                   className="mx-auto"
                   height="36"
-                  src="https://antifocus.vercel.app/logo-black.svg"
+                  src="https://antifocus.vercel.app/assets/logo-black.svg"
                   width="152"
                 />
               </Link>

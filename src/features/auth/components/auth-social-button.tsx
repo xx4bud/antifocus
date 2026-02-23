@@ -1,6 +1,7 @@
 "use client";
 
-import { IconBrandGoogleFilled, IconBrandWhatsapp } from "@tabler/icons-react";
+import { IconBrandWhatsapp } from "@tabler/icons-react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
@@ -22,7 +23,11 @@ export function AuthSocialButton({ provider }: AuthSocialButtonProps) {
   const providerName = provider === "google" ? "Google" : "Whatsapp";
 
   const providerIcon =
-    provider === "google" ? <IconBrandGoogleFilled /> : <IconBrandWhatsapp />;
+    provider === "google" ? (
+      <Image alt="Google" height={18} src="/assets/google.svg" width={18} />
+    ) : (
+      <IconBrandWhatsapp />
+    );
 
   const onClick = () => {
     startTransition(async () => {

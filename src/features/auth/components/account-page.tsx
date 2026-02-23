@@ -1,30 +1,46 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { getCurrentUser } from "~/features/auth/actions/get-user";
+import { AccountMenu } from "~/features/auth/components/account-menu";
 import { ProfileForm } from "~/features/auth/components/profile-form";
 import { SecurityForm } from "~/features/auth/components/security-form";
 
-export function AccountPage() {
+export async function AccountPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <div className="container mx-auto py-2">
-      <div className="mb-2 space-y-1">
-        <h1 className="font-bold text-2xl tracking-tight">Account Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences.
-        </p>
+    <>
+      {/* Mobile: menu navigation */}
+      <div className="md:hidden">
+        <AccountMenu user={user} />
       </div>
 
-      <Tabs className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-        </TabsList>
+      {/* Desktop: tabs layout */}
+      <div className="mx-auto hidden w-full py-2 md:block">
+        <div className="mb-6 space-y-1">
+          <h1 className="font-bold text-2xl tracking-tight">Pengaturan Akun</h1>
+          <p className="text-muted-foreground text-sm">
+            Kelola profil dan keamanan akun Anda
+          </p>
+        </div>
 
-        <TabsContent value="profile">
-          <ProfileForm />
-        </TabsContent>
-        <TabsContent value="security">
-          <SecurityForm />
-        </TabsContent>
-      </Tabs>
-    </div>
+        <Tabs className="w-full" defaultValue="profile">
+          <TabsList className="mb-4 w-full">
+            <TabsTrigger value="profile">Profil</TabsTrigger>
+            <TabsTrigger value="security">Keamanan</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile">
+            <ProfileForm user={user} />
+          </TabsContent>
+          <TabsContent value="security">
+            <SecurityForm user={user} />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 }
