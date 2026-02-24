@@ -14,7 +14,7 @@ import {
 } from "~/components/ui/dialog";
 import { LoadingButton } from "~/components/ui/loading-button";
 import { toast } from "~/components/ui/sonner";
-import { updateProfile } from "~/features/auth/actions/update-profile";
+import { updateProfile } from "~/features/user/actions/update-profile";
 import { useRouter } from "~/i18n/navigation";
 
 interface AvatarUploadDialogProps {

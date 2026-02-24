@@ -49,7 +49,7 @@ export const users = pgTable(
       .notNull(),
 
     // admin plugin
-    role: text("role").$type<SystemRole>().default("user").notNull(),
+    role: text("role").default("user").notNull(),
     banned: boolean("banned").default(false),
     banReason: text("ban_reason"),
     banExpires: timestamp("ban_expires", { mode: "date", withTimezone: true }),

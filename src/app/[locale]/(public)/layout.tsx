@@ -12,7 +12,9 @@ export default async function PublicLayout({
   return (
     <div className="relative flex flex-1 flex-col bg-muted">
       <AppHeader user={user} />
-      <div className="container flex min-h-svh flex-1 flex-col">{children}</div>
+      <div className="container flex min-h-screen flex-1 flex-col">
+        {children}
+      </div>
       <AppFooter />
     </div>
   );

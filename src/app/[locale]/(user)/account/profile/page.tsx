@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "~/features/auth/actions/get-user";
-import { ProfileForm } from "~/features/auth/components/profile-form";
+import { ProfileForm } from "~/features/user/components/profile-form";
 import { createMetadata } from "~/utils/seo";
 
 export default async function ProfilePage() {

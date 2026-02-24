@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "~/features/auth/actions/get-user";
-import { SecurityForm } from "~/features/auth/components/security-form";
+import { SecurityForm } from "~/features/user/components/security-form";
 import { createMetadata } from "~/utils/seo";
 
 export default async function SecurityPage() {

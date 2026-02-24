@@ -15,8 +15,8 @@ import { FieldGroup } from "~/components/ui/field";
 import { LoadingButton } from "~/components/ui/loading-button";
 import { Separator } from "~/components/ui/separator";
 import { toast } from "~/components/ui/sonner";
-import { changePassword } from "~/features/auth/actions/change-password";
-import { changePasswordInput } from "~/features/auth/validators/change-password";
+import { changePassword } from "~/features/user/actions/change-password";
+import { changePasswordInput } from "~/features/user/validators/change-password";
 import type { User } from "~/lib/db/types";
 
 interface SecurityFormProps {

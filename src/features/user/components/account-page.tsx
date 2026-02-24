@@ -1,8 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { getCurrentUser } from "~/features/auth/actions/get-user";
-import { AccountMenu } from "~/features/auth/components/account-menu";
-import { ProfileForm } from "~/features/auth/components/profile-form";
-import { SecurityForm } from "~/features/auth/components/security-form";
+import { AccountMenu } from "~/features/user/components/account-menu";
+import { ProfileForm } from "~/features/user/components/profile-form";
+import { SecurityForm } from "~/features/user/components/security-form";
 
 export async function AccountPage() {
   const user = await getCurrentUser();

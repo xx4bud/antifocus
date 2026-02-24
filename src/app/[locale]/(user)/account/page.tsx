@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AccountPage } from "~/features/auth/components/account-page";
+import { AccountPage } from "~/features/user/components/account-page";
 import { createMetadata } from "~/utils/seo";
 
 export default function Account() {

@@ -19,9 +19,6 @@
     "check:types": {
       "outputs": [".cache/tsbuildinfo.json"]
     },
-    "check:all": {
-      "dependsOn": ["check:lint", "check:types"]
-    },
     "clean": {
       "cache": false
     }

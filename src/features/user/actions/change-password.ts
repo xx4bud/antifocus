@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import {
   type ChangePasswordData,
   changePasswordInput,
-} from "~/features/auth/validators/change-password";
+} from "~/features/user/validators/change-password";
 import { auth } from "~/lib/auth";
 import { parseError } from "~/utils/error";
 import type { AppResponse } from "~/utils/types";

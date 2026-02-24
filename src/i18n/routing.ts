@@ -28,5 +28,12 @@ export const routing = defineRouting({
     "/account/security": "/account/security",
     "/verify-email": "/verify-email",
     "/order": "/order",
+
+    // admin
+    "/admin": "/admin",
+    "/admin/users": "/admin/users",
+    "/admin/sessions": "/admin/sessions",
+    "/admin/accounts": "/admin/accounts",
+    "/admin/verifications": "/admin/verifications",
   },
 });

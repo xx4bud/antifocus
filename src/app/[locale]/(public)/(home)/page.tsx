@@ -1,12 +1,7 @@
-import { getServerSession } from "~/features/auth/actions/get-session";
-
 export default async function Home() {
-  const session = await getServerSession();
-
   return (
-    <main>
+    <main className="flex w-full flex-1 flex-col">
       <h1>Home</h1>
-      <pre>{JSON.stringify(session, null, 2)}</pre>
     </main>
   );
 }
