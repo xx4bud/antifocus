@@ -1,3 +1,10 @@
 import type { BetterAuthOptions } from "better-auth";
 
-export const verification = {} satisfies BetterAuthOptions["verification"];
+export const verification = {
+  additionalFields: {
+    metadata: {
+      type: "json",
+      required: false,
+    },
+  },
+} satisfies BetterAuthOptions["verification"];

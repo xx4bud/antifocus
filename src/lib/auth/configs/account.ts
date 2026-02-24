@@ -5,4 +5,11 @@ export const account = {
     enabled: true,
     trustedProviders: ["google"],
   },
+
+  additionalFields: {
+    metadata: {
+      type: "json",
+      required: false,
+    },
+  },
 } satisfies BetterAuthOptions["account"];

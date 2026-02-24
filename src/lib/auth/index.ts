@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { env } from "~/env";
 import { authPlugins } from "~/lib/auth/plugins";
-import { isDevelopment } from "~/utils/env";
+import { isDevelopment, isProduction } from "~/utils/env";
 import { authConfigs } from "./configs";
 
 interface AuthOptions {
@@ -29,6 +29,18 @@ export function initAuth(opts: AuthOptions) {
     },
 
     plugins: [...authPlugins],
+
+    cookies: {
+      sessionToken: {
+        options: {
+          httpOnly: true,
+          secure: isProduction,
+          sameSite: "strict",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
+        },
+      },
+    },
 
     trustedOrigins: [
       "antifocus://",

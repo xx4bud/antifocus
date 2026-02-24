@@ -2,11 +2,15 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { organizations } from "~/lib/db/schemas/organizations";
+import { users } from "~/lib/db/schemas/users";
 import { uuid } from "~/utils/ids";
 
 // ==============================
@@ -22,58 +26,6 @@ export const SYSTEM_ROLE = {
 } as const;
 
 export type SystemRole = (typeof SYSTEM_ROLE)[keyof typeof SYSTEM_ROLE];
-
-// ==============================
-// BETTER-AUTH USERS
-// ==============================
-
-export const users = pgTable(
-  "users",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => uuid()),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: boolean("email_verified").default(false).notNull(),
-    image: text("image"),
-
-    // username plugin
-    username: text("username").unique(),
-    displayUsername: text("display_username"),
-
-    // phone number plugin
-    phoneNumber: text("phone_number").unique(),
-    phoneNumberVerified: boolean("phone_number_verified")
-      .default(false)
-      .notNull(),
-
-    // admin plugin
-    role: text("role").default("user").notNull(),
-    banned: boolean("banned").default(false),
-    banReason: text("ban_reason"),
-    banExpires: timestamp("ban_expires", { mode: "date", withTimezone: true }),
-
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("users_email_uidx").on(table.email),
-    uniqueIndex("users_username_uidx").on(table.username),
-    uniqueIndex("users_phone_number_uidx").on(table.phoneNumber),
-    index("users_role_idx").on(table.role),
-  ]
-);
-
-export const usersRelations = relations(users, ({ many }) => ({
-  sessions: many(sessions),
-  accounts: many(accounts),
-}));
 
 // ==============================
 // BETTER-AUTH SESSIONS
@@ -93,10 +45,18 @@ export const sessions = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
+    metadata: jsonb("metadata"),
 
     // admin plugin
     impersonatedBy: text("impersonated_by"), // user_id
 
+    // organization plugin
+    activeOrganizationId: text("active_organization_id").references(
+      () => organizations.id,
+      { onDelete: "set null" }
+    ),
+
+    // timestamps
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -109,6 +69,7 @@ export const sessions = pgTable(
     uniqueIndex("sessions_token_uidx").on(table.token),
     index("sessions_user_id_idx").on(table.userId),
     index("sessions_impersonated_by_idx").on(table.impersonatedBy),
+    index("sessions_active_organization_id_idx").on(table.activeOrganizationId),
   ]
 );
 
@@ -116,6 +77,10 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   users: one(users, {
     fields: [sessions.userId],
     references: [users.id],
+  }),
+  organizations: one(organizations, {
+    fields: [sessions.activeOrganizationId],
+    references: [organizations.id],
   }),
 }));
 
@@ -147,9 +112,12 @@ export const accounts = pgTable(
       withTimezone: true,
     }),
 
+    // credentials
     scope: text("scope"),
     password: text("password"),
+    metadata: jsonb("metadata"),
 
+    // timestamps
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -202,3 +170,95 @@ export const verifications = pgTable(
   },
   (table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
+
+// ==============================
+// BETTER-AUTH TWO FACTORS
+// ==============================
+
+export const twoFactors = pgTable(
+  "two_factors",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuid()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+  },
+  (table) => [
+    index("twoFactors_secret_idx").on(table.secret),
+    index("twoFactors_user_id_idx").on(table.userId),
+  ]
+);
+
+export const twoFactorsRelations = relations(twoFactors, ({ one }) => ({
+  users: one(users, {
+    fields: [twoFactors.userId],
+    references: [users.id],
+  }),
+}));
+
+// ==============================
+// BETTER-AUTH API KEYS
+// ==============================
+
+export const apikeys = pgTable(
+  "apikeys",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuid()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    name: text("name"),
+    start: text("start"),
+    prefix: text("prefix"),
+    key: text("key").notNull(),
+
+    permissions: text("permissions"),
+    metadata: text("metadata"),
+
+    refillInterval: integer("refill_interval"),
+    refillAmount: integer("refill_amount"),
+    lastRefillAt: timestamp("last_refill_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    enabled: boolean("enabled").default(true).notNull(),
+    rateLimitEnabled: boolean("rate_limit_enabled").default(true).notNull(),
+    rateLimitTimeWindow: integer("rate_limit_time_window")
+      .default(86400000)
+      .notNull(),
+    rateLimitMax: integer("rate_limit_max").default(10).notNull(),
+    requestCount: integer("request_count").default(0).notNull(),
+    remaining: integer("remaining").notNull(),
+    lastRequest: timestamp("last_request", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
+
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("apikeys_key_idx").on(table.key),
+    index("apikeys_user_id_idx").on(table.userId),
+  ]
+);
+
+export const apikeysRelations = relations(apikeys, ({ one }) => ({
+  users: one(users, {
+    fields: [apikeys.userId],
+    references: [users.id],
+  }),
+}));
