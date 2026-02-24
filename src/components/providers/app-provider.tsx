@@ -1,6 +1,7 @@
 "use client";
 
 import { I18nProvider } from "~/components/providers/i18n-provider";
+import { TRPCReactProvider } from "~/components/providers/trpc-provider";
 import type { Locale, Messages } from "~/utils/types";
 import { Toaster } from "../ui/sonner";
 import { TooltipProvider } from "../ui/tooltip";
@@ -25,8 +26,10 @@ export function AppProvider({
         disableTransitionOnChange
         enableSystem
       >
-        <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
-        <Toaster />
+        <TRPCReactProvider>
+          <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+          <Toaster />
+        </TRPCReactProvider>
       </ThemeProvider>
     </I18nProvider>
   );

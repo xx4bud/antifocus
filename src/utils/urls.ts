@@ -1,4 +1,3 @@
-import { env } from "~/env";
 import { isClient } from "./env";
 
 export function getBaseURL(): string {
@@ -6,12 +5,12 @@ export function getBaseURL(): string {
     return window.location.origin;
   }
 
-  if (env.VERCEL_URL) {
-    return `https://${env.VERCEL_URL}`;
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
 
-  if (env.NEXT_PUBLIC_BASE_URL) {
-    return env.NEXT_PUBLIC_BASE_URL;
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
   }
 
   return `http://localhost:${process.env.PORT ?? 3000}`;
