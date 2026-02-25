@@ -1,0 +1,145 @@
+// ==============================
+// BETTER-AUTH ORGANIZATIONS
+// ==============================
+
+model Organization {
+  id   String  @id @default(uuid())
+  name String
+  slug String  @unique
+  logo String?
+
+  status   OrganizationStatus @default(pending)
+  settings Json? // configs
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organizationRoles OrganizationRole[]
+  members           Member[]
+  invitations       Invitation[]
+  customers         Customer[]
+  medias            Media[]
+  products          Product[]
+  categories        Category[]
+  orders            Order[]
+  payments          Payment[]
+  refunds           Refund[]
+
+  @@index([slug])
+  @@index([name])
+  @@index([status])
+  @@map("organizations")
+}
+
+// ==============================
+// BETTER-AUTH ORG ROLES
+// ==============================
+
+model OrganizationRole {
+  id             String @id @default(uuid())
+  organizationId String
+  role           String @unique
+  permission     Json
+  metadata       Json?
+
+  isSystem Boolean @default(false) // system_role
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, role])
+  @@index([organizationId])
+  @@index([role])
+  @@index([enabled])
+  @@map("org_roles")
+}
+
+// ==============================
+// BETTER-AUTH ORG MEMBERS
+// ==============================
+
+model Member {
+  id             String @id @default(uuid())
+  organizationId String
+  userId         String
+
+  role     String  @default("member") // organization role
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refunds      Refund[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([enabled])
+  @@map("members")
+}
+
+// ==============================
+// BETTER-AUTH ORG INVITATIONS
+// ==============================
+
+model Invitation {
+  id             String @id @default(uuid())
+  organizationId String
+  inviterId      String
+
+  email     String
+  role      String           @default("member") // organization role
+  status    InvitationStatus @default(pending)
+  expiresAt DateTime
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([inviterId])
+  @@index([email])
+  @@map("invitations")
+}
+
+// ==============================
+// CUSTOMERS
+// ==============================
+
+model Customer {
+  id             String  @id @default(uuid())
+  organizationId String
+  userId         String? // online customer
+
+  name        String?
+  email       String?
+  phoneNumber String?
+
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  orders Order[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("customers")
+}

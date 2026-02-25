@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==============================
+// SYSTEM ENUMS
+// ==============================
+
+enum SystemRole {
+  user
+  member
+  admin
+  owner
+  super_admin
+}
+
+// ==============================
+// AUTH ENUMS
+// ==============================
+
+enum UserStatus {
+  pending // not verified
+  active
+  inactive
+  deleted
+}
+
+// ==============================
+// ORGANIZATION ENUMS
+// ==============================
+
+enum OrganizationStatus {
+  pending // not verified
+  active
+  inactive
+  banned
+  deleted
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  rejected
+  canceled
+}
+
+// ==============================
+// MEDIA ENUMS
+// ==============================
+
+enum MediaProvider {
+  cloudinary
+  cloudflare
+  aws
+  firebase
+  local
+  other
+}
+
+enum MediaFileType {
+  image
+  video
+  audio
+  document
+  archive
+  other
+}
+
+// ==============================
+// PRODUCT ENUMS
+// ==============================
+
+enum ProductStatus {
+  draft
+  active
+  inactive
+  archived
+  discontinued
+}
+
+// ==============================
+// ORDER ENUMS
+// ==============================
+
+enum OrderChannel {
+  pos
+  online
+  marketplace
+  whatsapp
+  manual
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  processing
+  printing
+  quality_check
+  packing
+  shipped
+  delivered
+  completed
+  cancelled
+  refunded
+  on_hold
+}
+
+// ==============================
+// PAYMENT ENUMS
+// ==============================
+
+enum PaymentMethod {
+  cash
+  bank_transfer
+  qris
+  ewallet // GoPay, OVO, DANA, ShopeePay
+  virtual_account
+  cod
+  credit_card
+  debit_card
+  other
+}
+
+enum PaymentGateway {
+  midtrans
+  xendit
+  doku
+  ipaymu
+  stripe
+  paypal
+  manual
+  other
+}
+
+enum PaymentStatus {
+  pending
+  processing
+  paid
+  failed
+  expired
+  refunded
+  partially_refunded
+  cancelled
+}
+
+// ==============================
+// REFUND ENUMS
+// ==============================
+
+enum RefundStatus {
+  pending
+  processing
+  completed
+  failed
+  rejected
+}
+
+// ==============================
+// SHIPMENT ENUMS
+// ==============================
+
+enum ShipmentStatus {
+  pending
+  picked_up
+  in_transit
+  out_for_delivery
+  delivered
+  cancelled
+  on_hold
+  returned
+  failed
+}
+
+enum Courier {
+  jne
+  tiki
+  pos
+  sicepat
+  anteraja
+  grab
+  gojek
+  other
+}

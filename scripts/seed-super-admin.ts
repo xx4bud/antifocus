@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { hashPassword } from "~/lib/auth/configs/password";
 import { db } from "~/lib/db";
 import { accounts, users } from "~/lib/db/schemas";
@@ -47,8 +47,10 @@ export const seedSuperAdmin = async () => {
   }
 
   const existingAccount = await db.query.accounts.findFirst({
-    where: (accounts, { and, eq }) =>
-      and(eq(accounts.userId, user.id), eq(accounts.providerId, "credential")),
+    where: and(
+      eq(accounts.userId, user.id),
+      eq(accounts.providerId, "credential")
+    ),
   });
 
   if (existingAccount) {

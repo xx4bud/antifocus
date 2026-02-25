@@ -1,0 +1,81 @@
+// ==============================
+// ORDERS
+// ==============================
+
+model Order {
+  id             String @id @default(uuid())
+  organizationId String
+  customerId     String
+
+  orderNumber String
+  channel     OrderChannel
+  status      OrderStatus
+
+  subTotal       Decimal @db.Decimal(19, 4)
+  discountAmount Decimal @db.Decimal(19, 4)
+  taxAmount      Decimal @db.Decimal(19, 4)
+  shippingAmount Decimal @db.Decimal(19, 4)
+  total          Decimal @db.Decimal(19, 4)
+
+  currency     String  @default("IDR")
+  exchangeRate Decimal @default(1) @db.Decimal(19, 4)
+
+  shippingAddress Json?
+  billingAddress  Json?
+
+  customerNotes String?
+  internalNotes String?
+  metadata      Json?
+
+  confirmedAt DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
+  payments     Payment[]
+  refunds      Refund[]
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@map("orders")
+}
+
+// ==============================
+// ORDER ITEMS
+// ==============================
+
+model OrderItem {
+  id               String  @id @default(uuid())
+  orderId          String
+  productId        String?
+  productVariantId String?
+
+  productName String?
+  variantName String?
+  sku         String?
+
+  quantity       Int
+  unitPrice      Decimal @db.Decimal(19, 4)
+  discountAmount Decimal @db.Decimal(19, 4)
+  taxAmount      Decimal @db.Decimal(19, 4)
+  total          Decimal @db.Decimal(19, 4)
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: SetNull)
+
+  orderItemMedias OrderItemMedia[]
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}

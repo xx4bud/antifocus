@@ -1,65 +1,36 @@
 import type {
   // auths
   accounts,
-  // addresses
-  addresses,
-  apikeys,
-  // attributes
-  attributeDefinitions,
-  attributeValues,
+  activityLogs,
+  // marketing
+  banners,
   // categories
   categories,
-  categoryProducts,
-  creditNotes,
+  // organizations
   customers,
-  inventoryItems,
   invitations,
-  invoiceItems,
-  // invoices
-  invoices,
   // medias
   medias,
   members,
-  orderHistory,
-  orderItems,
+  orderItemMedias,
   // orders
+  orderItems,
   orders,
   organizationRoles,
-  // organizations
   organizations,
   // payments
   payments,
-  posSessions,
-  // pos
-  posTerminals,
-  posTransactions,
-  printJobs,
-  // print jobs
-  printMachines,
-  productDesignAreas,
+  productCategories,
   productMedias,
-  // products
   products,
+  productVariantMedias,
+  // products
   productVariants,
-  purchaseOrderItems,
-  purchaseOrders,
   refunds,
   sessions,
-  shipments,
-  stockMovements,
-  // stores
-  stores,
-  supplierProducts,
-  // suppliers
-  suppliers,
-  twoFactors,
   userRoles,
-  // users
   users,
-  variantMedias,
   verifications,
-  // inventory
-  warehouses,
 } from "~/lib/db/schemas";
 import type { AuthUser } from "~/utils/types";
 
@@ -86,11 +57,8 @@ export type NewAccount = typeof accounts.$inferInsert;
 export type Verification = typeof verifications.$inferSelect;
 export type NewVerification = typeof verifications.$inferInsert;
 
-export type TwoFactor = typeof twoFactors.$inferSelect;
-export type NewTwoFactor = typeof twoFactors.$inferInsert;
-
-export type Apikey = typeof apikeys.$inferSelect;
-export type NewApikey = typeof apikeys.$inferInsert;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type NewActivityLog = typeof activityLogs.$inferInsert;
 
 // ==============================
 // ORGANIZATION TYPES
@@ -108,13 +76,6 @@ export type NewMember = typeof members.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 
-// ==============================
-// STORE & CUSTOMER TYPES
-// ==============================
-
-export type Store = typeof stores.$inferSelect;
-export type NewStore = typeof stores.$inferInsert;
-
 export type Customer = typeof customers.$inferSelect;
 export type NewCustomer = typeof customers.$inferInsert;
 
@@ -128,9 +89,6 @@ export type NewProduct = typeof products.$inferInsert;
 export type ProductVariant = typeof productVariants.$inferSelect;
 export type NewProductVariant = typeof productVariants.$inferInsert;
 
-export type ProductDesignArea = typeof productDesignAreas.$inferSelect;
-export type NewProductDesignArea = typeof productDesignAreas.$inferInsert;
-
 // ==============================
 // CATEGORY TYPES
 // ==============================
@@ -138,8 +96,8 @@ export type NewProductDesignArea = typeof productDesignAreas.$inferInsert;
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
 
-export type CategoryProduct = typeof categoryProducts.$inferSelect;
-export type NewCategoryProduct = typeof categoryProducts.$inferInsert;
+export type CategoryProduct = typeof productCategories.$inferSelect;
+export type NewCategoryProduct = typeof productCategories.$inferInsert;
 
 // ==============================
 // MEDIA TYPES
@@ -151,54 +109,11 @@ export type NewMedia = typeof medias.$inferInsert;
 export type ProductMedia = typeof productMedias.$inferSelect;
 export type NewProductMedia = typeof productMedias.$inferInsert;
 
-export type VariantMedia = typeof variantMedias.$inferSelect;
-export type NewVariantMedia = typeof variantMedias.$inferInsert;
+export type ProductVariantMedia = typeof productVariantMedias.$inferSelect;
+export type NewProductVariantMedia = typeof productVariantMedias.$inferInsert;
 
-// ==============================
-// ATTRIBUTE TYPES
-// ==============================
-
-export type AttributeDefinition = typeof attributeDefinitions.$inferSelect;
-export type NewAttributeDefinition = typeof attributeDefinitions.$inferInsert;
-
-export type AttributeValue = typeof attributeValues.$inferSelect;
-export type NewAttributeValue = typeof attributeValues.$inferInsert;
-
-// ==============================
-// ADDRESS TYPES
-// ==============================
-
-export type Address = typeof addresses.$inferSelect;
-export type NewAddress = typeof addresses.$inferInsert;
-
-// ==============================
-// SUPPLIER TYPES
-// ==============================
-
-export type Supplier = typeof suppliers.$inferSelect;
-export type NewSupplier = typeof suppliers.$inferInsert;
-
-export type SupplierProduct = typeof supplierProducts.$inferSelect;
-export type NewSupplierProduct = typeof supplierProducts.$inferInsert;
-
-// ==============================
-// INVENTORY TYPES
-// ==============================
-
-export type Warehouse = typeof warehouses.$inferSelect;
-export type NewWarehouse = typeof warehouses.$inferInsert;
-
-export type InventoryItem = typeof inventoryItems.$inferSelect;
-export type NewInventoryItem = typeof inventoryItems.$inferInsert;
-
-export type StockMovement = typeof stockMovements.$inferSelect;
-export type NewStockMovement = typeof stockMovements.$inferInsert;
-
-export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
-export type NewPurchaseOrder = typeof purchaseOrders.$inferInsert;
-
-export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
-export type NewPurchaseOrderItem = typeof purchaseOrderItems.$inferInsert;
+export type OrderItemMedia = typeof orderItemMedias.$inferSelect;
+export type NewOrderItemMedia = typeof orderItemMedias.$inferInsert;
 
 // ==============================
 // ORDER TYPES
@@ -209,12 +124,6 @@ export type NewOrder = typeof orders.$inferInsert;
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type NewOrderItem = typeof orderItems.$inferInsert;
-
-export type OrderHistoryEntry = typeof orderHistory.$inferSelect;
-export type NewOrderHistoryEntry = typeof orderHistory.$inferInsert;
-
-export type Shipment = typeof shipments.$inferSelect;
-export type NewShipment = typeof shipments.$inferInsert;
 
 // ==============================
 // PAYMENT TYPES
@@ -227,37 +136,8 @@ export type Refund = typeof refunds.$inferSelect;
 export type NewRefund = typeof refunds.$inferInsert;
 
 // ==============================
-// INVOICE TYPES
+// MARKETING TYPES
 // ==============================
 
-export type Invoice = typeof invoices.$inferSelect;
-export type NewInvoice = typeof invoices.$inferInsert;
-
-export type InvoiceItem = typeof invoiceItems.$inferSelect;
-export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
-
-export type CreditNote = typeof creditNotes.$inferSelect;
-export type NewCreditNote = typeof creditNotes.$inferInsert;
-
-// ==============================
-// POS TYPES
-// ==============================
-
-export type PosTerminal = typeof posTerminals.$inferSelect;
-export type NewPosTerminal = typeof posTerminals.$inferInsert;
-
-export type PosSession = typeof posSessions.$inferSelect;
-export type NewPosSession = typeof posSessions.$inferInsert;
-
-export type PosTransaction = typeof posTransactions.$inferSelect;
-export type NewPosTransaction = typeof posTransactions.$inferInsert;
-
-// ==============================
-// PRINT JOB TYPES
-// ==============================
-
-export type PrintMachine = typeof printMachines.$inferSelect;
-export type NewPrintMachine = typeof printMachines.$inferInsert;
-
-export type PrintJob = typeof printJobs.$inferSelect;
-export type NewPrintJob = typeof printJobs.$inferInsert;
+export type Banner = typeof banners.$inferSelect;
+export type NewBanner = typeof banners.$inferInsert;

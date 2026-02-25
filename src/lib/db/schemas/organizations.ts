@@ -8,36 +8,12 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { sessions } from "~/lib/db/schemas/auths";
-import { users } from "~/lib/db/schemas/users";
+import { users } from "~/lib/db/schemas/auths";
+import type {
+  InvitationStatus,
+  OrganizationStatus,
+} from "~/lib/db/schemas/constants";
 import { uuid } from "~/utils/ids";
-
-// ==============================
-// ORGANIZATION ENUMS
-// ==============================
-
-export const ORGANIZATION_STATUS = {
-  pending: "pending",
-  active: "active",
-  inactive: "inactive",
-  suspended: "suspended",
-  banned: "banned",
-  deleted: "deleted",
-} as const;
-
-export type OrganizationStatus =
-  (typeof ORGANIZATION_STATUS)[keyof typeof ORGANIZATION_STATUS];
-
-export const INVITATION_STATUS = {
-  pending: "pending",
-  accepted: "accepted",
-  cancelled: "cancelled",
-  rejected: "rejected",
-  expired: "expired",
-} as const;
-
-export type InvitationStatus =
-  (typeof INVITATION_STATUS)[keyof typeof INVITATION_STATUS];
 
 // ==============================
 // BETTER-AUTH ORGANIZATIONS
@@ -53,7 +29,6 @@ export const organizations = pgTable(
     slug: text("slug").notNull().unique(),
     logo: text("logo"),
 
-    // additional fields
     status: text("status")
       .$type<OrganizationStatus>()
       .default("pending")
@@ -74,16 +49,30 @@ export const organizations = pgTable(
   },
   (table) => [
     uniqueIndex("organizations_slug_uidx").on(table.slug),
+    index("organizations_name_idx").on(table.name),
     index("organizations_status_idx").on(table.status),
   ]
 );
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
-  sessions: many(sessions),
   organizationRoles: many(organizationRoles),
   members: many(members),
   invitations: many(invitations),
+  customers: many(customers),
+  medias: many(medias),
+  products: many(products),
+  categories: many(categories),
+  orders: many(orders),
+  payments: many(payments),
+  refunds: many(refunds),
 }));
+
+import { categories } from "~/lib/db/schemas/categories";
+// forward-declare to avoid circular — resolved by drizzle at runtime
+import { medias } from "~/lib/db/schemas/medias";
+import { orders } from "~/lib/db/schemas/orders";
+import { payments, refunds } from "~/lib/db/schemas/payments";
+import { products } from "~/lib/db/schemas/products";
 
 // ==============================
 // BETTER-AUTH ORGANIZATION ROLES
@@ -99,11 +88,12 @@ export const organizationRoles = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     role: text("role").notNull(),
-    permission: jsonb("permission"),
+    permission: jsonb("permission").notNull(),
     metadata: jsonb("metadata"),
 
     isSystem: boolean("is_system").default(false).notNull(),
     enabled: boolean("enabled").default(true).notNull(),
+    position: text("position"),
 
     // timestamps
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
@@ -128,7 +118,7 @@ export const organizationRoles = pgTable(
 export const organizationRolesRelations = relations(
   organizationRoles,
   ({ one }) => ({
-    organizations: one(organizations, {
+    organization: one(organizations, {
       fields: [organizationRoles.organizationId],
       references: [organizations.id],
     }),
@@ -153,9 +143,8 @@ export const members = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
 
     role: text("role").default("member").notNull(),
-    metadata: jsonb("metadata"),
-
     enabled: boolean("enabled").default(true).notNull(),
+    metadata: jsonb("metadata"),
 
     // timestamps
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
@@ -173,18 +162,20 @@ export const members = pgTable(
     ),
     index("members_org_id_idx").on(table.organizationId),
     index("members_user_id_idx").on(table.userId),
+    index("members_enabled_idx").on(table.enabled),
   ]
 );
 
-export const membersRelations = relations(members, ({ one }) => ({
-  organizations: one(organizations, {
+export const membersRelations = relations(members, ({ one, many }) => ({
+  organization: one(organizations, {
     fields: [members.organizationId],
     references: [organizations.id],
   }),
-  users: one(users, {
+  user: one(users, {
     fields: [members.userId],
     references: [users.id],
   }),
+  refunds: many(refunds),
 }));
 
 // ==============================
@@ -224,17 +215,74 @@ export const invitations = pgTable(
   },
   (table) => [
     index("invitations_org_id_idx").on(table.organizationId),
+    index("invitations_inviter_id_idx").on(table.inviterId),
     index("invitations_email_idx").on(table.email),
   ]
 );
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
-  organizations: one(organizations, {
+  organization: one(organizations, {
     fields: [invitations.organizationId],
     references: [organizations.id],
   }),
-  users: one(users, {
+  user: one(users, {
     fields: [invitations.inviterId],
     references: [users.id],
   }),
+}));
+
+// ==============================
+// CUSTOMERS
+// ==============================
+
+export const customers = pgTable(
+  "customers",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuid()),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    name: text("name"),
+    email: text("email"),
+    phoneNumber: text("phone_number"),
+
+    enabled: boolean("enabled").default(true).notNull(),
+    metadata: jsonb("metadata"),
+
+    // timestamps
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { mode: "date", withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("customers_org_id_user_id_uidx").on(
+      table.organizationId,
+      table.userId
+    ),
+    index("customers_org_id_idx").on(table.organizationId),
+    index("customers_user_id_idx").on(table.userId),
+  ]
+);
+
+export const customersRelations = relations(customers, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [customers.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(users, {
+    fields: [customers.userId],
+    references: [users.id],
+  }),
+  orders: many(orders),
 }));

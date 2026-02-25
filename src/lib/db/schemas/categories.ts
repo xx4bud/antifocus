@@ -9,9 +9,9 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { organizations } from "~/lib/db/schemas/organizations";
+import { products } from "~/lib/db/schemas/products";
 import { uuid } from "~/utils/ids";
-import { organizations } from "./organizations";
-import { products } from "./products";
 
 // ==============================
 // CATEGORIES
@@ -24,17 +24,22 @@ export const categories = pgTable(
       .primaryKey()
       .$defaultFn(() => uuid()),
     organizationId: text("organization_id").references(() => organizations.id, {
-      onDelete: "cascade",
+      onDelete: "set null",
     }),
+
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
     image: text("image"),
+
     parentId: text("parent_id"),
 
-    enabled: boolean("enabled").default(false).notNull(),
+    enabled: boolean("enabled").default(true).notNull(),
     position: integer("position").default(0).notNull(),
+
+    attributes: jsonb("attributes"),
     metadata: jsonb("metadata"),
 
+    // timestamps
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -44,13 +49,15 @@ export const categories = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("categories_slug_idx").on(table.slug),
-    index("categories_parentId_idx").on(table.parentId),
+    uniqueIndex("categories_slug_uidx").on(table.slug),
+    index("categories_org_id_idx").on(table.organizationId),
+    index("categories_parent_id_idx").on(table.parentId),
+    index("categories_enabled_idx").on(table.enabled),
   ]
 );
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
-  organizations: one(organizations, {
+  organization: one(organizations, {
     fields: [categories.organizationId],
     references: [organizations.id],
   }),
@@ -60,15 +67,15 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
     relationName: "category_tree",
   }),
   children: many(categories, { relationName: "category_tree" }),
-  products: many(categoryProducts),
+  productCategories: many(productCategories),
 }));
 
 // ==============================
-// CATEGORY PRODUCTS
+// PRODUCT CATEGORIES
 // ==============================
 
-export const categoryProducts = pgTable(
-  "category_products",
+export const productCategories = pgTable(
+  "product_categories",
   {
     id: text("id")
       .primaryKey()
@@ -81,10 +88,12 @@ export const categoryProducts = pgTable(
       .references(() => products.id, { onDelete: "cascade" }),
 
     isPrimary: boolean("is_primary").default(false).notNull(),
-    enabled: boolean("enabled").default(false).notNull(),
+    enabled: boolean("enabled").default(true).notNull(),
     position: integer("position").default(0).notNull(),
+
     metadata: jsonb("metadata"),
 
+    // timestamps
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -94,24 +103,24 @@ export const categoryProducts = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("category_products_category_id_product_id_uidx").on(
+    uniqueIndex("product_categories_category_id_product_id_uidx").on(
       table.categoryId,
       table.productId
     ),
-    index("category_products_category_id_idx").on(table.categoryId),
-    index("category_products_product_id_idx").on(table.productId),
+    index("product_categories_category_id_idx").on(table.categoryId),
+    index("product_categories_product_id_idx").on(table.productId),
   ]
 );
 
-export const categoryProductsRelations = relations(
-  categoryProducts,
+export const productCategoriesRelations = relations(
+  productCategories,
   ({ one }) => ({
     category: one(categories, {
-      fields: [categoryProducts.categoryId],
+      fields: [productCategories.categoryId],
       references: [categories.id],
     }),
     product: one(products, {
-      fields: [categoryProducts.productId],
+      fields: [productCategories.productId],
       references: [products.id],
     }),
   })

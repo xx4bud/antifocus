@@ -9,82 +9,11 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { organizations } from "~/lib/db/schemas/organizations";
+import type { OrderChannel, OrderStatus } from "~/lib/db/schemas/constants";
+import { orderItemMedias } from "~/lib/db/schemas/medias";
+import { customers, organizations } from "~/lib/db/schemas/organizations";
 import { products, productVariants } from "~/lib/db/schemas/products";
-import { customers, stores } from "~/lib/db/schemas/stores";
-import { users } from "~/lib/db/schemas/users";
 import { uuid } from "~/utils/ids";
-
-// ==============================
-// ORDER ENUMS
-// ==============================
-
-export const ORDER_STATUS = {
-  pending: "pending",
-  confirmed: "confirmed",
-  processing: "processing",
-  printing: "printing",
-  quality_check: "quality_check",
-  packing: "packing",
-  shipped: "shipped",
-  delivered: "delivered",
-  completed: "completed",
-  cancelled: "cancelled",
-  refunded: "refunded",
-  on_hold: "on_hold",
-} as const;
-
-export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
-
-export const ORDER_CHANNEL = {
-  pos: "pos",
-  online: "online",
-  marketplace: "marketplace",
-  whatsapp: "whatsapp",
-  manual: "manual",
-} as const;
-
-export type OrderChannel = (typeof ORDER_CHANNEL)[keyof typeof ORDER_CHANNEL];
-
-export const PRINT_STATUS = {
-  pending: "pending",
-  queued: "queued",
-  printing: "printing",
-  done: "done",
-  failed: "failed",
-  skipped: "skipped",
-} as const;
-
-export type PrintStatus = (typeof PRINT_STATUS)[keyof typeof PRINT_STATUS];
-
-export const SHIPMENT_STATUS = {
-  pending: "pending",
-  picked_up: "picked_up",
-  in_transit: "in_transit",
-  out_for_delivery: "out_for_delivery",
-  delivered: "delivered",
-  returned: "returned",
-  failed: "failed",
-} as const;
-
-export type ShipmentStatus =
-  (typeof SHIPMENT_STATUS)[keyof typeof SHIPMENT_STATUS];
-
-export const COURIER = {
-  jne: "jne",
-  jnt: "jnt",
-  sicepat: "sicepat",
-  anteraja: "anteraja",
-  pos_indonesia: "pos_indonesia",
-  tiki: "tiki",
-  gosend: "gosend",
-  grab: "grab",
-  lalamove: "lalamove",
-  custom: "custom",
-  self_pickup: "self_pickup",
-} as const;
-
-export type Courier = (typeof COURIER)[keyof typeof COURIER];
 
 // ==============================
 // ORDERS
@@ -99,32 +28,32 @@ export const orders = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    customerId: text("customer_id").references(() => customers.id),
-    storeId: text("store_id").references(() => stores.id),
+    customerId: text("customer_id")
+      .notNull()
+      .references(() => customers.id),
 
     orderNumber: text("order_number").notNull(),
-    channel: text("channel").$type<OrderChannel>().default("online").notNull(),
+    channel: text("channel").$type<OrderChannel>().notNull(),
     status: text("status").$type<OrderStatus>().default("pending").notNull(),
 
     // pricing
-    subtotal: numeric("subtotal", { precision: 19, scale: 4 })
+    subTotal: numeric("sub_total", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
     discountAmount: numeric("discount_amount", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
-    discountCode: text("discount_code"),
     taxAmount: numeric("tax_amount", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
-    shippingCost: numeric("shipping_cost", { precision: 19, scale: 4 })
+    shippingAmount: numeric("shipping_amount", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
     total: numeric("total", { precision: 19, scale: 4 }).default("0").notNull(),
 
     // multi-currency
-    currencyCode: text("currency_code").default("IDR").notNull(),
-    exchangeRate: numeric("exchange_rate", { precision: 19, scale: 6 })
+    currency: text("currency").default("IDR").notNull(),
+    exchangeRate: numeric("exchange_rate", { precision: 19, scale: 4 })
       .default("1")
       .notNull(),
 
@@ -166,7 +95,6 @@ export const orders = pgTable(
     ),
     index("orders_org_id_idx").on(table.organizationId),
     index("orders_customer_id_idx").on(table.customerId),
-    index("orders_store_id_idx").on(table.storeId),
     index("orders_status_idx").on(table.status),
     index("orders_channel_idx").on(table.channel),
     index("orders_created_at_idx").on(table.createdAt),
@@ -182,14 +110,12 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     fields: [orders.customerId],
     references: [customers.id],
   }),
-  store: one(stores, {
-    fields: [orders.storeId],
-    references: [stores.id],
-  }),
-  items: many(orderItems),
-  history: many(orderHistory),
-  shipments: many(shipments),
+  orderItems: many(orderItems),
+  payments: many(payments),
+  refunds: many(refunds),
 }));
+
+import { payments, refunds } from "~/lib/db/schemas/payments";
 
 // ==============================
 // ORDER ITEMS
@@ -204,13 +130,16 @@ export const orderItems = pgTable(
     orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    productId: text("product_id").references(() => products.id),
+    productId: text("product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
     productVariantId: text("product_variant_id").references(
-      () => productVariants.id
+      () => productVariants.id,
+      { onDelete: "set null" }
     ),
 
     // snapshot
-    productName: text("product_name").notNull(),
+    productName: text("product_name"),
     variantName: text("variant_name"),
     sku: text("sku"),
 
@@ -218,18 +147,13 @@ export const orderItems = pgTable(
     unitPrice: numeric("unit_price", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
-    discount: numeric("discount", { precision: 19, scale: 4 })
+    discountAmount: numeric("discount_amount", { precision: 19, scale: 4 })
+      .default("0")
+      .notNull(),
+    taxAmount: numeric("tax_amount", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
     total: numeric("total", { precision: 19, scale: 4 }).default("0").notNull(),
-
-    // print on demand
-    designFileUrl: text("design_file_url"),
-    printStatus: text("print_status")
-      .$type<PrintStatus>()
-      .default("pending")
-      .notNull(),
-    printNotes: text("print_notes"),
     metadata: jsonb("metadata"),
 
     // timestamps
@@ -244,11 +168,11 @@ export const orderItems = pgTable(
   (table) => [
     index("order_items_order_id_idx").on(table.orderId),
     index("order_items_product_id_idx").on(table.productId),
-    index("order_items_print_status_idx").on(table.printStatus),
+    index("order_items_product_variant_id_idx").on(table.productVariantId),
   ]
 );
 
-export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+export const orderItemsRelations = relations(orderItems, ({ one, many }) => ({
   order: one(orders, {
     fields: [orderItems.orderId],
     references: [orders.id],
@@ -261,102 +185,5 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
     fields: [orderItems.productVariantId],
     references: [productVariants.id],
   }),
-}));
-
-// ==============================
-// ORDER HISTORY
-// ==============================
-
-export const orderHistory = pgTable(
-  "order_history",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => uuid()),
-    orderId: text("order_id")
-      .notNull()
-      .references(() => orders.id, { onDelete: "cascade" }),
-
-    fromStatus: text("from_status").$type<OrderStatus>(),
-    toStatus: text("to_status").$type<OrderStatus>().notNull(),
-    note: text("note"),
-    changedBy: text("changed_by").references(() => users.id),
-    metadata: jsonb("metadata"),
-
-    // timestamps
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    index("order_history_order_id_idx").on(table.orderId),
-    index("order_history_created_at_idx").on(table.createdAt),
-  ]
-);
-
-export const orderHistoryRelations = relations(orderHistory, ({ one }) => ({
-  order: one(orders, {
-    fields: [orderHistory.orderId],
-    references: [orders.id],
-  }),
-  user: one(users, {
-    fields: [orderHistory.changedBy],
-    references: [users.id],
-  }),
-}));
-
-// ==============================
-// SHIPMENTS
-// ==============================
-
-export const shipments = pgTable(
-  "shipments",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => uuid()),
-    orderId: text("order_id")
-      .notNull()
-      .references(() => orders.id, { onDelete: "cascade" }),
-
-    courier: text("courier").$type<Courier>().notNull(),
-    courierService: text("courier_service"), // e.g. "REG", "YES", "OKE"
-    trackingNumber: text("tracking_number"),
-    status: text("status").$type<ShipmentStatus>().default("pending").notNull(),
-
-    weight: integer("weight"), // grams
-    cost: numeric("cost", { precision: 19, scale: 4 }).default("0").notNull(),
-    insuranceCost: numeric("insurance_cost", { precision: 19, scale: 4 })
-      .default("0")
-      .notNull(),
-
-    shippedAt: timestamp("shipped_at", { mode: "date", withTimezone: true }),
-    deliveredAt: timestamp("delivered_at", {
-      mode: "date",
-      withTimezone: true,
-    }),
-    metadata: jsonb("metadata"),
-
-    // timestamps
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    index("shipments_order_id_idx").on(table.orderId),
-    index("shipments_tracking_number_idx").on(table.trackingNumber),
-    index("shipments_status_idx").on(table.status),
-    index("shipments_courier_idx").on(table.courier),
-  ]
-);
-
-export const shipmentsRelations = relations(shipments, ({ one }) => ({
-  order: one(orders, {
-    fields: [shipments.orderId],
-    references: [orders.id],
-  }),
+  orderItemMedias: many(orderItemMedias),
 }));

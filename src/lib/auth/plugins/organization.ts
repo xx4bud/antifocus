@@ -58,6 +58,10 @@ export function organizationPlugin() {
             defaultValue: true,
             required: true,
           },
+          position: {
+            type: "number",
+            required: false,
+          },
         },
       },
 

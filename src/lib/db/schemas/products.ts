@@ -10,39 +10,12 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { categoryProducts } from "~/lib/db/schemas/categories";
-import { productMedias } from "~/lib/db/schemas/medias";
+import { productCategories } from "~/lib/db/schemas/categories";
+import type { ProductStatus } from "~/lib/db/schemas/constants";
+import { productMedias, productVariantMedias } from "~/lib/db/schemas/medias";
+import { orderItems } from "~/lib/db/schemas/orders";
 import { organizations } from "~/lib/db/schemas/organizations";
 import { uuid } from "~/utils/ids";
-
-// ==============================
-// PRODUCT ENUMS
-// ==============================
-
-export const PRODUCT_STATUS = {
-  draft: "draft",
-  active: "active",
-  archived: "archived",
-  discontinued: "discontinued",
-} as const;
-
-export type ProductStatus =
-  (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS];
-
-export const PRINT_TYPE = {
-  dtg: "dtg", // Direct to Garment
-  dtf: "dtf", // Direct to Film
-  sublimation: "sublimation",
-  screen: "screen", // Sablon
-  vinyl: "vinyl", // Heat press vinyl
-  offset: "offset",
-  uv: "uv", // UV printing
-  embroidery: "embroidery", // Bordir
-  laser: "laser", // Laser engraving
-  none: "none", // Non-print product (blank, accessories)
-} as const;
-
-export type PrintType = (typeof PRINT_TYPE)[keyof typeof PRINT_TYPE];
 
 // ==============================
 // PRODUCTS
@@ -58,41 +31,25 @@ export const products = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
 
-    // future marketplace: link to global catalog product
-    globalProductId: text("global_product_id"),
-
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
     description: text("description"),
-    shortDescription: text("short_description"),
-    sku: text("sku"),
 
-    // pricing (base — variants can override)
+    // pricing
     basePrice: numeric("base_price", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
-    costPrice: numeric("cost_price", { precision: 19, scale: 4 })
-      .default("0")
-      .notNull(),
-    compareAtPrice: numeric("compare_at_price", { precision: 19, scale: 4 }),
-    currencyCode: text("currency_code").default("IDR").notNull(),
+    currency: text("currency").default("IDR").notNull(),
 
     // physical
     weight: integer("weight"), // grams
-    length: integer("length"), // mm
-    width: integer("width"), // mm
-    height: integer("height"), // mm
-
-    // printing
-    printType: text("print_type").$type<PrintType>().default("none").notNull(),
+    dimensions: jsonb("dimensions"), // {length, width, height} in mm
 
     // management
     status: text("status").$type<ProductStatus>().default("draft").notNull(),
     enabled: boolean("enabled").default(false).notNull(),
-    isTaxable: boolean("is_taxable").default(true).notNull(),
-    taxRate: numeric("tax_rate", { precision: 5, scale: 2 }), // e.g. 11.00 for PPN
 
-    settings: jsonb("settings"),
+    attributes: jsonb("attributes"),
     metadata: jsonb("metadata"),
 
     // timestamps
@@ -107,11 +64,9 @@ export const products = pgTable(
   },
   (table) => [
     uniqueIndex("products_slug_uidx").on(table.slug),
-    uniqueIndex("products_org_sku_uidx").on(table.organizationId, table.sku),
     index("products_org_id_idx").on(table.organizationId),
-    index("products_status_idx").on(table.status, table.enabled),
-    index("products_print_type_idx").on(table.printType),
-    index("products_global_product_id_idx").on(table.globalProductId),
+    index("products_status_idx").on(table.status),
+    index("products_enabled_idx").on(table.enabled),
   ]
 );
 
@@ -120,10 +75,10 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     fields: [products.organizationId],
     references: [organizations.id],
   }),
-  variants: many(productVariants),
-  categories: many(categoryProducts),
-  medias: many(productMedias),
-  designAreas: many(productDesignAreas),
+  productMedias: many(productMedias),
+  productVariants: many(productVariants),
+  productCategories: many(productCategories),
+  orderItems: many(orderItems),
 }));
 
 // ==============================
@@ -140,31 +95,23 @@ export const productVariants = pgTable(
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
 
-    name: text("name").notNull(), // e.g. "Putih / XL", "Hitam / M"
-    sku: text("sku"),
+    name: text("name").notNull(),
+    sku: text("sku").unique(),
 
-    // pricing (overrides product base)
+    // pricing
     price: numeric("price", { precision: 19, scale: 4 }).default("0").notNull(),
-    costPrice: numeric("cost_price", { precision: 19, scale: 4 })
-      .default("0")
-      .notNull(),
-    compareAtPrice: numeric("compare_at_price", { precision: 19, scale: 4 }),
+
+    // stock (denormalized for quick queries)
+    stock: integer("stock").default(0).notNull(),
 
     // physical
     weight: integer("weight"), // grams
-    length: integer("length"), // mm
-    width: integer("width"), // mm
-    height: integer("height"), // mm
-
-    // attributes (jsonb: {color: "Hitam", size: "XL", material: "Cotton"})
-    attributes: jsonb("attributes"),
-
-    // stock (denormalized for quick queries — source of truth in inventory)
-    stock: integer("stock").default(0).notNull(),
-    lowStockThreshold: integer("low_stock_threshold").default(5).notNull(),
+    dimensions: jsonb("dimensions"), // {length, width, height} in mm
 
     enabled: boolean("enabled").default(true).notNull(),
     position: integer("position").default(0).notNull(),
+
+    attributes: jsonb("attributes"),
     metadata: jsonb("metadata"),
 
     // timestamps
@@ -177,10 +124,7 @@ export const productVariants = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("product_variants_product_sku_uidx").on(
-      table.productId,
-      table.sku
-    ),
+    uniqueIndex("product_variants_sku_uidx").on(table.sku),
     index("product_variants_product_id_idx").on(table.productId),
     index("product_variants_enabled_idx").on(table.enabled),
   ]
@@ -188,68 +132,12 @@ export const productVariants = pgTable(
 
 export const productVariantsRelations = relations(
   productVariants,
-  ({ one }) => ({
+  ({ one, many }) => ({
     product: one(products, {
       fields: [productVariants.productId],
       references: [products.id],
     }),
-  })
-);
-
-// ==============================
-// PRODUCT DESIGN AREAS
-// ==============================
-
-/**
- * Defines printable zones on a product.
- * For example, a t-shirt might have "Front", "Back", "Left Sleeve".
- */
-export const productDesignAreas = pgTable(
-  "product_design_areas",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => uuid()),
-    productId: text("product_id")
-      .notNull()
-      .references(() => products.id, { onDelete: "cascade" }),
-
-    name: text("name").notNull(), // "Depan", "Belakang", "Lengan Kiri"
-    code: text("code"), // "front", "back", "left_sleeve"
-
-    // area dimensions (mm)
-    width: integer("width"),
-    height: integer("height"),
-    positionX: integer("position_x").default(0).notNull(),
-    positionY: integer("position_y").default(0).notNull(),
-
-    // printing constraints
-    maxColors: integer("max_colors"),
-    printMethod: text("print_method").$type<PrintType>(),
-    dpiRequired: integer("dpi_required"),
-
-    enabled: boolean("enabled").default(true).notNull(),
-    position: integer("position").default(0).notNull(),
-    metadata: jsonb("metadata"),
-
-    // timestamps
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [index("product_design_areas_product_id_idx").on(table.productId)]
-);
-
-export const productDesignAreasRelations = relations(
-  productDesignAreas,
-  ({ one }) => ({
-    product: one(products, {
-      fields: [productDesignAreas.productId],
-      references: [products.id],
-    }),
+    productVariantMedias: many(productVariantMedias),
+    orderItems: many(orderItems),
   })
 );

@@ -1,0 +1,78 @@
+// ==============================
+// PAYMENTS
+// ==============================
+
+model Payment {
+  id             String @id @default(uuid())
+  organizationId String
+  orderId        String
+
+  method          PaymentMethod
+  gateway         PaymentGateway
+  gatewayRef      String?
+  gatewayResponse Json?
+
+  amount       Decimal @db.Decimal(19, 4)
+  currencyCode String  @default("IDR")
+  exchangeRate Decimal @default(1) @db.Decimal(19, 6)
+
+  status PaymentStatus @default(pending)
+
+  paidAt    DateTime?
+  expiredAt DateTime?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds      Refund[]
+
+  @@index([organizationId])
+  @@index([orderId])
+  @@index([status])
+  @@index([gatewayRef])
+  @@index([method])
+  @@map("payments")
+}
+
+// ==============================
+// REFUNDS
+// ==============================
+
+model Refund {
+  id             String @id @default(uuid())
+  organizationId String
+  orderId        String
+  paymentId      String
+
+  amount       Decimal @db.Decimal(19, 4)
+  currencyCode String  @default("IDR")
+  exchangeRate Decimal @default(1) @db.Decimal(19, 6)
+
+  reason String?
+  status RefundStatus @default(pending)
+
+  gatewayRef      String?
+  gatewayResponse Json?
+
+  processedBy String?
+  processedAt DateTime?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  order             Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment           Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  processedByMember Member?      @relation(fields: [processedBy], references: [id])
+
+  @@index([organizationId])
+  @@index([orderId])
+  @@index([paymentId])
+  @@index([status])
+  @@index([gatewayRef])
+  @@map("refunds")
+}

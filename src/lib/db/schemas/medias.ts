@@ -9,23 +9,11 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { MediaFileType, MediaProvider } from "~/lib/db/schemas/constants";
+import { orderItems } from "~/lib/db/schemas/orders";
 import { organizations } from "~/lib/db/schemas/organizations";
 import { products, productVariants } from "~/lib/db/schemas/products";
 import { uuid } from "~/utils/ids";
-
-// ==============================
-// MEDIA ENUMS
-// ==============================
-
-export const MEDIA_PROVIDERS = {
-  cloudinary: "cloudinary",
-  cloudflare: "cloudflare",
-  local: "local",
-  other: "other",
-} as const;
-
-export type MediaProvider =
-  (typeof MEDIA_PROVIDERS)[keyof typeof MEDIA_PROVIDERS];
 
 // ==============================
 // MEDIAS
@@ -37,23 +25,27 @@ export const medias = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuid()),
-    organizationId: text("organization_id").references(() => organizations.id, {
-      onDelete: "cascade",
-    }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     provider: text("provider")
       .$type<MediaProvider>()
       .default("other")
       .notNull(),
     key: text("key"),
+    path: text("path"),
 
-    fileType: text("file_type").notNull(),
+    fileType: text("file_type")
+      .$type<MediaFileType>()
+      .default("other")
+      .notNull(),
     mimeType: text("mime_type").notNull(),
     name: text("name").notNull(),
     url: text("url").notNull(),
-    size: integer("size").notNull(),
     width: integer("width"),
     height: integer("height"),
+    size: integer("size").notNull(),
     dpi: integer("dpi"),
     metadata: jsonb("metadata"),
 
@@ -68,7 +60,9 @@ export const medias = pgTable(
   },
   (table) => [
     index("medias_org_id_idx").on(table.organizationId),
+    index("medias_provider_idx").on(table.provider),
     index("medias_file_type_idx").on(table.fileType),
+    index("medias_mime_type_idx").on(table.mimeType),
   ]
 );
 
@@ -78,7 +72,8 @@ export const mediasRelations = relations(medias, ({ one, many }) => ({
     references: [organizations.id],
   }),
   productMedias: many(productMedias),
-  variantMedias: many(variantMedias),
+  productVariantMedias: many(productVariantMedias),
+  orderItemMedias: many(orderItemMedias),
 }));
 
 // ==============================
@@ -98,19 +93,8 @@ export const productMedias = pgTable(
       .notNull()
       .references(() => medias.id, { onDelete: "cascade" }),
 
-    isPrimary: boolean("is_primary").default(false).notNull(),
-    enabled: boolean("enabled").default(true).notNull(),
+    isMain: boolean("is_main").default(false).notNull(),
     position: integer("position").default(0).notNull(),
-    metadata: jsonb("metadata"),
-
-    // timestamps
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
   },
   (table) => [
     uniqueIndex("product_medias_product_id_media_id_uidx").on(
@@ -134,11 +118,11 @@ export const productMediasRelations = relations(productMedias, ({ one }) => ({
 }));
 
 // ==============================
-// VARIANT MEDIAS
+// PRODUCT VARIANT MEDIAS
 // ==============================
 
-export const variantMedias = pgTable(
-  "variant_medias",
+export const productVariantMedias = pgTable(
+  "product_variant_medias",
   {
     id: text("id")
       .primaryKey()
@@ -150,37 +134,73 @@ export const variantMedias = pgTable(
       .notNull()
       .references(() => medias.id, { onDelete: "cascade" }),
 
-    isPrimary: boolean("is_primary").default(false).notNull(),
-    enabled: boolean("enabled").default(true).notNull(),
+    isMain: boolean("is_main").default(false).notNull(),
     position: integer("position").default(0).notNull(),
-    metadata: jsonb("metadata"),
-
-    // timestamps
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
   },
   (table) => [
-    uniqueIndex("variant_medias_variant_id_media_id_uidx").on(
+    uniqueIndex("product_variant_medias_variant_id_media_id_uidx").on(
       table.variantId,
       table.mediaId
     ),
-    index("variant_medias_variant_id_idx").on(table.variantId),
-    index("variant_medias_media_id_idx").on(table.mediaId),
+    index("product_variant_medias_variant_id_idx").on(table.variantId),
+    index("product_variant_medias_media_id_idx").on(table.mediaId),
   ]
 );
 
-export const variantMediasRelations = relations(variantMedias, ({ one }) => ({
-  variant: one(productVariants, {
-    fields: [variantMedias.variantId],
-    references: [productVariants.id],
-  }),
-  media: one(medias, {
-    fields: [variantMedias.mediaId],
-    references: [medias.id],
-  }),
-}));
+export const productVariantMediasRelations = relations(
+  productVariantMedias,
+  ({ one }) => ({
+    variant: one(productVariants, {
+      fields: [productVariantMedias.variantId],
+      references: [productVariants.id],
+    }),
+    media: one(medias, {
+      fields: [productVariantMedias.mediaId],
+      references: [medias.id],
+    }),
+  })
+);
+
+// ==============================
+// ORDER ITEM MEDIAS
+// ==============================
+
+export const orderItemMedias = pgTable(
+  "order_item_medias",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuid()),
+    orderItemId: text("order_item_id")
+      .notNull()
+      .references(() => orderItems.id, { onDelete: "cascade" }),
+    mediaId: text("media_id")
+      .notNull()
+      .references(() => medias.id, { onDelete: "cascade" }),
+
+    isMain: boolean("is_main").default(false).notNull(),
+    position: integer("position").default(0).notNull(),
+  },
+  (table) => [
+    uniqueIndex("order_item_medias_order_item_id_media_id_uidx").on(
+      table.orderItemId,
+      table.mediaId
+    ),
+    index("order_item_medias_order_item_id_idx").on(table.orderItemId),
+    index("order_item_medias_media_id_idx").on(table.mediaId),
+  ]
+);
+
+export const orderItemMediasRelations = relations(
+  orderItemMedias,
+  ({ one }) => ({
+    orderItem: one(orderItems, {
+      fields: [orderItemMedias.orderItemId],
+      references: [orderItems.id],
+    }),
+    media: one(medias, {
+      fields: [orderItemMedias.mediaId],
+      references: [medias.id],
+    }),
+  })
+);

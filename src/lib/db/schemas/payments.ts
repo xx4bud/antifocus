@@ -7,65 +7,15 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import type {
+  PaymentGateway,
+  PaymentMethod,
+  PaymentStatus,
+  RefundStatus,
+} from "~/lib/db/schemas/constants";
 import { orders } from "~/lib/db/schemas/orders";
-import { organizations } from "~/lib/db/schemas/organizations";
-import { users } from "~/lib/db/schemas/users";
+import { members, organizations } from "~/lib/db/schemas/organizations";
 import { uuid } from "~/utils/ids";
-
-// ==============================
-// PAYMENT ENUMS
-// ==============================
-
-export const PAYMENT_METHOD = {
-  cash: "cash",
-  bank_transfer: "bank_transfer",
-  qris: "qris",
-  ewallet: "ewallet", // GoPay, OVO, DANA, ShopeePay
-  va: "va", // virtual account
-  cod: "cod",
-  credit_card: "credit_card",
-  debit_card: "debit_card",
-  other: "other",
-} as const;
-
-export type PaymentMethod =
-  (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
-
-export const PAYMENT_GATEWAY = {
-  midtrans: "midtrans",
-  xendit: "xendit",
-  doku: "doku",
-  ipaymu: "ipaymu",
-  manual: "manual",
-  cash: "cash",
-} as const;
-
-export type PaymentGateway =
-  (typeof PAYMENT_GATEWAY)[keyof typeof PAYMENT_GATEWAY];
-
-export const PAYMENT_STATUS = {
-  pending: "pending",
-  processing: "processing",
-  paid: "paid",
-  failed: "failed",
-  expired: "expired",
-  refunded: "refunded",
-  partially_refunded: "partially_refunded",
-  cancelled: "cancelled",
-} as const;
-
-export type PaymentStatus =
-  (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS];
-
-export const REFUND_STATUS = {
-  pending: "pending",
-  processing: "processing",
-  completed: "completed",
-  failed: "failed",
-  rejected: "rejected",
-} as const;
-
-export type RefundStatus = (typeof REFUND_STATUS)[keyof typeof REFUND_STATUS];
 
 // ==============================
 // PAYMENTS
@@ -85,12 +35,9 @@ export const payments = pgTable(
       .references(() => orders.id),
 
     method: text("method").$type<PaymentMethod>().notNull(),
-    gateway: text("gateway")
-      .$type<PaymentGateway>()
-      .default("manual")
-      .notNull(),
-    gatewayRef: text("gateway_ref"), // external reference from gateway
-    gatewayResponse: jsonb("gateway_response"), // raw response from gateway
+    gateway: text("gateway").$type<PaymentGateway>().notNull(),
+    gatewayRef: text("gateway_ref"),
+    gatewayResponse: jsonb("gateway_response"),
 
     amount: numeric("amount", { precision: 19, scale: 4 })
       .default("0")
@@ -146,21 +93,31 @@ export const refunds = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuid()),
-    paymentId: text("payment_id")
+    organizationId: text("organization_id")
       .notNull()
-      .references(() => payments.id),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     orderId: text("order_id")
       .notNull()
       .references(() => orders.id),
+    paymentId: text("payment_id")
+      .notNull()
+      .references(() => payments.id),
 
     amount: numeric("amount", { precision: 19, scale: 4 })
       .default("0")
       .notNull(),
+    currencyCode: text("currency_code").default("IDR").notNull(),
+    exchangeRate: numeric("exchange_rate", { precision: 19, scale: 6 })
+      .default("1")
+      .notNull(),
+
     reason: text("reason"),
     status: text("status").$type<RefundStatus>().default("pending").notNull(),
-    gatewayRef: text("gateway_ref"),
 
-    processedBy: text("processed_by").references(() => users.id),
+    gatewayRef: text("gateway_ref"),
+    gatewayResponse: jsonb("gateway_response"),
+
+    processedBy: text("processed_by").references(() => members.id),
     processedAt: timestamp("processed_at", {
       mode: "date",
       withTimezone: true,
@@ -177,23 +134,29 @@ export const refunds = pgTable(
       .notNull(),
   },
   (table) => [
-    index("refunds_payment_id_idx").on(table.paymentId),
+    index("refunds_org_id_idx").on(table.organizationId),
     index("refunds_order_id_idx").on(table.orderId),
+    index("refunds_payment_id_idx").on(table.paymentId),
     index("refunds_status_idx").on(table.status),
+    index("refunds_gateway_ref_idx").on(table.gatewayRef),
   ]
 );
 
 export const refundsRelations = relations(refunds, ({ one }) => ({
-  payment: one(payments, {
-    fields: [refunds.paymentId],
-    references: [payments.id],
+  organization: one(organizations, {
+    fields: [refunds.organizationId],
+    references: [organizations.id],
   }),
   order: one(orders, {
     fields: [refunds.orderId],
     references: [orders.id],
   }),
-  processedByUser: one(users, {
+  payment: one(payments, {
+    fields: [refunds.paymentId],
+    references: [payments.id],
+  }),
+  processedByMember: one(members, {
     fields: [refunds.processedBy],
-    references: [users.id],
+    references: [members.id],
   }),
 }));
