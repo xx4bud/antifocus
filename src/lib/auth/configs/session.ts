@@ -10,16 +10,6 @@ export const session = {
   freshAge: 60 * 15,
 
   additionalFields: {
-    // custom
-    activeOrganizationId: {
-      type: "string",
-      required: false,
-      references: {
-        model: "organizations",
-        field: "id",
-        onDelete: "set null",
-      },
-    },
     // fields
     metadata: {
       type: "json",

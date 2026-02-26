@@ -16,7 +16,8 @@ export const seedMarketing = async () => {
       title: "Grand Opening Sale 🎉",
       description:
         "Diskon 20% untuk semua produk cetak! Berlaku hingga akhir bulan.",
-      imageUrl: "https://placehold.co/1200x400/0ea5e9/white?text=Grand+Opening",
+      imageUrl:
+        "https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=1200&h=400&fit=crop&q=80",
       link: "/promo/grand-opening",
       position: 0,
       placement: "hero",
@@ -26,7 +27,7 @@ export const seedMarketing = async () => {
       description:
         "Kartu nama premium 100pcs mulai 50rb. Laminasi doff/glossy.",
       imageUrl:
-        "https://placehold.co/1200x400/8b5cf6/white?text=Kartu+Nama+Premium",
+        "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1200&h=400&fit=crop&q=80",
       link: "/products/kartu-nama-premium",
       position: 1,
       placement: "hero",
@@ -34,7 +35,8 @@ export const seedMarketing = async () => {
     {
       title: "Custom Stiker Vinyl",
       description: "Stiker tahan air untuk label & branding. Mulai 15rb!",
-      imageUrl: "https://placehold.co/1200x400/f97316/white?text=Stiker+Custom",
+      imageUrl:
+        "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=1200&h=400&fit=crop&q=80",
       link: "/products/stiker-vinyl-custom",
       position: 2,
       placement: "hero",

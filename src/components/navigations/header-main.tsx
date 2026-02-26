@@ -33,7 +33,7 @@ export function HeaderMain({ user }: HeaderMainProps) {
         )}
 
         <Button asChild variant={"secondary"}>
-          <NavLink href={"https://wa.me/6289602808726"} target="_blank">
+          <NavLink href={"https://wa.me/6289602808726"}>
             <IconBrandWhatsapp className="size-5" />
             WhatsApp
           </NavLink>

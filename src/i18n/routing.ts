@@ -13,7 +13,6 @@ export const routing = defineRouting({
     // public
     "/": "/",
     "/callbackURL": "/callbackURL",
-    "/[...slug]": "/[...slug]",
     "/search": "/search",
 
     // auth
@@ -35,5 +34,15 @@ export const routing = defineRouting({
     "/admin/sessions": "/admin/sessions",
     "/admin/accounts": "/admin/accounts",
     "/admin/verifications": "/admin/verifications",
+    "/admin/products": "/admin/products",
+    "/admin/categories": "/admin/categories",
+    "/admin/orders": "/admin/orders",
+    "/admin/customers": "/admin/customers",
+    "/admin/banners": "/admin/banners",
+    "/admin/organizations": "/admin/organizations",
+
+    // dynamic paths (categories, products, etc.)
+    "/[slug]": "/[slug]",
+    "/[...slug]": "/[...slug]",
   },
 });

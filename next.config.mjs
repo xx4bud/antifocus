@@ -9,6 +9,13 @@ await jiti.import("./src/env");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "**.unsplash.com" },
+      { protocol: "https", hostname: "**.cloudinary.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+    ],
+  },
   experimental: {
     optimizePackageImports: [
       "@tabler/icons-react",

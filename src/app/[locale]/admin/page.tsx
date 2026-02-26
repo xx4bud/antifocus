@@ -16,9 +16,7 @@ export default async function AdminPage() {
       <div className="flex flex-col gap-6 p-6">
         <div>
           <h1 className="font-bold text-2xl tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of your application&apos;s authentication system.
-          </p>
+          <p className="text-muted-foreground">Overview of your application.</p>
         </div>
 
         <StatsCards stats={stats} />

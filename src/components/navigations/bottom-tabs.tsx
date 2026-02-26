@@ -45,7 +45,6 @@ export function BottomTabs({ className }: BottomTabsProps) {
               )}
               href={tab.href ?? "/"}
               key={tab.label}
-              type="button"
             >
               {tab.icon && <tab.icon className="size-4" />}
               <span className="font-medium text-xs">{tab.label}</span>

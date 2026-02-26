@@ -4,23 +4,39 @@ import { IconSearch, IconX } from "@tabler/icons-react";
 import type * as React from "react";
 import { useState } from "react";
 import { Input } from "~/components/ui/input";
+import { useRouter } from "~/i18n/navigation";
 
 interface SearchBarProps extends React.ComponentProps<"form"> {}
 
 function SearchBar({ ...props }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
 
   const handleClearSearch = () => {
     setSearchQuery("");
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push({
+        pathname: "/search",
+        query: { q: searchQuery.trim() },
+      });
+    }
+  };
+
   return (
-    <form className="relative flex flex-1 items-center" {...props}>
+    <form
+      className="relative flex flex-1 items-center"
+      onSubmit={handleSubmit}
+      {...props}
+    >
       <Input
         className="bg-secondary pr-14 text-muted-foreground text-sm"
         name="search"
         onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Cari..."
+        placeholder="Cari produk..."
         value={searchQuery}
       />
       <div className="absolute right-2 flex items-center gap-1.5">

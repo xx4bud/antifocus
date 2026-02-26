@@ -1,11 +1,17 @@
 "use client";
 
 import {
+  IconBuildingStore,
+  IconCategory,
   IconDashboard,
   IconKey,
   IconLink,
+  IconPackage,
+  IconPhoto,
+  IconReceipt,
   IconShieldCheck,
   IconUsers,
+  IconUsersGroup,
 } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 
@@ -26,31 +32,71 @@ import {
 import { Link, usePathname } from "~/i18n/navigation";
 import type { User } from "~/lib/db/types";
 
-const navItems = [
+const navGroups = [
   {
-    label: "Dashboard",
-    href: "/admin" as const,
-    icon: IconDashboard,
+    label: "Overview",
+    items: [
+      { label: "Dashboard", href: "/admin" as const, icon: IconDashboard },
+    ],
   },
   {
-    label: "Users",
-    href: "/admin/users" as const,
-    icon: IconUsers,
+    label: "Auth",
+    items: [
+      { label: "Users", href: "/admin/users" as const, icon: IconUsers },
+      {
+        label: "Sessions",
+        href: "/admin/sessions" as const,
+        icon: IconShieldCheck,
+      },
+      { label: "Accounts", href: "/admin/accounts" as const, icon: IconLink },
+      {
+        label: "Verifications",
+        href: "/admin/verifications" as const,
+        icon: IconKey,
+      },
+    ],
   },
   {
-    label: "Sessions",
-    href: "/admin/sessions" as const,
-    icon: IconShieldCheck,
+    label: "Catalog",
+    items: [
+      {
+        label: "Products",
+        href: "/admin/products" as const,
+        icon: IconPackage,
+      },
+      {
+        label: "Categories",
+        href: "/admin/categories" as const,
+        icon: IconCategory,
+      },
+    ],
   },
   {
-    label: "Accounts",
-    href: "/admin/accounts" as const,
-    icon: IconLink,
+    label: "Sales",
+    items: [
+      { label: "Orders", href: "/admin/orders" as const, icon: IconReceipt },
+      {
+        label: "Customers",
+        href: "/admin/customers" as const,
+        icon: IconUsersGroup,
+      },
+    ],
   },
   {
-    label: "Verifications",
-    href: "/admin/verifications" as const,
-    icon: IconKey,
+    label: "Marketing",
+    items: [
+      { label: "Banners", href: "/admin/banners" as const, icon: IconPhoto },
+    ],
+  },
+  {
+    label: "Tenants",
+    items: [
+      {
+        label: "Organizations",
+        href: "/admin/organizations" as const,
+        icon: IconBuildingStore,
+      },
+    ],
   },
 ];
 
@@ -95,27 +141,29 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       <SidebarSeparator />
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Management</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.href)}
-                    tooltip={item.label}
-                  >
-                    <Link href={item.href}>
-                      <item.icon className="size-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.href)}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="size-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter>

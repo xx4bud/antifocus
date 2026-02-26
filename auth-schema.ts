@@ -52,10 +52,7 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     impersonatedBy: text("impersonated_by"),
-    activeOrganizationId: text("active_organization_id").references(
-      () => organizations.id,
-      { onDelete: "set null" }
-    ),
+    activeOrganizationId: text("active_organization_id"),
     metadata: jsonb("metadata"),
   },
   (table) => [index("sessions_userId_idx").on(table.userId)]
@@ -138,6 +135,7 @@ export const organizationRoles = pgTable(
     metadata: jsonb("metadata"),
     isSystem: boolean("is_system").default(false),
     enabled: boolean("enabled").default(true),
+    position: integer("position"),
   },
   (table) => [
     index("organizationRoles_organizationId_idx").on(table.organizationId),
@@ -258,10 +256,6 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
     fields: [sessions.userId],
     references: [users.id],
   }),
-  organizations: one(organizations, {
-    fields: [sessions.activeOrganizationId],
-    references: [organizations.id],
-  }),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -272,7 +266,6 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 }));
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
-  sessions: many(sessions),
   organizationRoles: many(organizationRoles),
   members: many(members),
   invitations: many(invitations),

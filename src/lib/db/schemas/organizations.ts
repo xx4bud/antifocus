@@ -9,10 +9,15 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { users } from "~/lib/db/schemas/auths";
+import { categories } from "~/lib/db/schemas/categories";
 import type {
   InvitationStatus,
   OrganizationStatus,
 } from "~/lib/db/schemas/constants";
+import { medias } from "~/lib/db/schemas/medias";
+import { orders } from "~/lib/db/schemas/orders";
+import { payments, refunds } from "~/lib/db/schemas/payments";
+import { products } from "~/lib/db/schemas/products";
 import { uuid } from "~/utils/ids";
 
 // ==============================
@@ -67,13 +72,6 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   refunds: many(refunds),
 }));
 
-import { categories } from "~/lib/db/schemas/categories";
-// forward-declare to avoid circular — resolved by drizzle at runtime
-import { medias } from "~/lib/db/schemas/medias";
-import { orders } from "~/lib/db/schemas/orders";
-import { payments, refunds } from "~/lib/db/schemas/payments";
-import { products } from "~/lib/db/schemas/products";
-
 // ==============================
 // BETTER-AUTH ORGANIZATION ROLES
 // ==============================
@@ -118,7 +116,7 @@ export const organizationRoles = pgTable(
 export const organizationRolesRelations = relations(
   organizationRoles,
   ({ one }) => ({
-    organization: one(organizations, {
+    organizations: one(organizations, {
       fields: [organizationRoles.organizationId],
       references: [organizations.id],
     }),
@@ -167,11 +165,11 @@ export const members = pgTable(
 );
 
 export const membersRelations = relations(members, ({ one, many }) => ({
-  organization: one(organizations, {
+  organizations: one(organizations, {
     fields: [members.organizationId],
     references: [organizations.id],
   }),
-  user: one(users, {
+  users: one(users, {
     fields: [members.userId],
     references: [users.id],
   }),
@@ -221,11 +219,11 @@ export const invitations = pgTable(
 );
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
-  organization: one(organizations, {
+  organizations: one(organizations, {
     fields: [invitations.organizationId],
     references: [organizations.id],
   }),
-  user: one(users, {
+  users: one(users, {
     fields: [invitations.inviterId],
     references: [users.id],
   }),
@@ -276,11 +274,11 @@ export const customers = pgTable(
 );
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
-  organization: one(organizations, {
+  organizations: one(organizations, {
     fields: [customers.organizationId],
     references: [organizations.id],
   }),
-  user: one(users, {
+  users: one(users, {
     fields: [customers.userId],
     references: [users.id],
   }),

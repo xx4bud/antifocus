@@ -2,18 +2,50 @@ import { eq } from "drizzle-orm";
 import { db } from "~/lib/db";
 import {
   categories,
+  medias,
   organizations,
   productCategories,
+  productMedias,
   products,
   productVariants,
 } from "~/lib/db/schemas";
 
 const categoryData = [
-  { name: "Stiker", slug: "stiker", position: 0 },
-  { name: "Banner", slug: "banner-cetak", position: 1 },
-  { name: "Kartu Nama", slug: "kartu-nama", position: 2 },
-  { name: "Brosur & Flyer", slug: "brosur-flyer", position: 3 },
-  { name: "Undangan", slug: "undangan", position: 4 },
+  {
+    name: "Stiker",
+    slug: "stiker",
+    position: 0,
+    image:
+      "https://images.unsplash.com/photo-1635405074683-96d6921a2a68?w=400&h=400&fit=crop&q=80",
+  },
+  {
+    name: "Banner",
+    slug: "banner-cetak",
+    position: 1,
+    image:
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=400&fit=crop&q=80",
+  },
+  {
+    name: "Kartu Nama",
+    slug: "kartu-nama",
+    position: 2,
+    image:
+      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&h=400&fit=crop&q=80",
+  },
+  {
+    name: "Brosur & Flyer",
+    slug: "brosur-flyer",
+    position: 3,
+    image:
+      "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&h=400&fit=crop&q=80",
+  },
+  {
+    name: "Undangan",
+    slug: "undangan",
+    position: 4,
+    image:
+      "https://images.unsplash.com/photo-1607827448387-a67db1383b59?w=400&h=400&fit=crop&q=80",
+  },
 ];
 
 const productData = [
@@ -27,6 +59,8 @@ const productData = [
     status: "active" as const,
     enabled: true,
     categorySlug: "stiker",
+    imageUrl:
+      "https://images.unsplash.com/photo-1635405074683-96d6921a2a68?w=800&h=800&fit=crop&q=80",
     variants: [
       {
         name: "A6 (10.5x14.8cm) - Glossy",
@@ -82,6 +116,8 @@ const productData = [
     status: "active" as const,
     enabled: true,
     categorySlug: "kartu-nama",
+    imageUrl:
+      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800&h=800&fit=crop&q=80",
     variants: [
       {
         name: "1 Box (100pcs) - Doff",
@@ -123,6 +159,8 @@ const productData = [
     status: "active" as const,
     enabled: true,
     categorySlug: "brosur-flyer",
+    imageUrl:
+      "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&h=800&fit=crop&q=80",
     variants: [
       {
         name: "100 lembar",
@@ -165,6 +203,8 @@ const productData = [
     enabled: true,
     categorySlug: "banner-cetak",
     dimensions: { length: 600, width: 1600, height: 0 },
+    imageUrl:
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=800&fit=crop&q=80",
     variants: [
       {
         name: "Flexi China (standar)",
@@ -218,6 +258,38 @@ async function seedCategories(orgId: string) {
   return categoryMap;
 }
 
+async function seedProductMedia(
+  orgId: string,
+  productId: string,
+  imageUrl: string
+) {
+  // Create the media record
+  const [media] = await db
+    .insert(medias)
+    .values({
+      organizationId: orgId,
+      provider: "other",
+      fileType: "image",
+      mimeType: "image/jpeg",
+      name: `product-${productId}`,
+      url: imageUrl,
+      width: 800,
+      height: 800,
+      size: 0,
+    })
+    .returning();
+
+  if (media) {
+    // Link media to product
+    await db.insert(productMedias).values({
+      productId,
+      mediaId: media.id,
+      isMain: true,
+      position: 0,
+    });
+  }
+}
+
 async function seedProductItem(
   orgId: string,
   categoryMap: Map<string, string>,
@@ -230,7 +302,8 @@ async function seedProductItem(
   if (existing) {
     console.log(`  ℹ️ Product '${prod.name}' already exists.`);
   } else {
-    const { variants, categorySlug, dimensions, ...productValues } = prod;
+    const { variants, categorySlug, dimensions, imageUrl, ...productValues } =
+      prod;
     [existing] = await db
       .insert(products)
       .values({
@@ -249,6 +322,12 @@ async function seedProductItem(
         categoryId: catId,
         isPrimary: true,
       });
+    }
+
+    // Create product media (image)
+    if (existing && imageUrl) {
+      await seedProductMedia(orgId, existing.id, imageUrl);
+      console.log("    → Linked product image.");
     }
 
     // Create variants

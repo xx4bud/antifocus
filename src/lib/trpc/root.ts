@@ -1,22 +1,14 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { adminRouter } from "~/features/admin/router";
+import { publicRouter } from "~/features/home/router";
 import { createCallerFactory, router } from "./init";
 
 /**
  * Root router — merges all feature routers.
- *
- * Add new feature routers here as the app grows:
- * ```ts
- * export const appRouter = router({
- *   admin: adminRouter,
- *   product: productRouter,
- *   order: orderRouter,
- *   cart: cartRouter,
- * });
- * ```
  */
 export const appRouter = router({
   admin: adminRouter,
+  public: publicRouter,
 });
 
 export type AppRouter = typeof appRouter;

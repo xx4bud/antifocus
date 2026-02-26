@@ -45,20 +45,10 @@ import {
   setUserRole,
   unbanUser,
 } from "~/features/admin/actions/admin-actions";
-import type { SYSTEM_ROLE } from "~/lib/db/schemas";
+import type { SystemRole } from "~/lib/db/schemas";
+import type { User } from "~/lib/db/types";
 
-type UserRow = {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image: string | null;
-  username: string | null;
-  role: string;
-  banned: boolean | null;
-  banReason: string | null;
-  createdAt: Date;
-};
+type UserRow = User;
 
 const roleLabels: Record<
   string,
@@ -74,13 +64,7 @@ const roleLabels: Record<
   user: { label: "User", variant: "outline" },
 };
 
-const roles: (typeof SYSTEM_ROLE)[keyof typeof SYSTEM_ROLE][] = [
-  "super_admin",
-  "admin",
-  "owner",
-  "member",
-  "user",
-];
+const roles: SystemRole[] = ["super_admin", "admin", "owner", "member", "user"];
 
 function UserActions({ user }: { user: UserRow }) {
   const [isPending, startTransition] = useTransition();
@@ -107,9 +91,7 @@ function UserActions({ user }: { user: UserRow }) {
     });
   };
 
-  const handleSetRole = (
-    role: (typeof SYSTEM_ROLE)[keyof typeof SYSTEM_ROLE]
-  ) => {
+  const handleSetRole = (role: SystemRole) => {
     startTransition(async () => {
       try {
         await setUserRole(user.id, role);

@@ -1,8 +1,12 @@
 import {
-  IconKey,
-  IconLink,
+  IconBuildingStore,
+  IconCategory,
+  IconPackage,
+  IconPhoto,
+  IconReceipt,
   IconShieldCheck,
   IconUsers,
+  IconUsersGroup,
 } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
@@ -12,16 +16,57 @@ interface StatsCardsProps {
     activeSessions: number;
     totalAccounts: number;
     totalVerifications: number;
+    totalProducts: number;
+    totalCategories: number;
+    totalOrders: number;
+    totalOrganizations: number;
+    totalBanners: number;
+    totalCustomers: number;
   };
 }
 
 const statItems = [
   {
     key: "totalUsers" as const,
-    label: "Total Users",
+    label: "Users",
     icon: IconUsers,
     color: "text-blue-600 dark:text-blue-400",
     bg: "bg-blue-100 dark:bg-blue-950",
+  },
+  {
+    key: "totalProducts" as const,
+    label: "Products",
+    icon: IconPackage,
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-950",
+  },
+  {
+    key: "totalOrders" as const,
+    label: "Orders",
+    icon: IconReceipt,
+    color: "text-orange-600 dark:text-orange-400",
+    bg: "bg-orange-100 dark:bg-orange-950",
+  },
+  {
+    key: "totalOrganizations" as const,
+    label: "Organizations",
+    icon: IconBuildingStore,
+    color: "text-indigo-600 dark:text-indigo-400",
+    bg: "bg-indigo-100 dark:bg-indigo-950",
+  },
+  {
+    key: "totalCategories" as const,
+    label: "Categories",
+    icon: IconCategory,
+    color: "text-teal-600 dark:text-teal-400",
+    bg: "bg-teal-100 dark:bg-teal-950",
+  },
+  {
+    key: "totalCustomers" as const,
+    label: "Customers",
+    icon: IconUsersGroup,
+    color: "text-pink-600 dark:text-pink-400",
+    bg: "bg-pink-100 dark:bg-pink-950",
   },
   {
     key: "activeSessions" as const,
@@ -31,18 +76,11 @@ const statItems = [
     bg: "bg-green-100 dark:bg-green-950",
   },
   {
-    key: "totalAccounts" as const,
-    label: "Linked Accounts",
-    icon: IconLink,
-    color: "text-purple-600 dark:text-purple-400",
-    bg: "bg-purple-100 dark:bg-purple-950",
-  },
-  {
-    key: "totalVerifications" as const,
-    label: "Verifications",
-    icon: IconKey,
-    color: "text-amber-600 dark:text-amber-400",
-    bg: "bg-amber-100 dark:bg-amber-950",
+    key: "totalBanners" as const,
+    label: "Banners",
+    icon: IconPhoto,
+    color: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-100 dark:bg-violet-950",
   },
 ];
 
