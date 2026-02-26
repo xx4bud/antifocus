@@ -1,8 +1,8 @@
-import { getAdminStats } from "~/features/admin/actions/get-stats";
-import { getUsers } from "~/features/admin/actions/get-users";
-import { AdminHeader } from "~/features/admin/components/admin-header";
-import { StatsCards } from "~/features/admin/components/stats-cards";
-import { UsersTable } from "~/features/admin/components/users-table";
+import { getUsers } from "~/features/admin/auth/actions/get-users";
+import { UsersTable } from "~/features/admin/auth/components/users-table";
+import { getAdminStats } from "~/features/admin/overview/actions/get-stats";
+import { StatsCards } from "~/features/admin/overview/components/stats-cards";
+import { AdminHeader } from "~/features/admin/shared/components/admin-header";
 
 export default async function AdminPage() {
   const [stats, recentUsers] = await Promise.all([

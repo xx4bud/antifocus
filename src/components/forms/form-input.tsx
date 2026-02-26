@@ -22,7 +22,7 @@ export function FormInput({
         name={field.name}
         onBlur={field.handleBlur}
         onChange={(e) => field.handleChange(e.target.value)}
-        value={field.state.value}
+        value={field.state.value ?? ""}
       />
     </FormBase>
   );

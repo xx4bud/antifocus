@@ -23,6 +23,7 @@
         "noNamespaceImport": "off"
       },
       "suspicious": {
+        "noExplicitAny": "error",
         "useAwait": "off"
       },
       "style": {

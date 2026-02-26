@@ -22,7 +22,7 @@ export function FormTextarea({
         name={field.name}
         onBlur={field.handleBlur}
         onChange={(e) => field.handleChange(e.target.value)}
-        value={field.state.value}
+        value={field.state.value ?? ""}
       />
     </FormBase>
   );

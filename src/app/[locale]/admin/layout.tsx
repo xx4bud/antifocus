@@ -1,6 +1,6 @@
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
-import { requireAdmin } from "~/features/admin/actions/require-admin";
-import { AdminSidebar } from "~/features/admin/components/admin-sidebar";
+import { requireAdmin } from "~/features/admin/auth/actions/require-admin";
+import { AdminSidebar } from "~/features/admin/shared/components/admin-sidebar";
 
 export default async function AdminLayout({
   children,
