@@ -14,6 +14,16 @@ export const routing = defineRouting({
     "/": "/",
     "/callbackURL": "/callbackURL",
     "/search": "/search",
+    "/faq": "/faq",
+    "/how-to-order": "/how-to-order",
+    "/track": "/track",
+    "/terms": "/terms",
+    "/privacy": "/privacy",
+    "/categories": "/categories",
+    "/categories/stiker": "/categories/stiker",
+    "/categories/banner-spanduk": "/categories/banner-spanduk",
+    "/categories/kartu-nama": "/categories/kartu-nama",
+    "/categories/brosur-flyer": "/categories/brosur-flyer",
 
     // auth
     "/sign-in": "/sign-in",

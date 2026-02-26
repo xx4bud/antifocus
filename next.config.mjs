@@ -14,6 +14,8 @@ const nextConfig = {
       { protocol: "https", hostname: "**.unsplash.com" },
       { protocol: "https", hostname: "**.cloudinary.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "picsum.photos" },
+      { protocol: "https", hostname: "placehold.co" },
     ],
   },
   experimental: {

@@ -16,8 +16,7 @@ export const seedMarketing = async () => {
       title: "Grand Opening Sale 🎉",
       description:
         "Diskon 20% untuk semua produk cetak! Berlaku hingga akhir bulan.",
-      imageUrl:
-        "https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=1200&h=400&fit=crop&q=80",
+      imageUrl: "https://picsum.photos/seed/print1/800/800",
       link: "/promo/grand-opening",
       position: 0,
       placement: "hero",
@@ -26,18 +25,16 @@ export const seedMarketing = async () => {
       title: "Cetak Kartu Nama 50rb/box",
       description:
         "Kartu nama premium 100pcs mulai 50rb. Laminasi doff/glossy.",
-      imageUrl:
-        "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1200&h=400&fit=crop&q=80",
-      link: "/products/kartu-nama-premium",
+      imageUrl: "https://picsum.photos/seed/print2/800/800",
+      link: "/categories/kartu-nama",
       position: 1,
       placement: "hero",
     },
     {
       title: "Custom Stiker Vinyl",
       description: "Stiker tahan air untuk label & branding. Mulai 15rb!",
-      imageUrl:
-        "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=1200&h=400&fit=crop&q=80",
-      link: "/products/stiker-vinyl-custom",
+      imageUrl: "https://picsum.photos/seed/print3/800/800",
+      link: "/categories/stiker",
       position: 2,
       placement: "hero",
     },

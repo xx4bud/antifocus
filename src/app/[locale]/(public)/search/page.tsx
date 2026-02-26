@@ -59,28 +59,69 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/30 py-20">
-            <IconSearch className="mb-4 size-12 text-muted-foreground/30" />
-            <p className="font-medium text-muted-foreground">
-              Tidak ada produk ditemukan
-            </p>
-            <p className="mt-1 text-muted-foreground/70 text-sm">
-              Coba gunakan kata kunci yang berbeda
-            </p>
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/30 px-4 py-16 text-center">
+              <IconSearch className="mb-4 size-10 text-muted-foreground/40" />
+              <p className="font-semibold text-foreground">
+                Oops! Produk tidak ditemukan
+              </p>
+              <p className="mt-1 max-w-sm text-muted-foreground text-sm">
+                Kami tidak dapat menemukan produk yang cocok dengan "{query}".
+                Coba kata kunci yang lebih umum.
+              </p>
+            </div>
+
+            {/* Recommendations */}
+            <div className="flex flex-col gap-4">
+              <h2 className="font-semibold text-lg">Mungkin Anda Suka</h2>
+              <Suspense fallback={<SearchSkeleton />}>
+                <Recommendations />
+              </Suspense>
+            </div>
           </div>
         )
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/30 py-20">
-          <IconSearch className="mb-4 size-12 text-muted-foreground/30" />
-          <p className="font-medium text-muted-foreground">
-            Masukkan kata kunci untuk mencari produk
-          </p>
-          <p className="mt-1 text-muted-foreground/70 text-sm">
-            Contoh: stiker, banner, undangan
-          </p>
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/30 px-4 py-16 text-center">
+            <IconSearch className="mb-4 size-10 text-muted-foreground/40" />
+            <p className="font-semibold text-foreground">Mulai Pencarian</p>
+            <p className="mt-1 max-w-sm text-muted-foreground text-sm">
+              Ketik nama produk, kategori, atau bahan (contoh: stiker vinyl, id
+              card, spanduk).
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <h2 className="font-semibold text-lg">Rekomendasi Produk</h2>
+            <Suspense fallback={<SearchSkeleton />}>
+              <Recommendations />
+            </Suspense>
+          </div>
         </div>
       )}
     </main>
+  );
+}
+
+// Komponen Rekomendasi
+async function Recommendations() {
+  // Ambil beberapa produk secara acak/terbaru sebagai rekomendasi
+  const recommendations = await searchProducts({
+    query: "",
+    limit: 4,
+    sortBy: "newest",
+  });
+
+  if (!recommendations || recommendations.data.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      {recommendations.data.map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
   );
 }
 

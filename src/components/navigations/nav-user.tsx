@@ -1,12 +1,20 @@
 "use client";
 
-import { IconLogout, IconUser } from "@tabler/icons-react";
+import {
+  IconLogout,
+  IconPackage,
+  IconSettings,
+  IconShield,
+  IconUser,
+} from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { NavLink } from "~/components/ui/nav-link";
@@ -28,18 +36,43 @@ export function NavUser({ user, variant = "dropdown" }: NavUserProps) {
     router.refresh();
   };
 
-  const menuItems: NavItem[] = [
-    {
-      label: "Akun Saya",
-      icon: IconUser,
-      href: "/account",
-    },
-    {
+  const getMenuItems = (): NavItem[] => {
+    const items: NavItem[] = [
+      {
+        label: "Akun Saya",
+        icon: IconUser,
+        href: "/account/profile",
+      },
+      {
+        label: "Pesanan Saya",
+        icon: IconPackage,
+        href: "/order",
+      },
+      {
+        label: "Pengaturan",
+        icon: IconSettings,
+        href: "/account/security",
+      },
+    ];
+
+    if (user.role === "admin" || user.role === "owner") {
+      items.push({
+        label: "Dashboard Admin",
+        icon: IconShield,
+        href: "/admin",
+      });
+    }
+
+    items.push({
       label: "Keluar",
       icon: IconLogout,
       onClick: handleSignOut,
-    },
-  ];
+    });
+
+    return items;
+  };
+
+  const menuItems = getMenuItems();
 
   if (variant === "menu") {
     return (
@@ -56,7 +89,7 @@ export function NavUser({ user, variant = "dropdown" }: NavUserProps) {
               </NavLink>
             ) : (
               <button
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-medium text-sm hover:bg-accent hover:text-accent-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-medium text-red-500 text-sm hover:bg-accent hover:text-accent-foreground hover:text-red-600"
                 onClick={item.onClick}
                 type="button"
               >
@@ -73,37 +106,67 @@ export function NavUser({ user, variant = "dropdown" }: NavUserProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="cursor-pointer rounded-lg">
+        <Avatar className="cursor-pointer rounded-lg border-2 border-transparent transition-all hover:border-primary">
           <AvatarImage alt={user.name} src={user.image ?? undefined} />
-          <AvatarFallback className="rounded-lg">{user.name[0]}</AvatarFallback>
+          <AvatarFallback className="rounded-lg bg-primary/10 font-bold text-primary">
+            {user.name[0]?.toUpperCase()}
+          </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align="start"
-        className="w-44"
+        align="end"
+        className="w-56 rounded-xl p-2"
         forceMount
         sideOffset={8}
       >
-        <DropdownMenuGroup>
-          {menuItems.map((item) => (
-            <DropdownMenuItem
-              asChild={!!item.href}
-              key={item.label}
-              onClick={item.onClick}
-            >
-              {item.href ? (
-                <NavLink href={item.href}>
-                  {item.icon && <item.icon className="mr-2 size-4" />}
-                  {item.label}
-                </NavLink>
-              ) : (
-                <>
-                  {item.icon && <item.icon className="mr-2 size-4" />}
-                  {item.label}
-                </>
-              )}
-            </DropdownMenuItem>
-          ))}
+        <DropdownMenuLabel className="p-0 font-normal">
+          <div className="flex items-center gap-3 px-2 py-2 text-left text-sm">
+            <Avatar className="h-10 w-10 rounded-full border">
+              <AvatarImage alt={user.name} src={user.image ?? undefined} />
+              <AvatarFallback className="rounded-full bg-primary/10 text-primary">
+                {user.name[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-semibold">{user.name}</span>
+              <span className="truncate text-muted-foreground text-xs">
+                {user.email}
+              </span>
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="my-1" />
+        <DropdownMenuGroup className="flex flex-col gap-1">
+          {menuItems.map((item) => {
+            const isLogout = item.label === "Keluar";
+            return (
+              <DropdownMenuItem
+                asChild={!!item.href}
+                className={`cursor-pointer rounded-md ${isLogout ? "text-red-500 focus:bg-red-50 focus:text-red-500 dark:focus:bg-red-950/50" : ""}`}
+                key={item.label}
+                onClick={item.onClick}
+              >
+                {item.href ? (
+                  <NavLink
+                    className="flex w-full items-center"
+                    href={item.href}
+                  >
+                    {item.icon && (
+                      <item.icon className="mr-2 size-4 opacity-70" />
+                    )}
+                    {item.label}
+                  </NavLink>
+                ) : (
+                  <div className="flex w-full items-center">
+                    {item.icon && (
+                      <item.icon className="mr-2 size-4 opacity-70" />
+                    )}
+                    {item.label}
+                  </div>
+                )}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
