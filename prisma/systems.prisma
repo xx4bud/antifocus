@@ -1,0 +1,204 @@
+// ==============================
+// SETTINGS
+// ==============================
+
+model Setting {
+  id       String @id @default(uuid())
+  key      String
+  label    String
+  metadata Json?
+
+  isPublic Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@map("settings")
+}
+
+// ==============================
+// ACTIVITY LOGS
+// ==============================
+
+model ActivityLog {
+  id             String  @id @default(uuid())
+  organizationId String?
+  userId         String?
+
+  actor  String @default("system") // snapshot
+  entity String
+  action String
+
+  changes  Json?
+  metadata Json?
+
+  // strict
+  createdAt DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, userId])
+  @@index([actor])
+  @@index([entity])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// ==============================
+// Countries
+// ==============================
+
+model Country {
+  id   String @id @default(uuid())
+  name String // "Indonesia"
+  code String @unique // ISO 3166-1 alpha-2 (ID, US, SG)
+
+  isDefault Boolean @default(false)
+  enabled   Boolean @default(true)
+  metadata  Json?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeZones TimeZone[]
+  languages Language[]
+
+  @@index([code])
+  @@map("countries")
+}
+
+// ==============================
+// LANGUAGES
+// ==============================
+
+model Language {
+  id        String @id @default(uuid())
+  countryId String
+  name      String // "Indonesian / Bahasa Indonesia"
+  code      String @unique // "id-ID"
+
+  direction String @default("ltr")
+
+  isDefault Boolean @default(false)
+  enabled   Boolean @default(true)
+  metadata  Json?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@index([code])
+  @@map("languages")
+}
+
+// ==============================
+// TIMEZONES
+// ==============================
+
+model TimeZone {
+  id        String @id @default(uuid())
+  countryId String
+  name      String @unique // IANA standard "Asia/Jakarta"
+
+  utcOffset String // UTC (misal: "+07:00", "-05:00")
+  abbr      String? // "WIB"
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([countryId])
+  @@index([name])
+  @@map("timezones")
+}
+
+// ==============================
+// UNITS
+// ==============================
+
+model Unit {
+  id   String   @id @default(uuid())
+  name String // "Kilogram"
+  code String   @unique // "Kg"
+  type UnitType
+
+  baseUnitId String? // "gram"
+  children   Unit[]  @relation("unit_conversion")
+
+  conversionFactor Decimal @default(1) @db.Decimal(19, 6) // 1000
+
+  isBase   Boolean @default(false)
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  baseUnit Unit? @relation("unit_conversion", fields: [baseUnitId], references: [id], onDelete: SetNull)
+
+  @@index([code])
+  @@index([baseUnitId])
+  @@map("units")
+}
+
+// ==============================
+// CURRENCIES
+// ==============================
+
+model Currency {
+  id     String @id @default(uuid())
+  name   String // "Indonesian Rupiah"
+  code   String @unique // ISO 4217 "IDR"
+  symbol String // "Rp"
+
+  decimal Int     @default(0)
+  rate    Decimal @db.Decimal(19, 8)
+
+  isDefault Boolean @default(false)
+  enabled   Boolean @default(true)
+  metadata  Json?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@map("currencies")
+}
+
+// ==============================
+// TAXES
+// ==============================
+
+model Tax {
+  id   String @id @default(uuid())
+  name String // "12% Pemungut PPN"
+  code String @unique
+
+  inclusive Boolean @default(false)
+  rate      Decimal @db.Decimal(19, 4) // 12
+  scope     Json?
+
+  isDefault Boolean @default(false)
+  enabled   Boolean @default(true)
+  metadata  Json?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@map("taxes")
+}

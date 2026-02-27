@@ -1,26 +1,4 @@
 // ==============================
-// USER ROLES
-// ==============================
-
-model UserRole {
-  id         String @id @default(uuid())
-  role       String @unique
-  permission Json
-  metadata   Json?
-
-  isSystem Boolean @default(false) // system_role
-  enabled  Boolean @default(true)
-  position Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([role])
-  @@index([enabled])
-  @@map("user_roles")
-}
-
-// ==============================
 // BETTER-AUTH USERS
 // ==============================
 
@@ -48,19 +26,25 @@ model User {
   // 2fa plugin
   twoFactorEnabled Boolean @default(false)
 
+  // additionals
   status   UserStatus @default(pending)
   settings Json? // preferences
   metadata Json?
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // soft delete
   deletedAt DateTime?
 
-  sessions    Session[]
-  accounts    Account[]
-  members     Member[]
-  invitations Invitation[]
-  customers   Customer[]
+  sessions     Session[]
+  accounts     Account[]
+  members      Member[]
+  invitations  Invitation[]
+  twoFactors   TwoFactor[]
+  apiKeys      ApiKey[]
+  activityLogs ActivityLog[]
 
   @@index([email])
   @@index([username])
@@ -83,16 +67,19 @@ model Session {
 
   ipAddress String?
   userAgent String?
-  metadata  Json?
 
   // admin plugin
-  impersonatedBy String? // user_id
+  impersonatedBy String? // user_id = super_admin
 
   // organization plugin
   activeOrganizationId String? // organization_id
 
+  // additionals
+  metadata Json?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -108,10 +95,9 @@ model Session {
 
 model Account {
   id         String @id @default(uuid())
-  providerId String // google, etc
-  accountId  String
   userId     String
-  metadata   Json?
+  providerId String // google, credential, etc
+  accountId  String
 
   accessToken           String?
   refreshToken          String?
@@ -119,33 +105,38 @@ model Account {
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
 
-  // credential provider
-  scope    String
-  password String
+  // credentials
+  scope    String?
+  password String? // hashed
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // additionals
+  metadata Json?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([providerId, accountId])
-  @@index([providerId])
-  @@index([accountId])
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId, accountId])
   @@index([userId])
   @@map("accounts")
 }
 
 // ==============================
-// BETTER-AUTH VARIATIONS
+// BETTER-AUTH VERIFICATIONS
 // ==============================
 
 model Verification {
   id         String   @id @default(uuid())
-  identifier String
+  identifier String // email, phone_number, etc
   value      String
   expiresAt  DateTime
-  metadata   Json?
 
+  // additionals
+  metadata Json?
+
+  // timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -154,25 +145,88 @@ model Verification {
 }
 
 // ==============================
-// ACTIVITY LOGS
+// BETTER-AUTH TWO FACTORS
 // ==============================
 
-model ActivityLog {
-  id    String  @id @default(uuid())
-  type  String  @default("system")
-  actor String?
+model TwoFactor {
+  id          String @id @default(uuid())
+  userId      String
+  secret      String
+  backupCodes String
 
-  entity String
-  action String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  changes  Json?
-  metadata Json?
-
+  // timestamps
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([type])
-  @@index([actor])
-  @@index([entity])
-  @@index([action])
-  @@map("activity_logs")
+  @@index([userId])
+  @@index([secret])
+  @@map("two_factors")
+}
+
+// ==============================
+// BETTER-AUTH API KEYS
+// ==============================
+
+model ApiKey {
+  id     String @id @default(uuid())
+  userId String
+
+  name   String?
+  start  String?
+  prefix String?
+  key    String
+
+  refillInterval Int?
+  refillAmount   Int?
+  lastRefillAt   DateTime?
+
+  enabled          Boolean @default(true)
+  rateLimitEnabled Boolean @default(true)
+
+  rateLimitTimeWindow Int       @default(86400000)
+  rateLimitMax        Int       @default(10)
+  requestCount        Int       @default(0)
+  remaining           Int?
+  lastRequest         DateTime?
+  expiresAt           DateTime?
+
+  metadata    String?
+  permissions String?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([key])
+  @@index([enabled])
+  @@index([rateLimitEnabled])
+  @@map("api_keys")
+}
+
+// ==============================
+// USER ROLES
+// ==============================
+
+model UserRole {
+  id         String @id @default(uuid())
+  role       String
+  permission Json
+
+  // additionals
+  isSystem Boolean @default(false) // system_role
+  enabled  Boolean @default(true)
+  position Int?
+
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([enabled])
+  @@map("user_roles")
 }

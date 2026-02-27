@@ -1,3 +1,4 @@
+import type { InvitationStatus } from "better-auth/plugins";
 import { relations } from "drizzle-orm";
 import {
   boolean,
@@ -176,7 +177,10 @@ export const invitations = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
     role: text("role").default("member").notNull(),
-    status: text("status").default("pending").notNull(),
+    status: text("status")
+      .$type<InvitationStatus>()
+      .default("pending")
+      .notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     inviterId: text("inviter_id")
