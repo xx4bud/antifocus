@@ -1,0 +1,221 @@
+// ==============================
+// SPEC ENUMS
+// ==============================
+
+enum InputType {
+  text
+  number
+  boolean
+  select
+  multi_select
+  json
+}
+
+// ==============================
+// CATEGORIES
+// ==============================
+
+model Category {
+  id             String  @id @default(cuid())
+  organizationId String?
+  name           String
+  slug           String  @unique
+  image          String?
+  banner         String?
+
+  isFeatured Boolean @default(false)
+  isMaterial Boolean @default(false)
+  isProduct  Boolean @default(false)
+  metadata   Json?
+
+  enabled  Boolean @default(false)
+  parentId String?
+  level    Int?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  parent   Category?  @relation("category_tree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("category_tree")
+
+  categoryAttributes CategoryAttribute[]
+  categoryProducts   CategoryProduct[]
+  categoryMaterials  CategoryMaterial[]
+
+  @@index([organizationId])
+  @@index([parentId, level])
+  @@index([enabled])
+  @@map("categories")
+}
+
+// ==============================
+// CATEGORY ATTRIBUTES
+// ==============================
+
+model CategoryAttribute {
+  id          String @id @default(cuid())
+  categoryId  String
+  attributeId String
+
+  isRequired Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+
+  minSelect Int @default(0)
+  maxSelect Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId, attributeId])
+  @@index([enabled])
+  @@map("category_attributes")
+}
+
+// ==============================
+// CATEGORY PRODUCTS
+// ==============================
+
+model CategoryProduct {
+  id         String @id @default(cuid())
+  categoryId String
+  productId  String
+
+  isDefault Boolean @default(false)
+  enabled   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId, productId])
+  @@index([enabled])
+  @@map("category_products")
+}
+
+// ==============================
+// CATEGORY MATERIALS
+// ==============================
+
+model CategoryMaterial {
+  id         String @id @default(cuid())
+  categoryId String
+  materialId String
+
+  isDefault Boolean @default(false)
+  enabled   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId, materialId])
+  @@index([enabled])
+  @@map("category_materials")
+}
+
+// ==============================
+// ATTRIBUTES
+// ==============================
+
+model Attribute {
+  id       String @id @default(cuid())
+  key      String
+  label    String
+  metadata Json?
+
+  type     InputType @default(text)
+  enabled  Boolean   @default(false)
+  position Int       @default(0)
+
+  isFilterable Boolean @default(false)
+  isSortable   Boolean @default(false)
+  isSearchable Boolean @default(false)
+  isComparable Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categoryAttributes CategoryAttribute[]
+  values             Value[]
+  options            Option[]
+
+  @@index([enabled])
+  @@index([position])
+  @@map("attributes")
+}
+
+// ==============================
+// OPTIONS
+// ==============================
+
+model Option {
+  id          String @id @default(cuid())
+  attributeId String
+  key         String
+  label       String
+  metadata    Json?
+
+  enabled  Boolean @default(false)
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  values Value[]
+
+  @@index([attributeId])
+  @@map("options")
+}
+
+// ==============================
+// VALUES
+// ==============================
+
+model Value {
+  id          String @id @default(cuid())
+  attributeId String
+
+  enabled  Boolean @default(false)
+  position Int     @default(0)
+
+  textValue    String?
+  numberValue  Decimal?
+  booleanValue Boolean?
+  jsonValue    Json?
+
+  optionId String?
+
+  priceModifier Decimal @default(0) @db.Decimal(19, 6)
+  pricePercent  Decimal @default(0) @db.Decimal(19, 6)
+
+  min Int?
+  max Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  option    Option?   @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@index([optionId])
+  @@index([attributeId])
+  @@map("values")
+}

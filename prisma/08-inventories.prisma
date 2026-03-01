@@ -1,0 +1,62 @@
+// ==============================
+// INVENTORY ENUMS
+// ==============================
+
+enum StockMovementType {
+  in
+  out
+  adjustment
+  transfer
+  return
+}
+
+// ==============================
+// MATERIALS
+// ==============================
+
+model Material {
+  id        String @id @default(cuid())
+  variantId String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  variant           Variant            @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  stockMaterials    StockMaterial[]
+  categoryMaterials CategoryMaterial[]
+
+  @@map("materials")
+}
+
+// ==============================
+// STOCK MOVEMENTS
+// ==============================
+
+model StockMovement {
+  id             String @id @default(cuid())
+  organizationId String
+  storeId        String
+  variantId      String
+
+  type     StockMovementType
+  quantity Int
+  reason   String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  store        Store        @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  variant      Variant      @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([storeId])
+  @@index([variantId])
+  @@map("stock_movements")
+}

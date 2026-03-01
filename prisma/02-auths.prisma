@@ -1,20 +1,60 @@
 // ==============================
+// AUTH ENUMS
+// ==============================
+
+enum SystemUserRole {
+  user
+  admin
+}
+
+enum UserStatus {
+  pending // not verified
+  active // verified
+  inactive // by user
+  deleted
+}
+
+enum ActionType {
+  create
+  update
+  delete
+  view
+  export
+  import
+  login
+  logout
+  forgot_password
+  reset_password
+  approve
+  reject
+  cancel
+  complete
+}
+
+enum ActorType {
+  system
+  api_keys
+  webhooks
+  user
+}
+
+// ==============================
 // BETTER-AUTH USERS
 // ==============================
 
 model User {
-  id            String  @id @default(uuid())
+  id            String  @id @default(cuid())
   name          String
   email         String  @unique
   emailVerified Boolean @default(false)
   image         String? // avatar
 
   // username plugin
-  username        String? @unique // slug
+  username        String? @unique
   displayUsername String?
 
   // phone number plugin
-  phoneNumber         String? @unique
+  phoneNumber         String?
   phoneNumberVerified Boolean @default(false)
 
   // admin plugin
@@ -24,9 +64,10 @@ model User {
   banExpires DateTime?
 
   // 2fa plugin
-  twoFactorEnabled Boolean @default(false)
+  twoFactorEnable Boolean @default(false)
 
   // additionals
+  banner   String?
   status   UserStatus @default(pending)
   settings Json? // preferences
   metadata Json?
@@ -40,16 +81,14 @@ model User {
 
   sessions     Session[]
   accounts     Account[]
-  members      Member[]
-  invitations  Invitation[]
   twoFactors   TwoFactor[]
   apiKeys      ApiKey[]
   activityLogs ActivityLog[]
+  members      Member[]
+  invitations  Invitation[]
+  customers    Customer[]
+  profiles     Profile[]
 
-  @@index([email])
-  @@index([username])
-  @@index([phoneNumber])
-  @@index([name])
   @@index([role])
   @@index([status, banned])
   @@map("users")
@@ -60,16 +99,17 @@ model User {
 // ==============================
 
 model Session {
-  id        String   @id @default(uuid())
-  userId    String
+  id        String   @id @default(cuid())
   token     String   @unique
   expiresAt DateTime
 
+  // context
+  userId    String
   ipAddress String?
   userAgent String?
 
   // admin plugin
-  impersonatedBy String? // user_id = super_admin
+  impersonatedBy String? // user_id = admin
 
   // organization plugin
   activeOrganizationId String? // organization_id
@@ -77,11 +117,11 @@ model Session {
   // additionals
   metadata Json?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   // timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([impersonatedBy])
@@ -94,11 +134,12 @@ model Session {
 // ==============================
 
 model Account {
-  id         String @id @default(uuid())
-  userId     String
-  providerId String // google, credential, etc
+  id         String @id @default(cuid())
+  providerId String // credentials, google, etc
   accountId  String
+  userId     String
 
+  // tokens
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -107,18 +148,18 @@ model Account {
 
   // credentials
   scope    String?
-  password String? // hashed
+  password String?
 
   // additionals
   metadata Json?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([providerId, accountId])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
   @@index([userId])
   @@map("accounts")
 }
@@ -128,13 +169,10 @@ model Account {
 // ==============================
 
 model Verification {
-  id         String   @id @default(uuid())
-  identifier String // email, phone_number, etc
+  id         String   @id @default(cuid())
+  identifier String
   value      String
   expiresAt  DateTime
-
-  // additionals
-  metadata Json?
 
   // timestamps
   createdAt DateTime @default(now())
@@ -149,16 +187,12 @@ model Verification {
 // ==============================
 
 model TwoFactor {
-  id          String @id @default(uuid())
+  id          String @id @default(cuid())
   userId      String
   secret      String
   backupCodes String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([secret])
@@ -170,30 +204,27 @@ model TwoFactor {
 // ==============================
 
 model ApiKey {
-  id     String @id @default(uuid())
+  id     String  @id @default(cuid())
   userId String
-
+  key    String
   name   String?
   start  String?
   prefix String?
-  key    String
 
-  refillInterval Int?
-  refillAmount   Int?
-  lastRefillAt   DateTime?
+  enabled     Boolean @default(true)
+  metadata    String?
+  permissions String?
 
-  enabled          Boolean @default(true)
-  rateLimitEnabled Boolean @default(true)
-
+  rateLimitEnabled    Boolean   @default(true)
   rateLimitTimeWindow Int       @default(86400000)
   rateLimitMax        Int       @default(10)
   requestCount        Int       @default(0)
+  refillInterval      Int?
+  refillAmount        Int?
+  lastRefillAt        DateTime?
   remaining           Int?
   lastRequest         DateTime?
   expiresAt           DateTime?
-
-  metadata    String?
-  permissions String?
 
   // timestamps
   createdAt DateTime @default(now())
@@ -213,20 +244,68 @@ model ApiKey {
 // ==============================
 
 model UserRole {
-  id         String @id @default(uuid())
-  role       String
-  permission Json
+  id         String @id @default(cuid())
+  role       String @unique
+  permission String
+  metadata   Json?
 
-  // additionals
-  isSystem Boolean @default(false) // system_role
+  isSystem Boolean @default(false) // system_user_role
   enabled  Boolean @default(true)
-  position Int?
 
-  // timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([role])
-  @@index([enabled])
+  @@index([isSystem, enabled])
   @@map("user_roles")
+}
+
+// ==============================
+// RATE LIMITS
+// ==============================
+
+model RateLimit {
+  id         String     @id @default(cuid())
+  identifier String
+  action     ActionType
+  metadata   Json?
+
+  limit       Int
+  window      Int
+  count       Int      @default(1)
+  windowStart DateTime @default(now())
+  expiresAt   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier])
+  @@index([action])
+  @@map("rate_limits")
+}
+
+// ==============================
+// ACTIVITY LOGS
+// ==============================
+
+model ActivityLog {
+  id     String  @id @default(cuid())
+  userId String?
+
+  type   ActorType  @default(system)
+  actor  String? // snapshot
+  entity String
+  action ActionType
+
+  changes  Json?
+  metadata Json?
+
+  createdAt DateTime @default(now()) // not updated
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([actor])
+  @@index([entity, action])
+  @@map("activity_logs")
 }

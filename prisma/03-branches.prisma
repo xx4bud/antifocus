@@ -1,0 +1,142 @@
+// ==============================
+// BRANCH ENUMS
+// ==============================
+
+enum StoreStatus {
+  open
+  closed
+  vacation
+  maintenance
+}
+
+enum PosTerminalStatus {
+  active
+  inactive
+  maintenance
+}
+
+enum PosSessionStatus {
+  open
+  closed
+  suspended
+}
+
+enum PosTransactionType {
+  sale
+  refund
+  void
+  exchange
+}
+
+// ==============================
+// STORES
+// ==============================
+
+model Store {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String  @unique
+  image          String?
+  banner         String?
+
+  isWarehouse Boolean     @default(false)
+  status      StoreStatus @default(open)
+  settings    Json?
+  metadata    Json?
+
+  avgRating   Decimal @default(0) @db.Decimal(3, 2)
+  viewCount   Int     @default(0)
+  reviewCount Int     @default(0)
+  replyCount  Int     @default(0)
+  totalSales  Decimal @default(0) @db.Decimal(19, 8)
+  totalOrders Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  profiles       Profile[]
+  posTerminals   PosTerminal[]
+  stockMovements StockMovement[]
+
+  @@index([organizationId])
+  @@map("stores")
+}
+
+// ==============================
+// POS TERMINALS
+// ==============================
+
+model PosTerminal {
+  id             String @id @default(cuid())
+  organizationId String
+  storeId        String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  sessions PosSession[]
+
+  @@map("pos_terminals")
+}
+
+// ==============================
+// POS SESSIONS
+// ==============================
+
+model PosSession {
+  id             String @id @default(cuid())
+  organizationId String
+  posTerminalId  String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  posTerminal  PosTerminal  @relation(fields: [posTerminalId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  posTransactions PosTransaction[]
+
+  @@map("pos_sessions")
+}
+
+// ==============================
+// POS TRANSACTIONS
+// ==============================
+
+model PosTransaction {
+  id        String @id @default(cuid())
+  sessionId String
+  orderId   String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  session PosSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  order   Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("pos_transactions")
+}

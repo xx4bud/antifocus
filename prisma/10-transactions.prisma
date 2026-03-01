@@ -1,0 +1,128 @@
+// ==============================
+// FINANCIAL ENUMS
+// ==============================
+
+enum Gateway {
+  gtp
+  midtrans
+}
+
+enum PaymentStatus {
+  ps_pending
+  processing
+  paid
+  ps_failed
+  ps_expired
+  refunded
+  partially_refunded
+  ps_cancelled
+}
+
+enum RefundStatus {
+  rf_pending
+  rf_processing
+  rf_completed
+  rf_failed
+  rejected
+}
+
+enum InvoiceStatus {
+  inv_draft
+  sent
+  viewed
+  inv_paid
+  partially_paid
+  overdue
+  inv_cancelled
+  void
+}
+
+// ==============================
+// PAYMENT METHODS
+// ==============================
+
+model PaymentMethod {
+  id      String  @id @default(cuid())
+  name    String
+  gateway Gateway
+
+  payments Payment[]
+
+  @@map("payment_methods")
+}
+
+// ==============================
+// PAYMENTS
+// ==============================
+
+model Payment {
+  id             String @id @default(cuid())
+  organizationId String
+  orderId        String
+  methodId       String
+
+  amount Decimal @db.Decimal(19, 8)
+
+  currencyCode String  @default("IDR")
+  exchangeRate Decimal @default(1) @db.Decimal(19, 8)
+
+  status   PaymentStatus
+  metadata Json?
+
+  gatewayRef      String?
+  gatewayResponse Json?
+
+  paidAt    DateTime?
+  expiredAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  method       PaymentMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  refunds Refund[]
+
+  @@map("payments")
+}
+
+// ==============================
+// REFUNDS
+// ==============================
+
+model Refund {
+  id             String @id @default(cuid())
+  organizationId String
+  orderId        String
+  paymentId      String
+
+  amount Decimal @db.Decimal(19, 8)
+
+  currencyCode String  @default("IDR")
+  exchangeRate Decimal @default(1) @db.Decimal(19, 8)
+
+  status   RefundStatus
+  metadata Json?
+
+  gatewayRef      String?
+  gatewayResponse Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  createdBy String?
+  updatedBy String?
+  deletedBy String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment      Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("refunds")
+}

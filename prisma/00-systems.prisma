@@ -1,0 +1,319 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==============================
+// SYSTEM ENUMS
+// ==============================
+
+enum CategoryType {
+  general
+  security
+  notifications
+  inventory
+  payment
+  shipping
+  branding
+  integrations
+  appearance
+  localization
+  advanced
+}
+
+enum UnitType {
+  weight
+  volume
+  count
+  other
+}
+
+enum WebhookStatus {
+  pending
+  success
+  paused
+  failed
+  retrying
+}
+
+// ==============================
+// SETTINGS
+// ==============================
+
+model Setting {
+  id       String @id @default(cuid())
+  key      String @unique
+  value    Json
+  metadata Json?
+
+  type     CategoryType @default(general)
+  isSystem Boolean      @default(true)
+  isPublic Boolean      @default(true)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, key])
+  @@index([isSystem])
+  @@index([isPublic, enabled])
+  @@map("settings")
+}
+
+// ==============================
+// UNITS
+// ==============================
+
+model Unit {
+  id       String @id @default(uuid())
+  name     String // "kilogram"
+  code     String @unique // "kg" (SI)
+  metadata Json?
+
+  type       UnitType
+  baseUnitId String? // "gram"
+  level      Int      @default(0)
+
+  conversion Decimal @db.Decimal(19, 6) // 1kg = 1000g
+
+  isDefault Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  baseUnit Unit?  @relation("base_unit", fields: [baseUnitId], references: [id], onDelete: SetNull)
+  children Unit[] @relation("base_unit")
+
+  @@index([baseUnitId, level])
+  @@index([enabled])
+  @@map("units")
+}
+
+// ==============================
+// COUNTRIES
+// ==============================
+
+model Country {
+  id       String  @id @default(cuid())
+  name     String // "indonesia"
+  code     String  @unique // "ID" (ISO 3166-1 alpha-2)
+  flag     String? // "🇮🇩"
+  metadata Json?
+
+  isDefault Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeZones TimeZone[]
+
+  @@index([enabled])
+  @@map("countries")
+}
+
+// ==============================
+// TIME ZONES
+// ==============================
+
+model TimeZone {
+  id        String @id @default(cuid())
+  countryId String
+  name      String // "Asia/Jakarta"
+  code      String @unique // "asia/jakarta" (IANA)
+  metadata  Json?
+
+  offset Int     @default(0)
+  utc    String? @unique // "UTC+07:00"
+  gmt    String? @unique // "GMT+07:00"
+  abbr   String? @unique // "WIB" (Western Indonesia Time)
+
+  isDefault Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@index([countryId])
+  @@index([enabled])
+  @@map("time_zones")
+}
+
+// ==============================
+// LANGUAGES
+// ==============================
+
+model Language {
+  id       String @id @default(cuid())
+  name     String // "indonesian"
+  code     String @unique // "id-ID" (IETF BCP 47)
+  metadata Json?
+
+  direction String @default("ltr") // "ltr" | "rtl"
+
+  isDefault Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@map("languages")
+}
+
+// ==============================
+// CURRENCIES
+// ==============================
+
+model Currency {
+  id       String @id @default(cuid())
+  name     String // "indonesian rupiah"
+  code     String @unique // "IDR" (ISO 4217)
+  symbol   String // "Rp"
+  metadata Json?
+
+  decimalPlaces Int      @default(0)
+  exchangeRate  Decimal  @db.Decimal(19, 8)
+  rateDate      DateTime
+
+  isDefault Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@map("currencies")
+}
+
+// ==============================
+// TAXES
+// ==============================
+
+model Tax {
+  id       String @id @default(cuid())
+  name     String // "PPN-12%"
+  code     String @unique // "PPN-12"
+  metadata Json?
+
+  rate  Decimal @db.Decimal(19, 6)
+  scope String?
+
+  isInclusive Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@map("taxes")
+}
+
+// ==============================
+// INTEGRATIONS
+// ==============================
+
+model Integration {
+  id       String @id @default(uuid())
+  name     String
+  code     String @unique // "shopify", "midtrans"
+  metadata Json?
+
+  type CategoryType
+
+  isDefault Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  settings Json?
+  position Int?
+
+  lastSyncAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  webhooks Webhook[]
+
+  @@index([type])
+  @@index([enabled])
+  @@map("integrations")
+}
+
+// ==============================
+// WEBHOOKS
+// ==============================
+
+model Webhook {
+  id             String  @id @default(cuid())
+  organizationId String
+  integrationId  String?
+  url            String
+
+  events   Json
+  secret   String?
+  status   WebhookStatus @default(pending)
+  failures Int           @default(0)
+  headers  Json?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integration  Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+
+  webhookLogs WebhookLog[]
+
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([url])
+  @@index([status])
+  @@map("webhooks")
+}
+
+// ==============================
+// WEBHOOK LOGS
+// ==============================
+
+model WebhookLog {
+  id        String @id @default(cuid())
+  webhookId String
+
+  event      String
+  payload    Json
+  statusCode Int?
+  response   Json?
+  retries    Int           @default(0)
+  status     WebhookStatus @default(pending)
+  error      String?
+  attempts   Int           @default(0)
+
+  createdAt DateTime @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}

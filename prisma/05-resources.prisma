@@ -1,0 +1,93 @@
+// ==============================
+// PROFILES
+// ==============================
+
+model Profile {
+  id             String  @id @default(cuid())
+  organizationId String?
+  userId         String?
+  storeId        String?
+  customerId     String?
+  staffId        String?
+  supplierId     String?
+
+  // snapshot
+  phoneNumber String?
+  email       String?
+  website     String?
+  gender      String?
+  description String?
+
+  birthDate DateTime?
+  joinDate  DateTime?
+  leaveDate DateTime?
+
+  tags     String[]
+  notes    String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  store        Store?        @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  staff        Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  addresses Address[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([customerId])
+  @@index([staffId])
+  @@index([supplierId])
+  @@map("profiles")
+}
+
+// ==============================
+// ADDRESSES
+// ==============================
+
+model Address {
+  id        String @id @default(cuid())
+  profileId String
+
+  label         String
+  recipientName String
+  phoneNumber   String
+  email         String?
+
+  addressLine1  String
+  addressLine2  String?
+  subDistrict   String
+  subDistrictId String?
+  district      String
+  districtId    String?
+  city          String
+  cityId        String?
+  province      String
+  provinceId    String?
+  country       String  @default("indonesia")
+  countryId     String  @default("ID")
+  postalCode    String
+
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+
+  isDefault  Boolean @default(false)
+  isBilling  Boolean @default(false)
+  isShipping Boolean @default(false)
+
+  enabled  Boolean @default(false)
+  position Int?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
