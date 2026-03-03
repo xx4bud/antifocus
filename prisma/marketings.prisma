@@ -1,0 +1,53 @@
+// ==============================
+// MARKETING ENUMS
+// ==============================
+
+enum BannerPlacement {
+  hero
+  sidebar
+  footer
+  popup
+  inline
+}
+
+// ==============================
+// BANNERS
+// ==============================
+
+model Banner {
+  id             String  @id @default(uuid())
+  organizationId String
+  categoryId     String?
+  collectionId   String?
+
+  title       String
+  subtitle    String?
+  description String?
+  url         String?
+
+  placement BannerPlacement @default(hero)
+  position  Int             @default(0)
+
+  enabled   Boolean   @default(true)
+  startDate DateTime?
+  endDate   DateTime?
+
+  clickCount Int   @default(0)
+  viewCount  Int   @default(0)
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  collection   Collection?  @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  images BannerImage[]
+
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([collectionId])
+  @@index([placement])
+  @@map("banners")
+}

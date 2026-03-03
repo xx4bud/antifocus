@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==============================
+// SYSTEM ENUMS
+// ==============================
+
+enum SettingCategory {
+  general
+  security
+  preferences
+  payment
+  shipping
+  notification
+  integration
+}
+
+// ==============================
+// SETTINGS
+// ==============================
+
+model Setting {
+  id       String @id @default(cuid())
+  organizationId String?
+  key      String @unique
+  value    Json
+  metadata Json?
+
+  category SettingCategory @default(general)
+  public   Boolean         @default(true)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([public, enabled])
+  @@map("settings")
+}
+
+// ==============================
+// THEMES
+// ==============================
+
+model Theme {
+  id       String @id @default(cuid())
+  key      String @unique
+  metadata Json?
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@map("themes")
+}

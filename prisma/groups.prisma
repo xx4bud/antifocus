@@ -1,0 +1,380 @@
+// ==============================
+// SPECIFICATION ENUMS
+// ==============================
+
+enum UnitCategory {
+  weight
+  volume
+  length
+  count
+  area
+  time
+  data
+  other
+}
+
+enum CategoryType {
+  product
+  material
+}
+
+enum AttributeType {
+  text
+  number
+  boolean
+  select
+  multiselect
+  datetime
+  json
+}
+
+enum PricingType {
+  fixed
+  percentage
+  formula
+}
+
+enum CollectionType {
+  manually
+  automatic
+}
+
+// ==============================
+// UNITS
+// ==============================
+
+model Unit {
+  id             String @id @default(uuid())
+  organizationId String
+  name           String // kilogram
+  code           String // kg (SI)
+  metadata       Json?
+
+  category UnitCategory
+  baseId   String? // gram
+  level    Int          @default(0) // 0 = base, 1 = unit
+
+  ratio Decimal? // 1 kg = 1000 g
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  base     Unit?  @relation("base_unit", fields: [baseId], references: [id], onDelete: SetNull)
+  children Unit[] @relation("base_unit")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products     Product[]
+  variants     Variant[]
+
+  @@unique([organizationId, code])
+  @@index([baseId, level])
+  @@index([enabled])
+  @@map("units")
+}
+
+// ==============================
+// CATEGORIES
+// ==============================
+
+model Category {
+  id             String @id @default(uuid())
+  organizationId String
+  name           String
+  slug           String
+  metadata       Json?
+
+  type     CategoryType
+  parentId String?
+  level    Int          @default(0) // 0 = root, 1 = category, 2 = subcategory
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   Category?  @relation("parent_category", fields: [parentId], references: [id])
+  children Category[] @relation("parent_category")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  attributes CategoryAttribute[]
+  products   CategoryProduct[]
+  banners    Banner[]
+
+  @@unique([organizationId, slug])
+  @@index([enabled])
+  @@map("categories")
+}
+
+// ==============================
+// CATEGORY ATTRIBUTES
+// ==============================
+
+model CategoryAttribute {
+  id          String @id @default(uuid())
+  categoryId  String
+  attributeId String
+  metadata    Json?
+
+  enabled  Boolean @default(true)
+  required Boolean @default(false)
+  position Int?
+
+  // option_id
+  minSelect Int @default(0)
+  maxSelect Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, attributeId])
+  @@index([enabled])
+  @@map("category_attributes")
+}
+
+// ==============================
+// CATEGORIES PRODUCTS
+// ==============================
+
+model CategoryProduct {
+  id         String @id @default(uuid())
+  categoryId String
+  productId  String
+  metadata   Json?
+
+  default  Boolean @default(false)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, productId])
+  @@index([default])
+  @@map("category_products")
+}
+
+// ==============================
+// ATTRIBUTES
+// ==============================
+
+model Attribute {
+  id             String        @id @default(uuid())
+  organizationId String
+  type           AttributeType
+  key            String
+  label          String
+  metadata       Json?
+
+  filterable Boolean @default(false) // filter
+  sortable   Boolean @default(false) // sort
+  searchable Boolean @default(false) // search
+  comparable Boolean @default(false) // other
+  visible    Boolean @default(false) // card
+
+  customizable Boolean @default(false) // by input
+  enabled      Boolean @default(true)
+  position     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  categories CategoryAttribute[]
+  options    Option[]
+  values     Value[]
+
+  @@unique([organizationId, key])
+  @@index([enabled])
+  @@map("attributes")
+}
+
+// ==============================
+// OPTIONS
+// ==============================
+
+model Option {
+  id             String  @id @default(uuid())
+  organizationId String
+  attributeId    String
+  productId      String?
+  key            String
+  label          String
+  metadata       Json?
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  attribute    Attribute    @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  product      Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  values Value[]
+
+  @@unique([organizationId, attributeId, key])
+  @@index([enabled])
+  @@map("options")
+}
+
+// ==============================
+// VALUES
+// ==============================
+
+model Value {
+  id             String  @id @default(uuid())
+  organizationId String
+  attributeId    String
+  variantId      String?
+  metadata       Json?
+
+  optionId String?
+  text     String?
+  number   Decimal?
+  boolean  Boolean?
+  date     DateTime?
+  json     Json?
+
+  // modifier
+  priceMode  PricingType @default(fixed)
+  percentage Decimal     @default(0)
+  formula    String?
+
+  // price
+  price Decimal @default(0)
+  min   Int?
+  max   Int?
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  attribute    Attribute    @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  option       Option?      @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  variant      Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, attributeId])
+  @@index([enabled])
+  @@map("values")
+}
+
+// ==============================
+// COLLECTIONS
+// ==============================
+
+model Collection {
+  id             String  @id @default(uuid())
+  organizationId String
+  name           String
+  slug           String
+  image          String?
+  metadata       Json?
+
+  type   CollectionType @default(manually)
+  styles Json?
+  rules  Json?
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  collectionProducts CollectionProduct[]
+  banners            Banner[]
+
+  @@unique([organizationId, slug])
+  @@map("ribbons")
+}
+
+// ==============================
+// COLLECTIONS PRODUCTS
+// ==============================
+
+model CollectionProduct {
+  id           String @id @default(uuid())
+  collectionId String
+  productId    String
+  metadata     Json?
+
+  default  Boolean @default(false)
+  position Int?    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, productId])
+  @@index([default])
+  @@map("collection_products")
+}
+
+// ==============================
+// TAGS
+// ==============================
+
+model Tag {
+  id             String  @id @default(uuid())
+  organizationId String
+  name           String
+  slug           String
+  image          String?
+  metadata       Json?
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tagProducts  TagProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([enabled])
+  @@map("tags")
+}
+
+// ==============================
+// TAGS PRODUCTS
+// ==============================
+
+model TagProduct {
+  id        String @id @default(uuid())
+  tagId     String
+  productId String
+  metadata  Json?
+
+  default  Boolean @default(false)
+  position Int?    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, productId])
+  @@index([default])
+  @@map("tag_products")
+}

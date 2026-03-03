@@ -1,0 +1,165 @@
+// ==============================
+// CATALOG ENUMS
+// ==============================
+
+enum ProductType {
+  goods
+  service
+  combo
+  other
+}
+
+enum ProductStatus {
+  draft
+  pending // review
+  live // approved
+  archived
+  suspended
+  banned
+  deleted
+}
+
+// ==============================
+// PRODUCTS
+// ==============================
+
+model Product {
+  id             String   @id @default(uuid())
+  organizationId String
+  unitId         String
+  name           String
+  slug           String
+  description    String?
+  keyword        String[]
+
+  // type
+  type         ProductType   @default(goods)
+  status       ProductStatus @default(draft)
+  customizable Boolean       @default(false)
+
+  // rating
+  avgRating   Decimal @default(0)
+  reviewCount Int     @default(0)
+
+  // sales
+  salesCount Int @default(0)
+  clickCount Int @default(0)
+  viewCount  Int @default(0)
+
+  // accessories
+  packagings   Json?
+  optionals    Json?
+  accessories  Json?
+  alternatives Json?
+
+  // specs
+  attributes Json?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  unit         Unit         @relation(fields: [unitId], references: [id])
+
+  categories  CategoryProduct[]
+  options     Option[]
+  variants    Variant[]
+  collections CollectionProduct[]
+  tags        TagProduct[]
+  images      ProductImage[]
+  videos      ProductVideo[]
+
+  @@unique([organizationId, slug])
+  @@map("products")
+}
+
+// ==============================
+// VARIANTS
+// ==============================
+
+model Variant {
+  id             String  @id @default(uuid())
+  organizationId String
+  productId      String
+  unitId         String
+  label          String
+  sku            String
+  barcode        String?
+
+  // pricing
+  priceMode  PricingType @default(fixed)
+  percentage Decimal     @default(0)
+  formula    String?
+
+  // price
+  unitPrice Decimal @default(0)
+  salePrice Decimal @default(0)
+
+  // cost
+  taxPrice     Decimal @default(0)
+  costPrice    Decimal @default(0)
+  comparePrice Decimal @default(0)
+
+  // order
+  minOrder Int @default(1)
+
+  // stock
+  stock Int @default(0)
+
+  // physical
+  weight     Decimal @default(0)
+  volume     Decimal @default(0)
+  dimensions Json?
+  leadTime   Int     @default(0)
+
+  // specs
+  attributes Json?
+  metadata   Json?
+
+  isSales    Boolean @default(false)
+  isPurchase Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unit         Unit         @relation(fields: [unitId], references: [id])
+
+  values        Value[]
+  stores        StockStore[]
+  priceLists    PriceList[]
+  variantImages VariantImage[]
+
+  @@unique([organizationId, productId, sku])
+  @@map("variants")
+}
+
+// ==============================
+// PRICE LISTS
+// ==============================
+
+model PriceList {
+  id         String  @id @default(uuid())
+  variantId  String?
+  materialId String?
+
+  minPrice Decimal @default(0)
+  maxPrice Decimal @default(0)
+  avgPrice Decimal @default(0)
+
+  minCostPrice Decimal @default(0)
+  maxCostPrice Decimal @default(0)
+  avgCostPrice Decimal @default(0)
+
+  rules    Json?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variant Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@map("price_lists")
+}

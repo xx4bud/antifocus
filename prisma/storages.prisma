@@ -1,0 +1,147 @@
+// ==============================
+// STORAGE ENUMS
+// ==============================
+
+enum StorageType {
+  cloudinary
+  cloudflare
+  external
+  local
+}
+
+enum FileType {
+  image
+  video
+  audio
+  document
+  archive
+  other
+}
+
+// ==============================
+// MEDIAS
+// ==============================
+
+model Media {
+  id             String @id @default(cuid())
+  organizationId String
+  name           String
+  url            String
+
+  public  Boolean     @default(true)
+  storage StorageType @default(local)
+  key     String? // storage key
+  path    String?
+
+  fileType FileType
+  mimeType String
+  width    Int
+  height   Int
+  size     Int
+  dpi      Int?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  productImages ProductImage[]
+  productVideos ProductVideo[]
+  variantImages VariantImage[]
+  bannerImages  BannerImage[]
+
+  @@index([organizationId])
+  @@map("medias")
+}
+
+// ==============================
+// PRODUCT IMAGES
+// ==============================
+
+model ProductImage {
+  id        String @id @default(cuid())
+  productId String
+  mediaId   String
+
+  main      Boolean @default(false)
+  thumbnail Boolean @default(false)
+  position  Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, mediaId])
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ==============================
+// PRODUCT VIDEOS
+// ==============================
+
+model ProductVideo {
+  id        String @id @default(cuid())
+  productId String
+  mediaId   String
+
+  main      Boolean @default(false)
+  thumbnail Boolean @default(false)
+  position  Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, mediaId])
+  @@index([productId])
+  @@map("product_videos")
+}
+
+// ==============================
+// VARIANT IMAGES
+// ==============================
+
+model VariantImage {
+  id        String @id @default(cuid())
+  variantId String
+  mediaId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, mediaId])
+  @@index([variantId])
+  @@map("variant_images")
+}
+
+// ==============================
+// BANNER IMAGES
+// ==============================
+
+model BannerImage {
+  id       String @id @default(cuid())
+  bannerId String
+  mediaId  String
+
+  main      Boolean @default(false)
+  thumbnail Boolean @default(false)
+  position  Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  banner Banner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  media  Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([bannerId, mediaId])
+  @@index([bannerId])
+  @@map("banner_images")
+}

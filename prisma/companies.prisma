@@ -1,13 +1,18 @@
 // ==============================
-// COMPANY ENUMS
+// BETTER-AUTH ORGANIZATIONS
 // ==============================
+
+enum SystemOrgRole {
+  member
+  admin // per company
+  owner
+}
 
 enum OrganizationStatus {
   pending // not verified
   active // verified
-  inactive // by owner
-  banned // by super_admin
-  deleted
+  inactive // by user
+  deleted // by user
 }
 
 enum InvitationStatus {
@@ -17,52 +22,65 @@ enum InvitationStatus {
   canceled
 }
 
+enum StoreStatus {
+  open
+  vacation
+  closed
+  maintenance
+}
+
+enum StoreType {
+  retail
+  warehouse
+  office
+}
+
 // ==============================
 // BETTER-AUTH ORGANIZATIONS
 // ==============================
 
 model Organization {
-  id   String  @id @default(cuid())
-  name String
-  slug String  @unique
-  logo String?
-
+  id       String  @id @default(cuid())
+  name     String
+  slug     String  @unique
+  logo     String?
   metadata Json?
 
   // additionals
-  banner   String?
-  status   OrganizationStatus @default(pending)
-  settings Json?
+  status OrganizationStatus @default(pending)
+  banned Boolean            @default(false)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  // timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // soft delete
   deletedAt DateTime?
 
-  createdBy String?
-  updatedBy String?
-  deletedBy String?
-
+  settings          Setting[]
   organizationRoles OrganizationRole[]
   members           Member[]
   invitations       Invitation[]
-  customers         Customer[]
   stores            Store[]
-  medias            Media[]
-  suppliers         Supplier[]
+  customers         Customer[]
+  vendors           Vendor[]
   profiles          Profile[]
-  webhooks          Webhook[]
+  addresses         Address[]
+  socials           Social[]
+  bankAccounts      BankAccount[]
+  units             Unit[]
   categories        Category[]
-  posTerminals      PosTerminal[]
-  posSessions       PosSession[]
-  channels          Channel[]
-  orders            Order[]
-  payments          Payment[]
-  refunds           Refund[]
-  stockProducts     StockProduct[]
-  stockMaterials    StockMaterial[]
-  stockMovements    StockMovement[]
+  attributes        Attribute[]
+  options           Option[]
+  products          Product[]
+  variants          Variant[]
+  values            Value[]
+  collections       Collection[]
+  tags              Tag[]
+  medias            Media[]
+  banners           Banner[]
 
-  @@index([status])
+  @@index([status, banned])
   @@map("organizations")
 }
 
@@ -74,12 +92,13 @@ model OrganizationRole {
   id             String @id @default(cuid())
   organizationId String
   role           String
-  permission     Json
+  permission     Json // action.entity
   metadata       Json?
 
   // additionals
-  isSystem Boolean @default(false) // system_org_role
+  system   Boolean @default(false) // system_org_role
   enabled  Boolean @default(true)
+  position Int?
 
   // timestamps
   createdAt DateTime @default(now())
@@ -88,7 +107,7 @@ model OrganizationRole {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, role])
-  @@index([isSystem, enabled])
+  @@index([system, enabled])
   @@map("org_roles")
 }
 
@@ -100,7 +119,7 @@ model Member {
   id             String @id @default(cuid())
   organizationId String
   userId         String
-  role           String @default("member")
+  role           String @default("member") // org_roles
 
   // additionals
   enabled  Boolean @default(true)
@@ -113,10 +132,7 @@ model Member {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  staffs Staff[]
-
   @@unique([organizationId, userId])
-  @@index([role])
   @@index([enabled])
   @@map("members")
 }
@@ -160,117 +176,47 @@ model Customer {
   id             String  @id @default(cuid())
   organizationId String
   userId         String? // online customer
-  name           String
-  slug           String
+  image          String?
+  cover          String?
 
-  enabled  Boolean @default(true)
+  enabled  Boolean  @default(true)
+  tags     String[]
   metadata Json?
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  createdBy String?
-  updatedBy String?
-  deletedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   profiles Profile[]
-  orders   Order[]
 
-  @@unique([organizationId, slug])
-  @@index([userId])
+  @@unique([organizationId, userId])
+  @@index([enabled])
   @@map("customers")
 }
 
 // ==============================
-// STAFFS
+// VENDORS
 // ==============================
 
-model Staff {
-  id       String  @id @default(uuid())
-  memberId String? // online staff
-  name     String
-  slug     String
-
-  enabled  Boolean @default(true)
-  metadata Json?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  createdBy String?
-  updatedBy String?
-  deletedBy String?
-
-  member Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
-
-  profiles Profile[]
-
-  @@unique([memberId, slug])
-  @@map("staffs")
-}
-
-// ==============================
-// SUPPLIERS
-// ==============================
-
-model Supplier {
-  id             String @id @default(uuid())
+model Vendor {
+  id             String  @id @default(cuid())
   organizationId String
-  name           String
-  slug           String
+  userId         String? // vendor person
+  image          String?
+  cover          String?
 
-  enabled  Boolean @default(true)
+  enabled  Boolean  @default(true)
+  tags     String[]
   metadata Json?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  createdBy String?
-  updatedBy String?
-  deletedBy String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   profiles Profile[]
 
-  @@unique([organizationId, slug])
-  @@map("suppliers")
-}
-
-// ==============================
-// STOCK PRODUCTS
-// ==============================
-
-model StockProduct {
-  id             String @id @default(uuid())
-  organizationId String
-  variantId      String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  variant      Variant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
-}
-
-// ==============================
-// STOCK MATERIALS
-// ==============================
-
-model StockMaterial {
-  id             String @id @default(uuid())
-  organizationId String
-  materialId     String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  material     Material     @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  @@unique([organizationId, userId])
+  @@index([enabled])
+  @@map("vendors")
 }

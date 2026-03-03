@@ -4,14 +4,14 @@
 
 enum SystemUserRole {
   user
-  admin
+  admin // global
 }
 
 enum UserStatus {
   pending // not verified
   active // verified
   inactive // by user
-  deleted
+  deleted // by user
 }
 
 enum ActionType {
@@ -22,20 +22,21 @@ enum ActionType {
   export
   import
   login
+  register
   logout
-  forgot_password
-  reset_password
+  request
   approve
   reject
   cancel
   complete
+  reset
 }
 
-enum ActorType {
+enum LogType {
   system
-  api_keys
-  webhooks
   user
+  api_key
+  webhook
 }
 
 // ==============================
@@ -50,24 +51,23 @@ model User {
   image         String? // avatar
 
   // username plugin
-  username        String? @unique
+  username        String? @unique // slug
   displayUsername String?
 
   // phone number plugin
-  phoneNumber         String?
+  phoneNumber         String? @unique
   phoneNumberVerified Boolean @default(false)
 
   // admin plugin
-  role       String    @default("user")
-  banned     Boolean   @default(false)
+  role       String    @default("user") // user_roles
+  banned     Boolean   @default(false) // by admin
   banReason  String?
   banExpires DateTime?
 
   // 2fa plugin
-  twoFactorEnable Boolean @default(false)
+  twoFactorEnabled Boolean @default(false)
 
   // additionals
-  banner   String?
   status   UserStatus @default(pending)
   settings Json? // preferences
   metadata Json?
@@ -79,18 +79,19 @@ model User {
   // soft delete
   deletedAt DateTime?
 
-  sessions     Session[]
-  accounts     Account[]
-  twoFactors   TwoFactor[]
-  apiKeys      ApiKey[]
-  activityLogs ActivityLog[]
-  members      Member[]
-  invitations  Invitation[]
-  customers    Customer[]
-  profiles     Profile[]
+  sessions    Session[]
+  accounts    Account[]
+  twoFactors  TwoFactor[]
+  apiKeys     ApiKey[]
+  members     Member[]
+  invitations Invitation[]
+  customers   Customer[]
+  vendors     Vendor[]
+  profiles    Profile[]
 
   @@index([role])
   @@index([status, banned])
+  @@index([twoFactorEnabled])
   @@map("users")
 }
 
@@ -170,9 +171,12 @@ model Account {
 
 model Verification {
   id         String   @id @default(cuid())
-  identifier String
+  identifier String // email, phone_number, etc
   value      String
   expiresAt  DateTime
+
+  // additionals
+  metadata Json?
 
   // timestamps
   createdAt DateTime @default(now())
@@ -211,10 +215,12 @@ model ApiKey {
   start  String?
   prefix String?
 
+  // context
   enabled     Boolean @default(true)
   metadata    String?
   permissions String?
 
+  // rate limits
   rateLimitEnabled    Boolean   @default(true)
   rateLimitTimeWindow Int       @default(86400000)
   rateLimitMax        Int       @default(10)
@@ -246,16 +252,17 @@ model ApiKey {
 model UserRole {
   id         String @id @default(cuid())
   role       String @unique
-  permission String
+  permission Json // action.entity
   metadata   Json?
 
-  isSystem Boolean @default(false) // system_user_role
+  system   Boolean @default(false) // system_user_role
   enabled  Boolean @default(true)
+  position Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([isSystem, enabled])
+  @@index([system, enabled])
   @@map("user_roles")
 }
 
@@ -267,8 +274,10 @@ model RateLimit {
   id         String     @id @default(cuid())
   identifier String
   action     ActionType
+  entity     String?
   metadata   Json?
 
+  // rates
   limit       Int
   window      Int
   count       Int      @default(1)
@@ -279,33 +288,36 @@ model RateLimit {
   updatedAt DateTime @updatedAt
 
   @@index([identifier])
-  @@index([action])
+  @@index([action, entity])
   @@map("rate_limits")
 }
 
 // ==============================
-// ACTIVITY LOGS
+// AUDIT LOGS
 // ==============================
 
-model ActivityLog {
-  id     String  @id @default(cuid())
-  userId String?
+model AuditLog {
+  id        String  @id @default(cuid())
+  type      LogType @default(system)
+  actor     String // snapshot
+  actorId   String?
+  ipAddress String?
+  userAgent String?
 
-  type   ActorType  @default(system)
-  actor  String? // snapshot
-  entity String
   action ActionType
+
+  entity   String
+  entityId String?
 
   changes  Json?
   metadata Json?
 
   createdAt DateTime @default(now()) // not updated
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
   @@index([type])
   @@index([actor])
-  @@index([entity, action])
-  @@map("activity_logs")
+  @@index([action])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

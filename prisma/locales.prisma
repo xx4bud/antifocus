@@ -1,0 +1,172 @@
+// ==============================
+// COUNTRIES
+// ==============================
+
+model Country {
+  id        String  @id @default(cuid())
+  name      String // indonesian
+  code      String  @unique // ID (ISO 3166-1 alpha-2)
+  phoneCode String? /// 62
+  flag      String? // 🇮🇩
+  metadata  Json?
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeZones  TimeZone[]
+  currencies CountryCurrency[]
+
+  @@index([enabled])
+  @@map("countries")
+}
+
+// ==============================
+// COUNTRY CURRENCIES
+// ==============================
+
+model CountryCurrency {
+  id         String @id @default(cuid())
+  countryId  String
+  currencyId String
+
+  country  Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  currency Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+
+  @@unique([countryId, currencyId])
+  @@map("countries_currencies")
+}
+
+// ==============================
+// TIME ZONES
+// ==============================
+
+model TimeZone {
+  id        String @id @default(cuid())
+  countryId String
+  name      String // Asia/Jakarta
+  code      String @unique // asia/jakarta (IANA)
+  metadata  Json?
+
+  offset Int? // 25200 seconds = 7 hours
+  abbr   String? // WIB (Western Indonesia Time)
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@index([countryId])
+  @@index([enabled])
+  @@map("time_zones")
+}
+
+// ==============================
+// LANGUAGES
+// ==============================
+
+model Language {
+  id        String  @id @default(cuid())
+  name      String // indonesian
+  code      String  @unique // id-ID (IETF BCP 47)
+  flag      String? // 🇮🇩
+  direction String? @default("ltr")
+  metadata  Json?
+
+  // formats
+  dateFormat     String? @default("DD/MM/YYYY")
+  timeFormat     String? @default("HH:mm") // hh:mm A
+  firstDayOfWeek Int?    @default(1) // 0 = sunday, 1 = monday, etc
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@map("languages")
+}
+
+// ==============================
+// CURRENCIES
+// ==============================
+
+model Currency {
+  id       String @id @default(cuid())
+  name     String // indonesian rupiah
+  code     String @unique // IDR (ISO 4217)
+  symbol   String // Rp
+  metadata Json?
+
+  // formats
+  symbolPosition    String @default("before") // Rp.1000
+  decimalPlaces     Int    @default(2)
+  thousandSeparator String @default(".")
+  decimalSeparator  String @default(",")
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rates     CurrencyRate[]
+  countries CountryCurrency[]
+
+  @@index([enabled])
+  @@map("currencies")
+}
+
+// ==============================
+// CURRENCY RATES
+// ==============================
+
+model CurrencyRate {
+  id         String   @id @default(cuid())
+  providerId String // bank_indonesia
+  currencyId String
+  rate       Decimal
+  validFrom  DateTime @default(now())
+
+  currency Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([currencyId, validFrom])
+  @@map("currency_rates")
+}
+
+// ==============================
+// TAX RATES
+// ==============================
+
+model TaxRate {
+  id   String  @id @default(cuid())
+  name String // PPN 12%
+  code String  @unique // ppn-12
+  rate Decimal // 12.00
+
+  type  String  @default("percent") // fixed
+  scope String? // all, goods, services
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([enabled])
+  @@map("tax_rates")
+}

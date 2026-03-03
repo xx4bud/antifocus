@@ -1,0 +1,210 @@
+// ==============================
+// CONTACT ENUMS
+// ==============================
+
+enum DocumentType {
+  ktp
+  sim
+  passport
+  npwp
+  siup
+  nib
+  other
+}
+
+enum DocumentStatus {
+  pending
+  verified
+  rejected
+}
+
+enum AddressType {
+  shipping
+  billing
+  mixed
+}
+
+enum AddressLabel {
+  home
+  office
+  work
+  other
+}
+
+// ==============================
+// PROFILES
+// ==============================
+
+model Profile {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String?
+  storeId        String?
+  customerId     String?
+  vendorId       String?
+
+  // personal
+  name      String?
+  gender    String?
+  birthDate String?
+
+  // contacts
+  email       String?
+  phoneNumber String?
+  website     String?
+  description String? // bio
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  store        Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  vendor       Vendor?      @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  addresses    Address[]
+  documents    Document[]
+  socials      Social[]
+  bankAccounts BankAccount[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([storeId])
+  @@index([customerId])
+  @@index([vendorId])
+  @@map("profiles")
+}
+
+// ==============================
+// DOCUMENTS
+// ==============================
+
+model Document {
+  id        String       @id @default(cuid())
+  profileId String
+  type      DocumentType
+  number    String
+  metadata  Json?
+
+  // files
+  front  String?
+  back   String?
+  selfie String?
+
+  status DocumentStatus @default(pending)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("documents")
+}
+
+// ==============================
+// ADDRESSES
+// ==============================
+
+model Address {
+  id             String       @id @default(cuid())
+  organizationId String
+  profileId      String
+  type           AddressType  @default(mixed)
+  label          AddressLabel @default(home)
+  recipientName  String
+  recipientPhone String
+  recipientEmail String?
+
+  // addresses
+  addressLine1  String
+  addressLine2  String?
+  subDistrict   String
+  subDistrictId String?
+  district      String
+  districtId    String?
+  city          String
+  cityId        String?
+  province      String
+  provinceId    String?
+
+  // zones
+  postalCode  String
+  country     String @default("indonesian")
+  countryCode String @default("ID")
+
+  // geo locations
+  longitude Float?
+  latitude  Float?
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([profileId])
+  @@map("addresses")
+}
+
+// ==============================
+// SOCIALS
+// ==============================
+
+model Social {
+  id        String @id @default(cuid())
+  organizationId String
+  profileId String
+
+  platform String // instagram, tiktok, etc
+  username String
+  url      String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([profileId])
+  @@map("socials")
+}
+
+// ==============================
+// BANK ACCOUNTS
+// ==============================
+
+model BankAccount {
+  id        String @id @default(cuid())
+  organizationId String
+  profileId String
+
+  bankName      String
+  accountName   String
+  accountNumber String
+  swiftCode     String?
+  iban          String?
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([profileId])
+  @@map("bank_accounts")
+}
