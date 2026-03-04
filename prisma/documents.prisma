@@ -1,0 +1,118 @@
+// ==============================
+// DOCUMENT MANAGEMENT
+// ==============================
+
+enum DocumentRecordStatus {
+  active
+  archived
+  deleted
+}
+
+// ==============================
+// DOCUMENT FOLDERS (Hierarchy)
+// ==============================
+
+model DocumentFolder {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+
+  name        String
+  description String?
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       DocumentFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children     DocumentFolder[] @relation("FolderHierarchy")
+
+  documents DocumentRecord[]
+
+  @@unique([organizationId, parentId, name])
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("document_folders")
+}
+
+// ==============================
+// DOCUMENT RECORDS
+// ==============================
+
+model DocumentRecord {
+  id             String  @id @default(cuid())
+  organizationId String
+  folderId       String?
+  ownerId        String? // User who uploaded
+
+  name        String
+  description String?
+  fileUrl     String // Link to stored file
+  fileType    String? // pdf, png, docx
+  fileSize    Int? // bytes
+
+  status DocumentRecordStatus @default(active)
+
+  // Polymorphic link
+  resModel String? // "SaleOrder", "Employee", "PurchaseOrder"
+  resId    String?
+
+  // Access
+  isPublic Boolean @default(false)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  folder       DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  owner        User?           @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  tags DocumentRecordToTag[]
+
+  @@index([organizationId])
+  @@index([folderId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([resModel, resId])
+  @@map("document_records")
+}
+
+// ==============================
+// DOCUMENT TAGS
+// ==============================
+
+model DocumentTag {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String
+  color String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents    DocumentRecordToTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("document_tags")
+}
+
+// ==============================
+// DOCUMENT ↔ TAG (Many-to-Many)
+// ==============================
+
+model DocumentRecordToTag {
+  id         String @id @default(cuid())
+  documentId String
+  tagId      String
+
+  document DocumentRecord @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag      DocumentTag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, tagId])
+  @@map("document_record_to_tags")
+}

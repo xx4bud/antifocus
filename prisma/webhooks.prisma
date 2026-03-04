@@ -1,0 +1,144 @@
+// ==============================
+// INTEGRATION & WEBHOOK ENUMS
+// ==============================
+
+enum IntegrationProvider {
+  shopify
+  woocommerce
+  tiktok_shop
+  shopee
+  tokopedia
+  lazada
+  xero
+  quickbooks
+  stripe
+  midtrans
+  xendit
+  custom
+}
+
+enum WebhookMethod {
+  POST
+  PUT
+  PATCH
+  DELETE
+}
+
+// ==============================
+// INTEGRATIONS (3rd Party Synced Apps)
+// ==============================
+
+model Integration {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  provider    IntegrationProvider
+  description String?
+
+  // Credentials (usually encrypted or referenced externally)
+  apiKey       String?
+  apiSecret    String?
+  accessToken  String?
+  refreshToken String?
+  shopUrl      String? // For shopify/woo
+
+  // Config
+  settings Json? // Mapping rules, sync intervals
+  active   Boolean @default(true)
+
+  lastSyncAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         IntegrationLog[]
+
+  @@index([organizationId])
+  @@index([provider])
+  @@index([active])
+  @@map("integrations")
+}
+
+// ==============================
+// INTEGRATION LOGS
+// ==============================
+
+model IntegrationLog {
+  id            String @id @default(cuid())
+  integrationId String
+
+  action   String // "sync_orders", "export_products"
+  status   String // success, error
+  errorMsg String?
+  recordsP Int     @default(0) // Records processed
+
+  requestData  Json?
+  responseData Json?
+
+  createdAt DateTime @default(now())
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("integration_logs")
+}
+
+// ==============================
+// WEBHOOKS (Outgoing Events)
+// ==============================
+
+model Webhook {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name    String
+  url     String
+  method  WebhookMethod @default(POST)
+  events  String[] // ["order.created", "product.updated"]
+  headers Json? // Custom headers { "Authorization": "Bearer..." }
+  secret  String? // For payload signing
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         WebhookLog[]
+
+  @@index([organizationId])
+  @@index([active])
+  @@map("webhooks")
+}
+
+// ==============================
+// WEBHOOK LOGS (Deliveries)
+// ==============================
+
+model WebhookLog {
+  id        String @id @default(cuid())
+  webhookId String
+
+  event        String // The event that triggered it
+  url          String
+  status       Int // HTTP status code (200, 500)
+  errorMessage String?
+
+  requestPayload  Json?
+  responseHeaders Json?
+  responseBody    String?
+  durationMs      Int?
+
+  createdAt DateTime @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}

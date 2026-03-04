@@ -1,0 +1,209 @@
+// ==============================
+// LOYALTY ENUMS
+// ==============================
+
+enum LoyaltyProgramType {
+  points // Earn points per purchase
+  tier // Membership tiers (Bronze/Silver/Gold)
+  cashback // Cashback percentage
+  stamp // Buy X get 1 free
+}
+
+enum LoyaltyTrigger {
+  order // On successful order
+  amount // Based on order amount
+  product // Specific product purchase
+  referral // Referred new customer
+  birthday // On birthday
+  signup // New member registration
+}
+
+enum LoyaltyRewardType {
+  discount_percentage
+  discount_fixed
+  free_product
+  free_shipping
+  upgrade // Tier upgrade
+}
+
+enum LoyaltyTransactionType {
+  earn
+  redeem
+  expire
+  adjust // Manual adjustment
+  refund // Points returned
+}
+
+// ==============================
+// LOYALTY PROGRAMS
+// ==============================
+
+model LoyaltyProgram {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+  type        LoyaltyProgramType @default(points)
+
+  // Config
+  pointsPerUnit  Decimal @default(1) // Points per 1 unit of currency spent
+  pointsRounding String  @default("floor") // floor, ceil, round
+  expiryDays     Int? // Points expire after N days (null = never)
+
+  enabled   Boolean   @default(true)
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rules        LoyaltyRule[]
+  rewards      LoyaltyReward[]
+  cards        LoyaltyCard[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([enabled])
+  @@index([type])
+  @@map("loyalty_programs")
+}
+
+// ==============================
+// LOYALTY RULES (How to earn)
+// ==============================
+
+model LoyaltyRule {
+  id        String @id @default(cuid())
+  programId String
+
+  name        String
+  trigger     LoyaltyTrigger @default(order)
+  pointsGiven Decimal        @default(1) // Points awarded
+
+  // Conditions
+  minAmount   Decimal? // Min order amount
+  productIds  String[] // Specific products
+  categoryIds String[] // Specific categories
+  multiplier  Decimal  @default(1) // 2x points weekend, etc.
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([trigger])
+  @@index([enabled])
+  @@map("loyalty_rules")
+}
+
+// ==============================
+// LOYALTY REWARDS (How to redeem)
+// ==============================
+
+model LoyaltyReward {
+  id        String @id @default(cuid())
+  programId String
+
+  name        String
+  description String?
+  type        LoyaltyRewardType @default(discount_percentage)
+  image       String?
+
+  // Cost
+  pointsCost Decimal // How many points to redeem
+
+  // Value
+  discountValue Decimal? // Percentage or fixed amount
+  productId     String? // Free product (if applicable)
+  maxDiscount   Decimal? // Cap for percentage discounts
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([type])
+  @@index([enabled])
+  @@map("loyalty_rewards")
+}
+
+// ==============================
+// LOYALTY CARDS (Customer Membership)
+// ==============================
+
+model LoyaltyCard {
+  id         String @id @default(cuid())
+  programId  String
+  customerId String
+
+  // Balance
+  pointsBalance Decimal @default(0)
+  totalEarned   Decimal @default(0)
+  totalRedeemed Decimal @default(0)
+
+  // Tier
+  tierLevel String? // bronze, silver, gold, platinum
+  tierSince DateTime?
+
+  // Stats
+  orderCount Int     @default(0)
+  totalSpent Decimal @default(0)
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  program      LoyaltyProgram       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions LoyaltyTransaction[]
+
+  @@unique([programId, customerId])
+  @@index([programId])
+  @@index([customerId])
+  @@index([active])
+  @@index([tierLevel])
+  @@map("loyalty_cards")
+}
+
+// ==============================
+// LOYALTY TRANSACTIONS (Points Ledger)
+// ==============================
+
+model LoyaltyTransaction {
+  id     String @id @default(cuid())
+  cardId String
+
+  type        LoyaltyTransactionType
+  points      Decimal // Positive for earn, negative for redeem
+  description String?
+
+  // Reference
+  orderId String? // Related sale order
+
+  // Expiry
+  expiresAt DateTime?
+  expired   Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+
+  card LoyaltyCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+  @@index([type])
+  @@index([orderId])
+  @@index([expiresAt])
+  @@map("loyalty_transactions")
+}

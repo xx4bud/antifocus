@@ -1,0 +1,90 @@
+// ==============================
+// KNOWLEDGE BASE ENUMS
+// ==============================
+
+enum ArticleVisibility {
+  internal // Only employees
+  public // Customer-facing FAQ
+  private // Only author & admins
+}
+
+// ==============================
+// KNOWLEDGE CATEGORIES
+// ==============================
+
+model KnowledgeCategory {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+
+  name        String
+  slug        String
+  description String?
+  icon        String?
+  color       String?
+  position    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       KnowledgeCategory?  @relation("KnowledgeCategoryHierarchy", fields: [parentId], references: [id])
+  children     KnowledgeCategory[] @relation("KnowledgeCategoryHierarchy")
+  articles     KnowledgeArticle[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("knowledge_categories")
+}
+
+// ==============================
+// KNOWLEDGE ARTICLES
+// ==============================
+
+model KnowledgeArticle {
+  id             String  @id @default(cuid())
+  organizationId String
+  categoryId     String?
+  authorId       String?
+
+  title   String
+  slug    String
+  content String // Rich text / markdown
+  excerpt String? // Summary for listing
+
+  visibility ArticleVisibility @default(internal)
+
+  // SEO & display
+  coverImage String?
+  tags       String[]
+
+  // Stats
+  viewCount    Int @default(0)
+  helpfulCount Int @default(0) // "Was this helpful?" yes count
+
+  // Status
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  pinned      Boolean   @default(false)
+
+  // Version
+  version Int @default(1)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     KnowledgeCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author       User?              @relation("KnowledgeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([visibility])
+  @@index([published])
+  @@map("knowledge_articles")
+}

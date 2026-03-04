@@ -1,0 +1,162 @@
+// ==============================
+// FLEET ENUMS
+// ==============================
+
+enum VehicleStatus {
+  available
+  in_use
+  maintenance
+  decommissioned
+}
+
+enum VehicleFuelType {
+  gasoline
+  diesel
+  electric
+  hybrid
+}
+
+// ==============================
+// VEHICLES
+// ==============================
+
+model Vehicle {
+  id             String  @id @default(cuid())
+  organizationId String
+  storeId        String? // Assigned base location
+
+  name         String // "Pickup Box #1"
+  licensePlate String
+  type         String // motor, mobil, pickup, truck, van
+  brand        String? // Honda, Toyota, Mitsubishi
+  model        String?
+  year         Int?
+  color        String?
+
+  status   VehicleStatus   @default(available)
+  fuelType VehicleFuelType @default(gasoline)
+
+  // Odometer
+  odometerKm Decimal @default(0)
+
+  // Insurance
+  insuranceExpiry    DateTime?
+  registrationExpiry DateTime?
+
+  // Costs
+  purchaseDate  DateTime?
+  purchasePrice Decimal?
+
+  image    String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  store             Store?             @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  services          VehicleService[]
+  fuelLogs          FuelLog[]
+  driverAssignments DriverAssignment[]
+
+  @@unique([organizationId, licensePlate])
+  @@index([organizationId])
+  @@index([storeId])
+  @@index([status])
+  @@map("vehicles")
+}
+
+// ==============================
+// VEHICLE SERVICES (Maintenance Log)
+// ==============================
+
+model VehicleService {
+  id        String @id @default(cuid())
+  vehicleId String
+
+  serviceType String // oil_change, tire, brake, general, inspection
+  description String?
+  vendor      String? // Workshop name
+
+  // Cost
+  cost     Decimal @default(0)
+  currency String? @default("IDR")
+
+  // Odometer at service
+  odometerKm Decimal?
+
+  serviceDate     DateTime  @default(now())
+  nextServiceDate DateTime?
+  nextServiceKm   Decimal?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([serviceType])
+  @@index([serviceDate])
+  @@map("vehicle_services")
+}
+
+// ==============================
+// FUEL LOGS
+// ==============================
+
+model FuelLog {
+  id        String  @id @default(cuid())
+  vehicleId String
+  driverId  String? // Employee who refueled
+
+  fuelType      String // pertamax, pertalite, solar, electric
+  liters        Decimal
+  cost          Decimal
+  pricePerLiter Decimal?
+
+  odometerKm  Decimal?
+  fuelStation String? // Gas station name
+
+  date DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver  Employee? @relation("FuelLogDriver", fields: [driverId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([date])
+  @@map("fuel_logs")
+}
+
+// ==============================
+// DRIVER ASSIGNMENTS
+// ==============================
+
+model DriverAssignment {
+  id         String @id @default(cuid())
+  vehicleId  String
+  employeeId String
+
+  // Assignment period
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  active    Boolean   @default(true)
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicle  Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  employee Employee @relation("DriverAssignment", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([employeeId])
+  @@index([active])
+  @@map("driver_assignments")
+}

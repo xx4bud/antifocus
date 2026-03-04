@@ -1,0 +1,131 @@
+// ==============================
+// LEAVE ENUMS
+// ==============================
+
+enum LeaveRequestStatus {
+  draft
+  submitted
+  approved
+  refused
+  canceled
+}
+
+enum AllocationMode {
+  fixed // Fixed days per year
+  accrual // Earn over time
+}
+
+// ==============================
+// LEAVE TYPES
+// ==============================
+
+model LeaveType {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String // "Annual Leave", "Sick Leave", "Maternity"
+  code  String // annual, sick, maternity
+  color String?
+
+  // Policy
+  requiresApproval Boolean  @default(true)
+  requiresDocument Boolean  @default(false) // e.g. medical certificate
+  maxDays          Decimal? // Max days per allocation period
+  isPaid           Boolean  @default(true)
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  allocations  LeaveAllocation[]
+  requests     LeaveRequest[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([active])
+  @@map("leave_types")
+}
+
+// ==============================
+// LEAVE ALLOCATIONS (Jatah cuti per karyawan)
+// ==============================
+
+model LeaveAllocation {
+  id             String @id @default(cuid())
+  organizationId String
+  employeeId     String
+  leaveTypeId    String
+
+  // Allocation
+  mode          AllocationMode @default(fixed)
+  totalDays     Decimal        @default(0)
+  usedDays      Decimal        @default(0)
+  remainingDays Decimal        @default(0)
+
+  // Period
+  dateFrom DateTime
+  dateTo   DateTime
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType    LeaveType    @relation(fields: [leaveTypeId], references: [id])
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([leaveTypeId])
+  @@map("leave_allocations")
+}
+
+// ==============================
+// LEAVE REQUESTS
+// ==============================
+
+model LeaveRequest {
+  id             String  @id @default(cuid())
+  organizationId String
+  employeeId     String
+  leaveTypeId    String
+  approverId     String?
+
+  status LeaveRequestStatus @default(draft)
+
+  dateFrom  DateTime
+  dateTo    DateTime
+  totalDays Decimal  @default(1)
+  isHalfDay Boolean  @default(false)
+
+  reason      String?
+  documentUrl String? // Medical cert, etc.
+
+  // Approval
+  submittedAt  DateTime?
+  approvedAt   DateTime?
+  refusedAt    DateTime?
+  refuseReason String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType    LeaveType    @relation(fields: [leaveTypeId], references: [id])
+  approver     User?        @relation("LeaveApprover", fields: [approverId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([leaveTypeId])
+  @@index([status])
+  @@index([dateFrom, dateTo])
+  @@map("leave_requests")
+}

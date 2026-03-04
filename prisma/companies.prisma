@@ -71,7 +71,6 @@ model Organization {
   units             Unit[]
   categories        Category[]
   attributes        Attribute[]
-  options           Option[]
   products          Product[]
   variants          Variant[]
   values            Value[]
@@ -79,6 +78,170 @@ model Organization {
   tags              Tag[]
   medias            Media[]
   banners           Banner[]
+  carts             Cart[]
+  saleOrders        SaleOrder[]
+  purchaseOrders    PurchaseOrder[]
+  accountMoves      AccountMove[]
+  payments          Payment[]
+  stockLocations    StockLocation[]
+  stockPickings     StockPicking[]
+  stockMoves        StockMove[]
+  priceLists        PriceList[]
+  stockStores       StockStore[]
+
+  // Manufacturing
+  billOfMaterials     BillOfMaterial[]
+  manufacturingOrders ManufacturingOrder[]
+
+  // Discounts
+  coupons       Coupon[]
+  discountRules DiscountRule[]
+
+  // Returns
+  returnOrders ReturnOrder[]
+
+  // Shipping
+  shippingMethods ShippingMethod[]
+  shipments       Shipment[]
+
+  // Accounting (Chart of Accounts)
+  accounts ChartOfAccount[]
+
+  // Communications
+  notifications Notification[]
+  activities    Activity[]
+
+  // HR
+  departments Department[]
+  employees   Employee[]
+
+  // CRM
+  leadStages LeadStage[]
+  leads      Lead[]
+
+  // Reviews
+  productReviews ProductReview[]
+
+  // Taxes
+  fiscalPositions FiscalPosition[]
+
+  // Helpdesk
+  ticketStages TicketStage[]
+  ticketTags   TicketTag[]
+  tickets      Ticket[]
+
+  // Quality
+  qualityPoints QualityPoint[]
+  qualityChecks QualityCheck[]
+  qualityAlerts QualityAlert[]
+
+  // Projects
+  projectStages   ProjectStage[]
+  projects        Project[]
+  projectTaskTags ProjectTaskTag[]
+  projectTasks    ProjectTask[]
+  timesheets      Timesheet[]
+
+  // POS
+  posSessions PosSession[]
+  posOrders   PosOrder[]
+
+  // Marketplace
+  marketplaces Marketplace[]
+
+  // Messaging
+  messageChannels MessageChannel[]
+  messageLogs     MessageLog[]
+
+  // Website
+  webMenus  WebMenu[]
+  webPages  WebPage[]
+  blogPosts BlogPost[]
+
+  // Email Marketing
+  subscriberLists SubscriberList[]
+  emailTemplates  EmailTemplate[]
+  emailCampaigns  EmailCampaign[]
+
+  // Expenses
+  expenseReports ExpenseReport[]
+
+  // Leaves
+  leaveTypes       LeaveType[]
+  leaveAllocations LeaveAllocation[]
+  leaveRequests    LeaveRequest[]
+
+  // Payroll
+  salaryRules SalaryRule[]
+  payslipRuns PayslipRun[]
+  payslips    Payslip[]
+
+  // Approvals
+  approvalCategories ApprovalCategory[]
+  approvalRequests   ApprovalRequest[]
+
+  // Documents
+  documentFolders DocumentFolder[]
+  documentRecords DocumentRecord[]
+  documentTags    DocumentTag[]
+
+  // Subscriptions
+  subscriptions Subscription[]
+
+  // Surveys
+  surveys Survey[]
+
+  // Design Assets (POD)
+  designTemplates DesignTemplate[]
+  designAssets    DesignAsset[]
+  mockupPresets   MockupPreset[]
+
+  // Maintenance
+  equipmentCategories  EquipmentCategory[]
+  equipment            Equipment[]
+  maintenanceRequests  MaintenanceRequest[]
+  maintenanceSchedules MaintenanceSchedule[]
+
+  // Frontdesk
+  visitPurposes     VisitPurpose[]
+  frontdeskStations FrontdeskStation[]
+  visitors          Visitor[]
+
+  // Loyalty
+  loyaltyPrograms LoyaltyProgram[]
+
+  // Fleet
+  vehicles Vehicle[]
+
+  // Recruitment
+  jobPositions    JobPosition[]
+  interviewStages InterviewStage[]
+
+  // Knowledge Base
+  knowledgeCategories KnowledgeCategory[]
+  knowledgeArticles   KnowledgeArticle[]
+  integrations        Integration[]
+  webhooks            Webhook[]
+  automationRules     AutomationRule[]
+  scheduledActions    ScheduledAction[]
+  actionLogs          ActionLog[]
+  sequences           Sequence[]
+  workflowTemplates   WorkflowTemplate[]
+
+  // Reports
+  reportTemplates ReportTemplate[]
+  savedReports    SavedReport[]
+  reportSchedules ReportSchedule[]
+
+  // Discussions
+  channels  Channel[]
+  followers Follower[]
+  notes     RecordNote[]
+
+  // Data Management
+  dataExportJobs  DataExportJob[]
+  dataImportJobs  DataImportJob[]
+  databaseBackups DatabaseBackup[]
 
   @@index([status, banned])
   @@map("organizations")
@@ -189,7 +352,25 @@ model Customer {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  profiles Profile[]
+  profiles     Profile[]
+  saleOrders   SaleOrder[]
+  returnOrders ReturnOrder[]
+
+  // CRM
+  leads Lead[]
+
+  // Reviews
+  productReviews ProductReview[] @relation("CustomerReviews")
+  subscriptions  Subscription[]
+  tickets        Ticket[]
+  posOrders      PosOrder[]
+  projects       Project[]
+
+  // Loyalty
+  loyaltyCards LoyaltyCard[]
+
+  // Design Assets
+  designAssets DesignAsset[]
 
   @@unique([organizationId, userId])
   @@index([enabled])
@@ -211,10 +392,14 @@ model Vendor {
   tags     String[]
   metadata Json?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  profiles Profile[]
+  profiles       Profile[]
+  purchaseOrders PurchaseOrder[]
 
   @@unique([organizationId, userId])
   @@index([enabled])

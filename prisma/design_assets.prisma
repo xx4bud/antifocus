@@ -1,0 +1,220 @@
+// ==============================
+// DESIGN ASSETS ENUMS (POD-Specific)
+// ==============================
+
+enum DesignStatus {
+  draft
+  in_review
+  approved
+  rejected
+  archived
+}
+
+enum DesignFileType {
+  source // .ai, .psd, .cdr
+  print_ready // .pdf, .tiff
+  preview // .png, .jpg, .webp
+  vector // .svg, .eps
+  mockup // mockup renders
+}
+
+enum DesignApprovalStatus {
+  pending
+  approved
+  revision_requested
+  rejected
+}
+
+// ==============================
+// DESIGN TEMPLATES (Reusable)
+// ==============================
+
+model DesignTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  slug        String
+  description String?
+  thumbnail   String? // Preview image URL
+
+  // Classification
+  category   String? // e.g. "t-shirt", "mug", "banner", "sticker"
+  tags       String[]
+  dimensions Json? // { width, height, unit, dpi }
+
+  // Print specs
+  printMethod String? // dtg, dtf, sublimation, screen_print, uv, offset
+  colorMode   String?  @default("CMYK") // CMYK, RGB
+  bleed       Decimal? // in mm
+  safeZone    Decimal? // in mm
+
+  // File
+  fileUrl  String? // Template file URL
+  fileType DesignFileType?
+  fileSize Int? // in bytes
+
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assets       DesignAsset[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([category])
+  @@index([printMethod])
+  @@index([enabled])
+  @@map("design_templates")
+}
+
+// ==============================
+// DESIGN ASSETS (Per Order/Product)
+// ==============================
+
+model DesignAsset {
+  id             String  @id @default(cuid())
+  organizationId String
+  templateId     String? // If based on a template
+  productId      String? // Linked product
+  variantId      String? // Linked variant
+  saleOrderId    String? // Linked sale order
+  customerId     String? // Design owner/requester
+
+  name        String
+  description String?
+  status      DesignStatus @default(draft)
+
+  // Current version
+  currentVersion Int @default(1)
+
+  // Print specs
+  printMethod String? // dtg, dtf, sublimation, etc.
+  colorMode   String?  @default("CMYK")
+  dimensions  Json? // { width, height, unit, dpi }
+  colorCount  Int? // Number of colors (for screen printing)
+  pantoneRefs String[] // Pantone color references
+
+  // Source
+  sourceFileUrl String? // Original design file
+  previewUrl    String? // Preview/mockup image
+  printFileUrl  String? // Print-ready file
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     DesignTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  product      Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant      Variant?        @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  saleOrder    SaleOrder?      @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+  customer     Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  revisions DesignRevision[]
+  approvals DesignApproval[]
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([productId])
+  @@index([saleOrderId])
+  @@index([customerId])
+  @@index([status])
+  @@index([printMethod])
+  @@map("design_assets")
+}
+
+// ==============================
+// DESIGN REVISIONS (Version History)
+// ==============================
+
+model DesignRevision {
+  id      String @id @default(cuid())
+  assetId String
+
+  version     Int // 1, 2, 3...
+  description String? // Change notes
+
+  // Files
+  sourceFileUrl String? // The design source
+  previewUrl    String? // Preview render
+  printFileUrl  String? // Print-ready version
+
+  fileType DesignFileType?
+  fileSize Int? // in bytes
+
+  // Who
+  uploadedById String? // User who uploaded
+
+  createdAt DateTime @default(now())
+
+  asset DesignAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, version])
+  @@index([assetId])
+  @@map("design_revisions")
+}
+
+// ==============================
+// DESIGN APPROVALS (Customer/Manager Sign-off)
+// ==============================
+
+model DesignApproval {
+  id      String @id @default(cuid())
+  assetId String
+
+  approverId String? // User/customer who approves
+  role       String? // "customer", "designer", "manager"
+
+  status  DesignApprovalStatus @default(pending)
+  comment String?
+
+  // Decision
+  decidedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  asset DesignAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([approverId])
+  @@index([status])
+  @@map("design_approvals")
+}
+
+// ==============================
+// MOCKUP PRESETS (Product Mockup Templates)
+// ==============================
+
+model MockupPreset {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  productType String // t-shirt, hoodie, mug, tote_bag, etc.
+  angle       String? // front, back, left, right, perspective
+
+  // Template image
+  baseImageUrl String // The blank product mockup
+  overlayArea  Json? // { x, y, width, height } — where design goes
+  outputFormat String? @default("png") // png, jpg, webp
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([productType])
+  @@index([enabled])
+  @@map("mockup_presets")
+}

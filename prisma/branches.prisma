@@ -21,10 +21,16 @@ model Store {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  profiles Profile[]
-  stocks   StockStore[]
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profiles          Profile[]
+  stocks            StockStore[]
+  saleOrders        SaleOrder[]
+  purchaseOrders    PurchaseOrder[]
+  stockLocations    StockLocation[]
+  posSessions       PosSession[]
+  equipment         Equipment[]
+  frontdeskStations FrontdeskStation[]
+  vehicles          Vehicle[]
 
   @@unique([organizationId, slug])
   @@index([status, enabled])
@@ -36,9 +42,10 @@ model Store {
 // ==============================
 
 model StockStore {
-  id        String  @id @default(cuid())
-  storeId   String
-  variantId String?
+  id             String  @id @default(cuid())
+  organizationId String
+  storeId        String
+  variantId      String?
 
   quantity  Decimal @default(0)
   reserved  Decimal @default(0)
@@ -48,9 +55,11 @@ model StockStore {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  store   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  variant Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  variant      Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, variantId])
+  @@index([organizationId])
   @@map("stock_stores")
 }

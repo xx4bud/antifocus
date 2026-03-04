@@ -1,0 +1,50 @@
+// ==============================
+// CHART OF ACCOUNTS ENUMS
+// ==============================
+
+enum AccountType {
+  asset // Kas, Bank, Piutang
+  liability // Hutang Usaha, Pinjaman
+  equity // Modal
+  income // Pendapatan Penjualan
+  expense // Beban Pokok Penjualan, Gaji, Operasional
+}
+
+// ==============================
+// CHART OF ACCOUNTS (CoA)
+// ==============================
+
+model ChartOfAccount {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String? // For grouping (e.g. Current Assets -> Cash)
+
+  code String // 1-1100
+  name String // Kas & Bank
+  type AccountType
+
+  // Financial tracking (optional denormalization)
+  currentBalance Decimal @default(0)
+
+  // Reconciliation settings
+  reconcile Boolean @default(true)
+  metadata  Json?
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("AccountHierarchy")
+
+  moveLines AccountMoveLine[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([type])
+  @@index([parentId])
+  @@map("chart_of_accounts")
+}

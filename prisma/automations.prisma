@@ -1,0 +1,112 @@
+// ==============================
+// AUTOMATIONS ENUMS
+// ==============================
+
+enum AutomationTrigger {
+  on_create
+  on_update
+  on_delete
+  time_based // cron
+  webhook_received
+}
+
+enum AutomationActionType {
+  send_email
+  send_whatsapp
+  create_record
+  update_record
+  call_webhook
+  execute_code // Run predefined serverless func / snippet
+}
+
+// ==============================
+// AUTOMATION RULES
+// ==============================
+
+model AutomationRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+  targetModel String? // The model to listen to (if trigger is DB-based)
+
+  // Trigger
+  trigger   AutomationTrigger
+  cronExpr  String? // e.g., "0 0 * * *" for time_based
+  condition Json? // Filter condition on the model { "status": "draft" }
+
+  // Action
+  actionType AutomationActionType
+  actionData Json // Action payload/config (e.g., webhook URL, email template)
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         ActionLog[]
+
+  @@index([organizationId])
+  @@index([trigger])
+  @@index([targetModel])
+  @@map("automation_rules")
+}
+
+// ==============================
+// SCHEDULED ACTIONS (Cron Jobs list for UI)
+// ==============================
+
+model ScheduledAction {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String
+  cronExpr String
+  jobName  String // Internal worker job ID/Name to trigger
+  payload  Json?
+
+  nextRunAt DateTime?
+  lastRunAt DateTime?
+  active    Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([active])
+  @@index([nextRunAt])
+  @@map("scheduled_actions")
+}
+
+// ==============================
+// ACTION LOGS (Execution History)
+// ==============================
+
+model ActionLog {
+  id             String  @id @default(cuid())
+  ruleId         String? // Link to automation rule if applicable
+  organizationId String?
+
+  actionName String // "Send Email", "Update Status"
+  status     String // success, error
+  errorMsg   String?
+  durationMs Int?
+
+  payload Json? // Input data
+  result  Json? // Output/Response
+
+  createdAt DateTime @default(now())
+
+  rule         AutomationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("action_logs")
+}

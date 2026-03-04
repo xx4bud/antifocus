@@ -1,0 +1,139 @@
+// ==============================
+// HR ENUMS
+// ==============================
+
+enum EmploymentType {
+  full_time
+  part_time
+  contract
+  intern
+  freelance
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+  leave_paid
+  leave_unpaid
+}
+
+// ==============================
+// DEPARTMENTS
+// ==============================
+
+model Department {
+  id             String  @id @default(cuid())
+  organizationId String
+  managerId      String? // Employee ID of manager
+  parentId       String?
+
+  name        String
+  description String?
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  manager      Employee?    @relation("DepartmentManager", fields: [managerId], references: [id])
+  parent       Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children     Department[] @relation("DepartmentHierarchy")
+
+  employees    Employee[]
+  jobPositions JobPosition[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("departments")
+}
+
+// ==============================
+// EMPLOYEES
+// ==============================
+
+model Employee {
+  id             String  @id @default(cuid())
+  organizationId String
+  profileId      String  @unique // Links to global contact profile
+  userId         String? @unique // Links to user account (if they log in)
+  departmentId   String?
+  managerId      String? // Direct supervisor
+
+  jobTitle       String
+  employmentType EmploymentType @default(full_time)
+
+  // Dates
+  hireDate DateTime  @default(now())
+  endDate  DateTime? // if terminated
+
+  // Salary
+  baseSalary Decimal?
+  currencyId String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile      Profile      @relation(fields: [profileId], references: [id])
+  user         User?        @relation("UserEmployee", fields: [userId], references: [id], onDelete: SetNull)
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  manager      Employee?    @relation("EmployeeManager", fields: [managerId], references: [id])
+
+  managedEmployees   Employee[]   @relation("EmployeeManager")
+  managedDepartments Department[] @relation("DepartmentManager")
+  attendances        Attendance[]
+
+  // Projects
+  timesheets Timesheet[]
+
+  // Expenses
+  expenseReports ExpenseReport[]
+
+  // Leaves
+  leaveAllocations LeaveAllocation[]
+  leaveRequests    LeaveRequest[]
+
+  // Payroll
+  payslips Payslip[]
+
+  // Frontdesk
+  visitors Visitor[] @relation("VisitorHost")
+
+  // Fleet
+  fuelLogs          FuelLog[]          @relation("FuelLogDriver")
+  driverAssignments DriverAssignment[] @relation("DriverAssignment")
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([managerId])
+  @@index([jobTitle])
+  @@map("employees")
+}
+
+// ==============================
+// ATTENDANCES (Time Tracking)
+// ==============================
+
+model Attendance {
+  id         String    @id @default(cuid())
+  employeeId String
+  checkIn    DateTime
+  checkOut   DateTime?
+
+  status       AttendanceStatus @default(present)
+  workingHours Decimal? // calculated difference
+  note         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([checkIn])
+  @@map("attendances")
+}

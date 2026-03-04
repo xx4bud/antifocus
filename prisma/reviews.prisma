@@ -1,0 +1,52 @@
+// ==============================
+// REVIEW ENUMS
+// ==============================
+
+enum ReviewStatus {
+  pending
+  approved
+  rejected
+  archived
+}
+
+// ==============================
+// PRODUCT REVIEWS
+// ==============================
+
+model ProductReview {
+  id             String  @id @default(cuid())
+  organizationId String
+  productId      String
+  customerId     String
+  saleOrderId    String? // Associated purchase
+
+  rating  Int      @default(5) // 1 to 5 stars
+  title   String?
+  content String?
+  images  String[] // URLs to images
+
+  status             ReviewStatus @default(pending)
+  isVerifiedPurchase Boolean      @default(false)
+  reply              String? // Admin reply
+
+  likes    Int @default(0)
+  dislikes Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation("ProductReviews", fields: [productId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation("CustomerReviews", fields: [customerId], references: [id], onDelete: Cascade)
+  saleOrder    SaleOrder?   @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, customerId, saleOrderId])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([customerId])
+  @@index([rating])
+  @@index([status])
+  @@map("product_reviews")
+}

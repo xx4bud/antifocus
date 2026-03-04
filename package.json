@@ -16,6 +16,7 @@
     "db:generate": "pnpm with:env drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "pnpm with:env drizzle-kit migrate --config drizzle.config.ts",
     "db:seed": "pnpm with:env tsx scripts/seed-main.ts",
+    "prisma": "pnpm dlx prisma format && pnpm dlx prisma validate",
     "prepare": "husky"
   },
   "dependencies": {

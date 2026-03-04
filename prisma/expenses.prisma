@@ -1,0 +1,85 @@
+// ==============================
+// EXPENSE ENUMS
+// ==============================
+
+enum ExpenseStatus {
+  draft
+  submitted
+  approved
+  refused
+  posted // Accounting entry created
+}
+
+// ==============================
+// EXPENSE REPORTS
+// ==============================
+
+model ExpenseReport {
+  id             String  @id @default(cuid())
+  organizationId String
+  employeeId     String
+  approverId     String? // Manager who approves
+
+  name   String // "Business Trip Jakarta Feb 2026"
+  status ExpenseStatus @default(draft)
+
+  // Financials
+  totalAmount   Decimal @default(0)
+  currencyId    String?
+  accountMoveId String? // Linked journal entry after posting
+
+  // Dates
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  postedAt    DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  approver     User?        @relation("ExpenseApprover", fields: [approverId], references: [id], onDelete: SetNull)
+
+  lines ExpenseLine[]
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([approverId])
+  @@index([status])
+  @@map("expense_reports")
+}
+
+// ==============================
+// EXPENSE LINES
+// ==============================
+
+model ExpenseLine {
+  id       String @id @default(cuid())
+  reportId String
+
+  name      String // "Taxi to airport"
+  category  String // travel, meals, supplies, office, other
+  date      DateTime
+  amount    Decimal
+  quantity  Decimal  @default(1)
+  unitPrice Decimal  @default(0)
+
+  // Proof
+  receiptUrl  String? // Uploaded receipt
+  description String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  report ExpenseReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([category])
+  @@index([date])
+  @@map("expense_lines")
+}

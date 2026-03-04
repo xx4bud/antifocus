@@ -15,7 +15,7 @@ enum BannerPlacement {
 // ==============================
 
 model Banner {
-  id             String  @id @default(uuid())
+  id             String  @id @default(cuid())
   organizationId String
   categoryId     String?
   collectionId   String?
@@ -49,5 +49,7 @@ model Banner {
   @@index([categoryId])
   @@index([collectionId])
   @@index([placement])
+  @@index([position])
+  @@index([enabled, startDate, endDate])
   @@map("banners")
 }

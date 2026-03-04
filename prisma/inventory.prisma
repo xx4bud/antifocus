@@ -1,0 +1,151 @@
+// ==============================
+// INVENTORY ENUMS
+// ==============================
+
+enum LocationType {
+  vendor
+  view
+  internal // store/warehouse
+  customer
+  inventory // loss/adjustments
+  production
+  transit
+}
+
+enum PickingType {
+  incoming // receipts from vendor
+  outgoing // deliveries to customer
+  internal // transfer between stores
+}
+
+enum PickingStatus {
+  draft
+  waiting
+  confirmed
+  assigned // ready
+  done
+  canceled
+}
+
+// ==============================
+// STOCK LOCATIONS
+// ==============================
+
+model StockLocation {
+  id             String  @id @default(cuid())
+  organizationId String
+  storeId        String? // if it belongs to a specific store
+  parentId       String?
+
+  name    String
+  type    LocationType @default(internal)
+  barcode String?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  store        Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  parent   StockLocation?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children StockLocation[] @relation("LocationHierarchy")
+
+  movesSource StockMove[] @relation("MoveSourceLocation")
+  movesDest   StockMove[] @relation("MoveDestLocation")
+
+  @@index([organizationId])
+  @@index([storeId])
+  @@index([parentId])
+  @@index([type])
+  @@map("stock_locations")
+}
+
+// ==============================
+// STOCK PICKINGS (DELIVERIES/RECEIPTS)
+// ==============================
+
+model StockPicking {
+  id              String  @id @default(cuid())
+  organizationId  String
+  saleOrderId     String?
+  purchaseOrderId String?
+  profileId       String? // Customer or Vendor destination/source
+
+  name        String        @unique // WH/OUT/001
+  pickingType PickingType
+  status      PickingStatus @default(draft)
+
+  scheduledDate DateTime?
+  dateDone      DateTime?
+
+  origin   String? // e.g. SO-2026-0001
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  saleOrder     SaleOrder?     @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  profile       Profile?       @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  moves         StockMove[]
+  shipments     Shipment[]
+  qualityChecks QualityCheck[]
+
+  @@index([organizationId])
+  @@index([saleOrderId])
+  @@index([purchaseOrderId])
+  @@index([pickingType])
+  @@index([status])
+  @@map("stock_pickings")
+}
+
+// ==============================
+// STOCK MOVES (DOUBLE ENTRY LEDGER)
+// ==============================
+
+model StockMove {
+  id             String  @id @default(cuid())
+  organizationId String
+  pickingId      String?
+  productId      String
+  variantId      String
+
+  sourceLocationId String
+  destLocationId   String
+
+  name           String // description of move
+  quantityDemand Decimal @default(0)
+  quantityDone   Decimal @default(0)
+
+  status PickingStatus @default(draft)
+  date   DateTime      @default(now())
+
+  reference String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  picking      StockPicking? @relation(fields: [pickingId], references: [id], onDelete: Cascade)
+  product      Product       @relation(fields: [productId], references: [id])
+  variant      Variant       @relation(fields: [variantId], references: [id])
+
+  sourceLocation StockLocation @relation("MoveSourceLocation", fields: [sourceLocationId], references: [id])
+  destLocation   StockLocation @relation("MoveDestLocation", fields: [destLocationId], references: [id])
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([pickingId])
+  @@index([sourceLocationId])
+  @@index([destLocationId])
+  @@index([status, date])
+  @@map("stock_moves")
+}

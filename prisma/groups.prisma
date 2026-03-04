@@ -44,7 +44,7 @@ enum CollectionType {
 // ==============================
 
 model Unit {
-  id             String @id @default(uuid())
+  id             String @id @default(cuid())
   organizationId String
   name           String // kilogram
   code           String // kg (SI)
@@ -70,6 +70,10 @@ model Unit {
   products     Product[]
   variants     Variant[]
 
+  // Manufacturing
+  billOfMaterials BillOfMaterial[]
+  bomLines        BomLine[]
+
   @@unique([organizationId, code])
   @@index([baseId, level])
   @@index([enabled])
@@ -81,7 +85,7 @@ model Unit {
 // ==============================
 
 model Category {
-  id             String @id @default(uuid())
+  id             String @id @default(cuid())
   organizationId String
   name           String
   slug           String
@@ -106,8 +110,11 @@ model Category {
   attributes CategoryAttribute[]
   products   CategoryProduct[]
   banners    Banner[]
+  blogPosts  BlogPost[]
 
   @@unique([organizationId, slug])
+  @@index([parentId])
+  @@index([type])
   @@index([enabled])
   @@map("categories")
 }
@@ -117,7 +124,7 @@ model Category {
 // ==============================
 
 model CategoryAttribute {
-  id          String @id @default(uuid())
+  id          String @id @default(cuid())
   categoryId  String
   attributeId String
   metadata    Json?
@@ -146,7 +153,7 @@ model CategoryAttribute {
 // ==============================
 
 model CategoryProduct {
-  id         String @id @default(uuid())
+  id         String @id @default(cuid())
   categoryId String
   productId  String
   metadata   Json?
@@ -170,8 +177,9 @@ model CategoryProduct {
 // ==============================
 
 model Attribute {
-  id             String        @id @default(uuid())
+  id             String        @id @default(cuid())
   organizationId String
+  productId      String?
   type           AttributeType
   key            String
   label          String
@@ -191,6 +199,7 @@ model Attribute {
   updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   categories CategoryAttribute[]
   options    Option[]
@@ -206,13 +215,12 @@ model Attribute {
 // ==============================
 
 model Option {
-  id             String  @id @default(uuid())
-  organizationId String
-  attributeId    String
-  productId      String?
-  key            String
-  label          String
-  metadata       Json?
+  id          String  @id @default(cuid())
+  attributeId String
+  productId   String?
+  key         String
+  label       String
+  metadata    Json?
 
   enabled  Boolean @default(true)
   position Int?
@@ -220,13 +228,14 @@ model Option {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  attribute    Attribute    @relation(fields: [attributeId], references: [id], onDelete: Cascade)
-  product      Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  product   Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   values Value[]
 
-  @@unique([organizationId, attributeId, key])
+  @@unique([attributeId, key])
+  @@index([attributeId])
+  @@index([productId])
   @@index([enabled])
   @@map("options")
 }
@@ -236,9 +245,10 @@ model Option {
 // ==============================
 
 model Value {
-  id             String  @id @default(uuid())
+  id             String  @id @default(cuid())
   organizationId String
   attributeId    String
+  productId      String?
   variantId      String?
   metadata       Json?
 
@@ -268,9 +278,11 @@ model Value {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   attribute    Attribute    @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   option       Option?      @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  product      Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
   variant      Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
-  @@unique([organizationId, attributeId])
+  @@index([organizationId])
+  @@index([attributeId])
   @@index([enabled])
   @@map("values")
 }
@@ -280,7 +292,7 @@ model Value {
 // ==============================
 
 model Collection {
-  id             String  @id @default(uuid())
+  id             String  @id @default(cuid())
   organizationId String
   name           String
   slug           String
@@ -302,7 +314,8 @@ model Collection {
   banners            Banner[]
 
   @@unique([organizationId, slug])
-  @@map("ribbons")
+  @@index([organizationId])
+  @@map("collections")
 }
 
 // ==============================
@@ -310,7 +323,7 @@ model Collection {
 // ==============================
 
 model CollectionProduct {
-  id           String @id @default(uuid())
+  id           String @id @default(cuid())
   collectionId String
   productId    String
   metadata     Json?
@@ -334,7 +347,7 @@ model CollectionProduct {
 // ==============================
 
 model Tag {
-  id             String  @id @default(uuid())
+  id             String  @id @default(cuid())
   organizationId String
   name           String
   slug           String
@@ -360,7 +373,7 @@ model Tag {
 // ==============================
 
 model TagProduct {
-  id        String @id @default(uuid())
+  id        String @id @default(cuid())
   tagId     String
   productId String
   metadata  Json?

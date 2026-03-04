@@ -1,0 +1,80 @@
+// ==============================
+// CRM ENUMS
+// ==============================
+
+enum LeadPriority {
+  low
+  medium
+  high
+}
+
+// ==============================
+// LEAD STAGES (Kanban Columns)
+// ==============================
+
+model LeadStage {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name   String // New, Qualified, Proposal, Won, Lost
+  isWon  Boolean @default(false)
+  isLost Boolean @default(false)
+
+  color    String?
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leads        Lead[]
+
+  @@index([organizationId])
+  @@index([position])
+  @@map("lead_stages")
+}
+
+// ==============================
+// LEADS / OPPORTUNITIES
+// ==============================
+
+model Lead {
+  id             String  @id @default(cuid())
+  organizationId String
+  stageId        String // Current pipeline stage
+  customerId     String? // Existing customer (if any)
+  salespersonId  String? // User/Employee responsible
+
+  name         String // Required e.g., "Kaos Reuni 500 pcs"
+  contactName  String? // Prospect name
+  contactEmail String?
+  contactPhone String?
+  companyName  String?
+
+  priority        LeadPriority @default(medium)
+  expectedRevenue Decimal      @default(0)
+  probability     Int          @default(10) // 0-100 percentage
+
+  // Dates
+  expectedClosing DateTime?
+  dateClosed      DateTime?
+
+  description String?
+  source      String? // Facebook, Website, Referral
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage        LeadStage    @relation(fields: [stageId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  salesperson  User?        @relation(fields: [salespersonId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([stageId])
+  @@index([customerId])
+  @@index([salespersonId])
+  @@index([priority])
+  @@map("leads")
+}

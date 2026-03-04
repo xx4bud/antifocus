@@ -1,0 +1,141 @@
+// ==============================
+// DISCUSSIONS & CHATTER ENUMS
+// ==============================
+
+enum ChannelType {
+  public // Open to all in org
+  private // Invite only
+  direct_message // 1-on-1 or group DM
+}
+
+// ==============================
+// CHANNELS (Chat Rooms)
+// ==============================
+
+model Channel {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String? // "#sales", null for DM
+  description String?
+  type        ChannelType @default(public)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      ChannelMember[]
+  messages     DiscussionMessage[]
+
+  @@index([organizationId])
+  @@index([type])
+  @@map("channels")
+}
+
+// ==============================
+// CHANNEL MEMBERS
+// ==============================
+
+model ChannelMember {
+  id        String @id @default(cuid())
+  channelId String
+  userId    String
+
+  role     String   @default("member") // admin, member
+  lastRead DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation("ChannelMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@map("channel_members")
+}
+
+// ==============================
+// DISCUSSION MESSAGES
+// ==============================
+
+model DiscussionMessage {
+  id        String @id @default(cuid())
+  channelId String
+  authorId  String
+
+  body        String
+  attachments String[] // URLs to files
+
+  isSystem Boolean @default(false) // System generated message e.g. "Order #1 created"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author  User    @relation("DiscussionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("discussion_messages")
+}
+
+// ==============================
+// RECORD FOLLOWERS (Odoo-style Chatter)
+// ==============================
+
+model Follower {
+  id             String @id @default(cuid())
+  organizationId String
+  userId         String
+
+  // Polymorphic relation to any record
+  resModel String // e.g., "SaleOrder", "Lead", "ProjectTask"
+  resId    String // The ID of the record
+
+  // Notification preferences
+  notifyEvents String[] // Which events to listen for: ["status_changed", "note_added"]
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("RecordFollower", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resModel, resId])
+  @@index([organizationId])
+  @@index([resModel, resId])
+  @@map("followers")
+}
+
+// ==============================
+// RECORD NOTES / CHATTER
+// ==============================
+
+model RecordNote {
+  id             String @id @default(cuid())
+  organizationId String
+  authorId       String
+
+  // Polymorphic relation
+  resModel String // e.g., "SaleOrder", "Lead"
+  resId    String
+
+  body        String
+  attachments String[]
+  isInternal  Boolean  @default(true) // Internal vs visible to customer
+
+  // Can link to an email/notification thread
+  messageId String? @unique
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User         @relation("RecordNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([resModel, resId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("record_notes")
+}

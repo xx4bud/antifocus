@@ -1,0 +1,173 @@
+// ==============================
+// MANUFACTURING ENUMS
+// ==============================
+
+enum BomType {
+  normal // Standard BOM
+  phantom // Kit — auto-explode into components
+}
+
+enum ManufacturingStatus {
+  draft
+  confirmed
+  in_progress
+  done
+  canceled
+}
+
+enum WorkOrderStatus {
+  pending
+  ready
+  in_progress
+  quality_check
+  done
+  canceled
+}
+
+// ==============================
+// BILL OF MATERIALS (BOM)
+// ==============================
+
+model BillOfMaterial {
+  id             String  @id @default(cuid())
+  organizationId String
+  productId      String // Finished product
+  variantId      String?
+
+  name     String
+  type     BomType @default(normal)
+  quantity Decimal @default(1) // How many units this BOM produces
+  unitId   String?
+
+  // Versioning
+  version  Int     @default(1)
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id])
+  variant      Variant?     @relation(fields: [variantId], references: [id])
+  unit         Unit?        @relation(fields: [unitId], references: [id])
+
+  lines               BomLine[]
+  manufacturingOrders ManufacturingOrder[]
+
+  @@unique([organizationId, productId, version])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([active])
+  @@map("bill_of_materials")
+}
+
+// ==============================
+// BOM LINES (Components)
+// ==============================
+
+model BomLine {
+  id    String @id @default(cuid())
+  bomId String
+
+  productId String // Component product
+  variantId String?
+  unitId    String?
+
+  quantity Decimal @default(1) // How many of this component needed
+  position Int     @default(0)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bom     BillOfMaterial @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  product Product        @relation("BomComponent", fields: [productId], references: [id])
+  variant Variant?       @relation("BomComponentVariant", fields: [variantId], references: [id])
+  unit    Unit?          @relation(fields: [unitId], references: [id])
+
+  @@index([bomId])
+  @@index([productId])
+  @@map("bom_lines")
+}
+
+// ==============================
+// MANUFACTURING ORDERS
+// ==============================
+
+model ManufacturingOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  bomId          String
+  saleOrderId    String? // If triggered from a sale
+  storeId        String? // Production location
+
+  name         String              @unique // MO/2026/001
+  status       ManufacturingStatus @default(draft)
+  productId    String // Finished product
+  variantId    String?
+  quantity     Decimal             @default(1)
+  quantityDone Decimal             @default(0)
+
+  // Dates
+  scheduledDate DateTime?
+  startDate     DateTime?
+  endDate       DateTime?
+
+  priority Int     @default(0) // 0=normal, 1=urgent, 2=very urgent
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bom          BillOfMaterial @relation(fields: [bomId], references: [id])
+  saleOrder    SaleOrder?     @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+  product      Product        @relation("ManufacturedProduct", fields: [productId], references: [id])
+  variant      Variant?       @relation("ManufacturedVariant", fields: [variantId], references: [id])
+
+  workOrders    WorkOrder[]
+  qualityChecks QualityCheck[]
+
+  @@index([organizationId])
+  @@index([bomId])
+  @@index([saleOrderId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("manufacturing_orders")
+}
+
+// ==============================
+// WORK ORDERS (Production Steps)
+// ==============================
+
+model WorkOrder {
+  id                   String @id @default(cuid())
+  manufacturingOrderId String
+
+  name     String // e.g. "Design", "Printing", "QC", "Packing"
+  sequence Int    @default(0)
+
+  status   WorkOrderStatus @default(pending)
+  duration Int? // Estimated minutes
+
+  // Dates
+  scheduledDate DateTime?
+  startDate     DateTime?
+  endDate       DateTime?
+
+  assigneeId String? // Employee or user responsible
+  note       String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  manufacturingOrder ManufacturingOrder @relation(fields: [manufacturingOrderId], references: [id], onDelete: Cascade)
+
+  @@index([manufacturingOrderId])
+  @@index([status])
+  @@index([sequence])
+  @@map("work_orders")
+}

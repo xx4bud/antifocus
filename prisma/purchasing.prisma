@@ -1,0 +1,96 @@
+// ==============================
+// PURCHASING ENUMS
+// ==============================
+
+enum PurchaseStatus {
+  rfq // Request for Quotation
+  rfq_sent
+  purchase // Confirmed Purchase Order
+  done
+  canceled
+}
+
+// ==============================
+// PURCHASE ORDERS
+// ==============================
+
+model PurchaseOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  vendorId       String
+  storeId        String? // Receiving store destination
+
+  orderNumber String         @unique // e.g. PO-2026-0001
+  status      PurchaseStatus @default(rfq)
+
+  // Financials
+  currencyId    String?
+  subtotal      Decimal      @default(0)
+  taxTotal      Decimal      @default(0)
+  grandTotal    Decimal      @default(0)
+  paymentStatus PaymentState @default(unpaid)
+
+  // Addresses
+  shippingAddressId String?
+
+  // Dates
+  orderDate    DateTime  @default(now())
+  expectedDate DateTime?
+  receiptDate  DateTime?
+
+  vendorReference String?
+  note            String?
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vendor          Vendor       @relation(fields: [vendorId], references: [id])
+  store           Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  currency        Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+  shippingAddress Address?     @relation(fields: [shippingAddressId], references: [id], onDelete: SetNull)
+
+  lines         PurchaseOrderLine[]
+  invoices      AccountMove[]
+  stockPickings StockPicking[]
+
+  @@index([organizationId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([orderDate])
+  @@index([paymentStatus])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderLine {
+  id        String  @id @default(cuid())
+  orderId   String
+  variantId String
+  productId String
+  taxRateId String?
+
+  name             String? // Product description from vendor
+  quantity         Decimal @default(1)
+  quantityReceived Decimal @default(0)
+  quantityBilled   Decimal @default(0)
+
+  unitPrice Decimal
+  taxAmount Decimal @default(0)
+  subtotal  Decimal // quantity * unitPrice
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product       @relation(fields: [productId], references: [id])
+  variant Variant       @relation(fields: [variantId], references: [id])
+  taxRate TaxRate?      @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("purchase_order_lines")
+}

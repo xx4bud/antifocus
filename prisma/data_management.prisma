@@ -1,0 +1,140 @@
+// ==============================
+// DATA MANAGEMENT ENUMS
+// ==============================
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+  canceled
+}
+
+enum ExportFormat {
+  csv
+  excel
+  pdf
+  json
+}
+
+enum ImportAction {
+  create_only
+  update_only
+  create_or_update
+}
+
+// ==============================
+// DATA EXPORT JOBS
+// ==============================
+
+model DataExportJob {
+  id             String @id @default(cuid())
+  organizationId String
+  requestedById  String
+
+  name      String // "Export Customers Q3"
+  modelName String // e.g. "Customer", "SaleOrder"
+  format    ExportFormat @default(excel)
+
+  // Configuration
+  filters Json? // Which records to export
+  columns String[] // Which fields to include
+
+  // Output
+  status    JobStatus @default(pending)
+  fileUrl   String? // Link to the generated file (S3/GCS)
+  fileSize  Int? // In bytes
+  expiresAt DateTime? // When the file will be deleted
+
+  // Meta
+  recordsCount Int?
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("DataExportRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("data_export_jobs")
+}
+
+// ==============================
+// DATA IMPORT JOBS
+// ==============================
+
+model DataImportJob {
+  id             String @id @default(cuid())
+  organizationId String
+  requestedById  String
+
+  name      String // "Import Fall 2026 Products"
+  modelName String // e.g. "Product"
+
+  // Input file
+  fileUrl  String
+  fileType String? // csv, xlsx
+
+  // Configuration
+  action  ImportAction @default(create_or_update)
+  mapping Json? // How columns map to DB fields
+
+  status JobStatus @default(pending)
+
+  // Results
+  totalRows   Int @default(0)
+  successRows Int @default(0)
+  errorRows   Int @default(0)
+
+  // Error log file for rows that failed
+  errorFileUrl String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("DataImportRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("data_import_jobs")
+}
+
+// ==============================
+// DATABASE BACKUPS
+// ==============================
+
+model DatabaseBackup {
+  id             String  @id @default(cuid())
+  organizationId String? // If null, means it's a global platform backup
+
+  name   String // "Daily Auto Backup - 2026-03-04"
+  type   String // auto, manual
+  status JobStatus @default(pending)
+
+  // Storage
+  fileUrl  String?
+  fileSize Int? // In bytes
+
+  // Retention
+  expiresAt DateTime? // When it will be automatically deleted
+
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@map("database_backups")
+}

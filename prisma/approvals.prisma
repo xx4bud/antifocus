@@ -1,0 +1,117 @@
+// ==============================
+// APPROVAL ENUMS
+// ==============================
+
+enum ApprovalRequestStatus {
+  new_request
+  pending
+  approved
+  refused
+  canceled
+}
+
+// ==============================
+// APPROVAL CATEGORIES
+// ==============================
+
+model ApprovalCategory {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String // "Purchase Approval", "Expense Approval", "Leave Approval"
+  description String?
+
+  // Configuration
+  minApprovers     Int      @default(1)
+  requireSequence  Boolean  @default(false) // Sequential approval
+  autoApprove      Boolean  @default(false) // If below threshold
+  autoApproveLimit Decimal? // Auto-approve if amount below this
+
+  active   Boolean @default(true)
+  position Int     @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requests     ApprovalRequest[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([active])
+  @@map("approval_categories")
+}
+
+// ==============================
+// APPROVAL REQUESTS
+// ==============================
+
+model ApprovalRequest {
+  id             String @id @default(cuid())
+  organizationId String
+  categoryId     String
+  requesterId    String // User who requested
+
+  name        String
+  description String?
+  status      ApprovalRequestStatus @default(new_request)
+  amount      Decimal? // If applicable
+
+  // Polymorphic link to what's being approved
+  resModel String? // "PurchaseOrder", "ExpenseReport", "LeaveRequest"
+  resId    String?
+
+  // Dates
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  refusedAt   DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     ApprovalCategory @relation(fields: [categoryId], references: [id])
+  requester    User             @relation("ApprovalRequester", fields: [requesterId], references: [id])
+
+  approvers Approver[]
+
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([requesterId])
+  @@index([status])
+  @@index([resModel, resId])
+  @@map("approval_requests")
+}
+
+// ==============================
+// APPROVERS (Individual approval actions)
+// ==============================
+
+model Approver {
+  id        String @id @default(cuid())
+  requestId String
+  userId    String // The approver
+
+  sequence Int                   @default(0) // Order if sequential
+  status   ApprovalRequestStatus @default(pending)
+
+  // Action
+  approvedAt   DateTime?
+  refusedAt    DateTime?
+  refuseReason String?
+
+  createdAt DateTime @default(now())
+
+  request ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user    User            @relation("ApproverUser", fields: [userId], references: [id])
+
+  @@unique([requestId, userId])
+  @@index([requestId])
+  @@index([userId])
+  @@index([status])
+  @@map("approvers")
+}

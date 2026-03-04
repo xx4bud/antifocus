@@ -1,0 +1,173 @@
+// ==============================
+// SURVEY ENUMS
+// ==============================
+
+enum SurveyStatus {
+  draft
+  open
+  closed
+  archived
+}
+
+enum QuestionType {
+  text_short
+  text_long
+  single_choice
+  multi_choice
+  rating // 1-5 or 1-10
+  nps // Net Promoter Score
+  date
+  number
+  matrix
+}
+
+// ==============================
+// SURVEYS
+// ==============================
+
+model Survey {
+  id             String  @id @default(cuid())
+  organizationId String
+  authorId       String?
+
+  title       String
+  description String?
+  status      SurveyStatus @default(draft)
+
+  // Settings
+  isAnonymous     Boolean @default(false)
+  allowMultiple   Boolean @default(false) // Multiple responses per person
+  requireLogin    Boolean @default(false)
+  showProgressBar Boolean @default(true)
+  thankYouMessage String?
+
+  // Scoring
+  isScorable   Boolean  @default(false)
+  passingScore Decimal? // Required score to pass
+
+  // Dates
+  openDate  DateTime?
+  closeDate DateTime?
+
+  // Stats
+  totalResponses Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User?        @relation("SurveyAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  questions SurveyQuestion[]
+  responses SurveyResponse[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([openDate, closeDate])
+  @@map("surveys")
+}
+
+// ==============================
+// SURVEY QUESTIONS
+// ==============================
+
+model SurveyQuestion {
+  id       String @id @default(cuid())
+  surveyId String
+
+  title       String
+  description String?
+  type        QuestionType @default(text_short)
+  sequence    Int          @default(0)
+  isRequired  Boolean      @default(false)
+
+  // For choice-based questions
+  options String[] // ["Option A", "Option B", "Option C"]
+
+  // For rating/NPS
+  ratingMin Int? @default(1)
+  ratingMax Int? @default(5)
+
+  // Scoring
+  correctAnswers String[] // For quizzes
+  points         Decimal  @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers SurveyAnswer[]
+
+  @@index([surveyId])
+  @@index([sequence])
+  @@map("survey_questions")
+}
+
+// ==============================
+// SURVEY RESPONSES (One per respondent)
+// ==============================
+
+model SurveyResponse {
+  id       String  @id @default(cuid())
+  surveyId String
+  userId   String? // If logged in
+
+  // Respondent info (if anonymous)
+  email String?
+  name  String?
+
+  // Scoring
+  totalScore Decimal @default(0)
+  isPassed   Boolean @default(false)
+
+  completedAt DateTime?
+  duration    Int? // seconds
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user   User?  @relation("SurveyRespondent", fields: [userId], references: [id], onDelete: SetNull)
+
+  answers SurveyAnswer[]
+
+  @@index([surveyId])
+  @@index([userId])
+  @@map("survey_responses")
+}
+
+// ==============================
+// SURVEY ANSWERS (Per question per response)
+// ==============================
+
+model SurveyAnswer {
+  id         String @id @default(cuid())
+  responseId String
+  questionId String
+
+  // Answer data
+  textValue    String?
+  numberValue  Decimal?
+  dateValue    DateTime?
+  choiceValues String[] // For multi-choice
+  ratingValue  Int?
+
+  // Scoring
+  score     Decimal @default(0)
+  isCorrect Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, questionId])
+  @@index([responseId])
+  @@index([questionId])
+  @@map("survey_answers")
+}

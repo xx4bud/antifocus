@@ -1,0 +1,163 @@
+// ==============================
+// PAYROLL ENUMS
+// ==============================
+
+enum PayslipStatus {
+  draft
+  confirmed
+  done
+  canceled
+}
+
+enum SalaryRuleCategory {
+  basic
+  allowance
+  deduction
+  gross
+  net
+  company_contribution
+}
+
+// ==============================
+// SALARY RULES
+// ==============================
+
+model SalaryRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String // "Basic Salary", "Transport Allowance", "BPJS TK"
+  code     String // BASIC, ALLOW_TRANSPORT, DED_BPJSTK
+  category SalaryRuleCategory
+  sequence Int                @default(0) // Order of computation
+
+  // Computation
+  amountType           String  @default("fixed") // fixed, percentage, code
+  amountFixed          Decimal @default(0)
+  amountPercentage     Decimal @default(0) // Percentage of base
+  amountPercentageBase String? // Code of which rule to base on
+
+  // Conditions
+  condition String? // Expression: e.g. "employee.employmentType == 'full_time'"
+  active    Boolean @default(true)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payslipLines PayslipLine[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([category])
+  @@index([sequence])
+  @@index([active])
+  @@map("salary_rules")
+}
+
+// ==============================
+// PAYSLIP RUNS (Batch payroll)
+// ==============================
+
+model PayslipRun {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name       String // "Payroll January 2026"
+  periodFrom DateTime
+  periodTo   DateTime
+
+  status PayslipStatus @default(draft)
+
+  // Totals
+  totalGross      Decimal @default(0)
+  totalNet        Decimal @default(0)
+  totalDeductions Decimal @default(0)
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payslips     Payslip[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([periodFrom, periodTo])
+  @@map("payslip_runs")
+}
+
+// ==============================
+// PAYSLIPS (Per employee)
+// ==============================
+
+model Payslip {
+  id             String  @id @default(cuid())
+  organizationId String
+  employeeId     String
+  runId          String?
+
+  name       String // "SLIP/2026/01/001"
+  periodFrom DateTime
+  periodTo   DateTime
+  status     PayslipStatus @default(draft)
+
+  // Computed totals
+  grossSalary    Decimal @default(0)
+  totalDeduction Decimal @default(0)
+  netSalary      Decimal @default(0)
+
+  // Payment
+  paidAt     DateTime?
+  paymentRef String?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  run          PayslipRun?  @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  lines PayslipLine[]
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([runId])
+  @@index([status])
+  @@index([periodFrom, periodTo])
+  @@map("payslips")
+}
+
+// ==============================
+// PAYSLIP LINES
+// ==============================
+
+model PayslipLine {
+  id        String @id @default(cuid())
+  payslipId String
+  ruleId    String
+
+  name     String // Copied from rule
+  category SalaryRuleCategory
+  sequence Int                @default(0)
+  amount   Decimal            @default(0)
+  quantity Decimal            @default(1)
+  total    Decimal            @default(0)
+
+  createdAt DateTime @default(now())
+
+  payslip Payslip    @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  rule    SalaryRule @relation(fields: [ruleId], references: [id])
+
+  @@index([payslipId])
+  @@index([ruleId])
+  @@index([category])
+  @@map("payslip_lines")
+}

@@ -1,0 +1,119 @@
+// ==============================
+// FRONTDESK ENUMS
+// ==============================
+
+enum VisitorStatus {
+  expected // Pre-registered
+  checked_in // Currently in premises
+  checked_out // Left
+  canceled
+}
+
+// ==============================
+// VISIT PURPOSES
+// ==============================
+
+model VisitPurpose {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String // Sample Review, Material Delivery, Pickup, Meeting, Interview, Audit
+  description String?
+  color       String?
+  position    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitors     Visitor[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("visit_purposes")
+}
+
+// ==============================
+// FRONTDESK STATIONS
+// ==============================
+
+model FrontdeskStation {
+  id             String  @id @default(cuid())
+  organizationId String
+  storeId        String? // Which branch/workshop
+
+  name      String // "Main Lobby", "Workshop Entrance"
+  active    Boolean @default(true)
+  ipAddress String? // Kiosk device IP
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  store        Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  visitors     Visitor[]
+
+  @@index([organizationId])
+  @@index([storeId])
+  @@index([active])
+  @@map("frontdesk_stations")
+}
+
+// ==============================
+// VISITORS
+// ==============================
+
+model Visitor {
+  id             String  @id @default(cuid())
+  organizationId String
+  stationId      String? // Check-in station
+  purposeId      String?
+  hostId         String? // Employee being visited
+
+  // Visitor info
+  name     String
+  company  String?
+  email    String?
+  phone    String?
+  idNumber String? // KTP/passport number
+  photo    String? // Captured at check-in
+
+  status VisitorStatus @default(expected)
+
+  // Timing
+  expectedDate DateTime?
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+
+  // Badge
+  badgeNumber String?
+
+  // Vehicle
+  vehiclePlate String?
+  vehicleType  String? // motor, mobil, truck
+
+  // Items
+  itemsBrought String? // What they're carrying
+  itemsLeft    String? // What they left behind
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  station      FrontdeskStation? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+  purpose      VisitPurpose?     @relation(fields: [purposeId], references: [id], onDelete: SetNull)
+  host         Employee?         @relation("VisitorHost", fields: [hostId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([stationId])
+  @@index([purposeId])
+  @@index([hostId])
+  @@index([status])
+  @@index([checkInTime])
+  @@map("visitors")
+}

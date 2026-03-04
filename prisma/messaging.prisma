@@ -1,0 +1,150 @@
+// ==============================
+// MESSAGING ENUMS
+// ==============================
+
+enum MessageChannelType {
+  whatsapp
+  sms
+  email
+  telegram
+  internal
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+  bounced
+}
+
+// ==============================
+// MESSAGE CHANNELS (WhatsApp, SMS, Email accounts)
+// ==============================
+
+model MessageChannel {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name   String // "WhatsApp Business", "SMS Gateway"
+  type   MessageChannelType
+  active Boolean            @default(true)
+
+  // Provider config
+  provider   String? // twilio, wablas, fonnte, zenziva
+  apiUrl     String?
+  apiKey     String?
+  apiSecret  String?
+  senderId   String? // Phone number or sender ID
+  webhookUrl String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templates    MessageTemplate[]
+  logs         MessageLog[]
+
+  @@unique([organizationId, type, senderId])
+  @@index([organizationId])
+  @@index([type])
+  @@index([active])
+  @@map("message_channels")
+}
+
+// ==============================
+// MESSAGE TEMPLATES
+// ==============================
+
+model MessageTemplate {
+  id        String @id @default(cuid())
+  channelId String
+
+  name     String // "Order Confirmation", "Shipping Update"
+  slug     String // order_confirmed, shipping_update
+  subject  String? // For email
+  body     String // Template body with {{variables}}
+  language String  @default("id") // ISO code
+
+  // WhatsApp specific
+  externalTemplateId String? // Template ID from WhatsApp Business API
+  approved           Boolean @default(false)
+  category           String? // MARKETING, UTILITY, AUTHENTICATION
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channel MessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, slug])
+  @@index([channelId])
+  @@index([active])
+  @@map("message_templates")
+}
+
+// ==============================
+// MESSAGE LOG (All sent/received)
+// ==============================
+
+model MessageLog {
+  id             String  @id @default(cuid())
+  organizationId String
+  channelId      String
+  userId         String? // Internal user who triggered
+
+  direction MessageDirection
+  status    MessageStatus    @default(queued)
+
+  // Recipient/Sender
+  fromNumber String?
+  toNumber   String?
+  fromEmail  String?
+  toEmail    String?
+
+  // Content
+  subject     String?
+  body        String
+  attachments String[] // URLs
+
+  // Polymorphic link
+  resModel String? // "SaleOrder", "Ticket", "Lead"
+  resId    String?
+
+  // External tracking
+  externalId   String? // Message ID from provider
+  cost         Decimal? // Cost per message
+  errorMessage String?
+
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  channel      MessageChannel @relation(fields: [channelId], references: [id])
+  user         User?          @relation("MessageSender", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([channelId])
+  @@index([userId])
+  @@index([direction])
+  @@index([status])
+  @@index([resModel, resId])
+  @@index([toNumber])
+  @@index([toEmail])
+  @@map("message_logs")
+}

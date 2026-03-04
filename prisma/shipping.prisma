@@ -1,0 +1,141 @@
+// ==============================
+// SHIPPING ENUMS
+// ==============================
+
+enum ShipmentStatus {
+  pending // Awaiting pickup
+  picked_up // Courier picked up
+  in_transit // On the way
+  out_for_delivery
+  delivered
+  failed // Delivery failed
+  returned // Returned to sender
+  canceled
+}
+
+enum ShippingType {
+  standard
+  express
+  same_day
+  instant
+  pickup // Customer picks up
+}
+
+// ==============================
+// SHIPPING METHODS (Carriers)
+// ==============================
+
+model ShippingMethod {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name    String // JNE, J&T, SiCepat, GoSend
+  code    String // jne, jnt, sicepat, gosend
+  logo    String?
+  website String?
+  type    ShippingType @default(standard)
+
+  // API Integration
+  apiUrl    String?
+  apiKey    String?
+  apiSecret String?
+
+  // Pricing
+  baseCost  Decimal  @default(0)
+  freeAbove Decimal? // Free shipping if order > this amount
+  metadata  Json?
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shipments    Shipment[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([enabled])
+  @@index([type])
+  @@map("shipping_methods")
+}
+
+// ==============================
+// SHIPMENTS (Tracking)
+// ==============================
+
+model Shipment {
+  id               String  @id @default(cuid())
+  organizationId   String
+  saleOrderId      String
+  shippingMethodId String
+  stockPickingId   String? // Link to stock picking
+
+  // Tracking
+  trackingNumber String?
+  awb            String? // Air Waybill
+  status         ShipmentStatus @default(pending)
+
+  // Addresses (snapshot at time of shipment)
+  senderName      String?
+  senderPhone     String?
+  senderAddress   String?
+  receiverName    String?
+  receiverPhone   String?
+  receiverAddress String?
+
+  // Costs
+  shippingCost Decimal @default(0)
+  insurance    Decimal @default(0)
+  weight       Decimal @default(0) // in grams
+  dimensions   Json? // { length, width, height }
+
+  // Dates
+  shippedDate   DateTime?
+  deliveredDate DateTime?
+  estimatedDate DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  saleOrder      SaleOrder      @relation(fields: [saleOrderId], references: [id])
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id])
+  stockPicking   StockPicking?  @relation(fields: [stockPickingId], references: [id], onDelete: SetNull)
+
+  trackingEvents ShipmentTracking[]
+
+  @@index([organizationId])
+  @@index([saleOrderId])
+  @@index([shippingMethodId])
+  @@index([trackingNumber])
+  @@index([status])
+  @@map("shipments")
+}
+
+// ==============================
+// SHIPMENT TRACKING EVENTS
+// ==============================
+
+model ShipmentTracking {
+  id         String @id @default(cuid())
+  shipmentId String
+
+  status      ShipmentStatus
+  description String
+  location    String?
+  timestamp   DateTime       @default(now())
+  rawData     Json? // Raw API response from courier
+
+  createdAt DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([timestamp])
+  @@map("shipment_trackings")
+}

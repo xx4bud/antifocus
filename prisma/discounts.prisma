@@ -1,0 +1,132 @@
+// ==============================
+// DISCOUNT ENUMS
+// ==============================
+
+enum DiscountType {
+  percentage
+  fixed
+  free_shipping
+  buy_x_get_y
+}
+
+enum CouponStatus {
+  active
+  expired
+  used_up // max usage reached
+  disabled
+}
+
+// ==============================
+// COUPONS
+// ==============================
+
+model Coupon {
+  id             String @id @default(cuid())
+  organizationId String
+
+  code        String
+  name        String
+  description String?
+
+  type  DiscountType @default(percentage)
+  value Decimal      @default(0) // percentage or fixed amount
+
+  // Constraints
+  minOrderAmount  Decimal? // Minimum order to apply
+  maxDiscount     Decimal? // Cap for percentage discounts
+  maxUsage        Int? // Total usage limit (null = unlimited)
+  maxUsagePerUser Int? // Per-user limit
+  usageCount      Int      @default(0)
+
+  // Validity
+  status    CouponStatus @default(active)
+  startDate DateTime     @default(now())
+  endDate   DateTime?
+
+  // Scope (null = applies to all)
+  productIds  String[] // Specific product IDs
+  categoryIds String[] // Specific category IDs
+  customerIds String[] // Specific customer IDs
+
+  // Combinability
+  stackable Boolean @default(false) // Can combine with other coupons
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  usages       CouponUsage[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([code])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("coupons")
+}
+
+// ==============================
+// COUPON USAGE TRACKING
+// ==============================
+
+model CouponUsage {
+  id         String  @id @default(cuid())
+  couponId   String
+  orderId    String // SaleOrder ID
+  customerId String?
+
+  discountAmount Decimal // Actual discount applied
+
+  createdAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([orderId])
+  @@index([customerId])
+  @@map("coupon_usages")
+}
+
+// ==============================
+// AUTOMATIC DISCOUNTS (Rule-Based)
+// ==============================
+
+model DiscountRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+
+  type  DiscountType @default(percentage)
+  value Decimal      @default(0)
+
+  // Conditions
+  minOrderAmount Decimal? // Minimum order
+  minQuantity    Int? // Minimum quantity
+
+  // Scope (null = applies to all)
+  productIds  String[]
+  categoryIds String[]
+
+  // Validity
+  enabled   Boolean   @default(true)
+  priority  Int       @default(0) // Higher = applied first
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  stackable Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([enabled])
+  @@index([priority])
+  @@index([startDate, endDate])
+  @@map("discount_rules")
+}

@@ -88,7 +88,82 @@ model User {
   customers   Customer[]
   vendors     Vendor[]
   profiles    Profile[]
+  carts       Cart[]
 
+  // Communications
+  notificationsReceived Notification[] @relation("NotificationUser")
+  notificationsSent     Notification[] @relation("NotificationSender")
+  activitiesAssigned    Activity[]     @relation("ActivityAssignee")
+
+  // HR
+  employeeProfile Employee? @relation("UserEmployee")
+
+  // CRM
+  leadsManaged Lead[]
+
+  // Helpdesk
+  assignedTickets Ticket[]        @relation("TicketAssignee")
+  ticketMessages  TicketMessage[] @relation("TicketMessageAuthor")
+
+  // Quality
+  qualityChecks QualityCheck[] @relation("QualityInspector")
+  qualityAlerts QualityAlert[] @relation("QualityAlertAssignee")
+
+  // Projects
+  managedProjects Project[]     @relation("ProjectManager")
+  assignedTasks   ProjectTask[] @relation("TaskAssignee")
+
+  // POS
+  posSessions PosSession[] @relation("PosCashier")
+
+  // Messaging
+  messageLogs MessageLog[] @relation("MessageSender")
+
+  // Website
+  webPages  WebPage[]  @relation("PageAuthor")
+  blogPosts BlogPost[] @relation("BlogAuthor")
+
+  // Expenses
+  expenseApprovals ExpenseReport[] @relation("ExpenseApprover")
+
+  // Leaves
+  leaveApprovals LeaveRequest[] @relation("LeaveApprover")
+
+  // Approvals
+  approvalRequests ApprovalRequest[] @relation("ApprovalRequester")
+  approverActions  Approver[]        @relation("ApproverUser")
+
+  // Documents
+  ownedDocuments DocumentRecord[] @relation("DocumentOwner")
+
+  // Surveys
+  createdSurveys  Survey[]         @relation("SurveyAuthor")
+  surveyResponses SurveyResponse[] @relation("SurveyRespondent")
+
+  // Maintenance
+  maintenanceRequests MaintenanceRequest[] @relation("MaintenanceRequester")
+  maintenanceAssigned MaintenanceRequest[] @relation("MaintenanceTechnician")
+
+  // Recruitment
+  recruiterApplications JobApplication[]    @relation("RecruiterApplications")
+  interviewerSchedules  InterviewSchedule[] @relation("InterviewerSchedules")
+
+  // Knowledge Base
+  knowledgeArticles KnowledgeArticle[] @relation("KnowledgeAuthor")
+
+  // Reports
+  savedReports SavedReport[] @relation("SavedReportAuthor")
+
+  // Discussions
+  channelMemberships ChannelMember[]     @relation("ChannelMemberships")
+  discussionMessages DiscussionMessage[] @relation("DiscussionAuthor")
+  recordFollowers    Follower[]          @relation("RecordFollower")
+  recordNotes        RecordNote[]        @relation("RecordNoteAuthor")
+  dataExportJobs     DataExportJob[]     @relation("DataExportRequester")
+  dataImportJobs     DataImportJob[]     @relation("DataImportRequester")
+  workflowHistories  WorkflowHistory[]
+
+  @@index([email])
   @@index([role])
   @@index([status, banned])
   @@index([twoFactorEnabled])
@@ -127,6 +202,7 @@ model Session {
   @@index([userId])
   @@index([impersonatedBy])
   @@index([activeOrganizationId])
+  @@index([expiresAt])
   @@map("sessions")
 }
 
@@ -183,6 +259,7 @@ model Verification {
   updatedAt DateTime @updatedAt
 
   @@index([identifier])
+  @@index([expiresAt])
   @@map("verifications")
 }
 
@@ -210,7 +287,7 @@ model TwoFactor {
 model ApiKey {
   id     String  @id @default(cuid())
   userId String
-  key    String
+  key    String  @unique
   name   String?
   start  String?
   prefix String?
@@ -288,7 +365,9 @@ model RateLimit {
   updatedAt DateTime @updatedAt
 
   @@index([identifier])
+  @@index([identifier, action])
   @@index([action, entity])
+  @@index([expiresAt])
   @@map("rate_limits")
 }
 
@@ -297,23 +376,34 @@ model RateLimit {
 // ==============================
 
 model AuditLog {
-  id        String  @id @default(cuid())
-  type      LogType @default(system)
-  actor     String // snapshot
-  actorId   String?
-  ipAddress String?
-  userAgent String?
+  id             String  @id @default(cuid())
+  organizationId String?
+  type           LogType @default(system)
+  actor          String // snapshot
+  actorId        String?
+  ipAddress      String?
+  userAgent      String?
 
   action ActionType
 
   entity   String
   entityId String?
 
-  changes  Json?
+  // Change details
+  changes       Json? // Full diff
+  oldValues     Json? // Previous values
+  newValues     Json? // New values
+  changedFields String[] // Changed field names
+
+  // Context
+  endpoint String? // API route
+  source   String? // web, api, system, import
+
   metadata Json?
 
   createdAt DateTime @default(now()) // not updated
 
+  @@index([organizationId])
   @@index([type])
   @@index([actor])
   @@index([action])

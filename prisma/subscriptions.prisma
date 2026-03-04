@@ -1,0 +1,104 @@
+// ==============================
+// SUBSCRIPTION ENUMS
+// ==============================
+
+enum SubscriptionStatus {
+  draft
+  active
+  paused
+  past_due
+  canceled
+  expired
+}
+
+enum BillingInterval {
+  daily
+  weekly
+  monthly
+  quarterly
+  yearly
+}
+
+// ==============================
+// SUBSCRIPTIONS (Recurring revenue)
+// ==============================
+
+model Subscription {
+  id             String  @id @default(cuid())
+  organizationId String
+  customerId     String
+  currencyId     String?
+
+  name   String // "Premium Plan - PT ABX"
+  code   String             @unique // SUB-2026-0001
+  status SubscriptionStatus @default(draft)
+
+  // Billing
+  billingInterval BillingInterval @default(monthly)
+  billingDay      Int             @default(1) // Day of month to bill
+
+  // Financials
+  recurringTotal Decimal @default(0) // Total per period
+  totalInvoiced  Decimal @default(0)
+
+  // Dates
+  startDate       DateTime
+  endDate         DateTime?
+  nextBillingDate DateTime?
+  lastBillingDate DateTime?
+  canceledAt      DateTime?
+
+  // Auto-renewal
+  autoRenew   Boolean @default(true)
+  renewalDays Int     @default(30) // Days before end to renew
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+
+  lines SubscriptionLine[]
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([status])
+  @@index([nextBillingDate])
+  @@map("subscriptions")
+}
+
+// ==============================
+// SUBSCRIPTION LINES
+// ==============================
+
+model SubscriptionLine {
+  id             String @id @default(cuid())
+  subscriptionId String
+
+  productId String
+  variantId String?
+
+  name      String
+  quantity  Decimal @default(1)
+  unitPrice Decimal
+  discount  Decimal @default(0)
+  subtotal  Decimal @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id])
+  variant      Variant?     @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([subscriptionId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("subscription_lines")
+}

@@ -25,11 +25,11 @@ enum SettingCategory {
 // ==============================
 
 model Setting {
-  id       String @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String?
-  key      String @unique
-  value    Json
-  metadata Json?
+  key            String  @unique
+  value          Json
+  metadata       Json?
 
   category SettingCategory @default(general)
   public   Boolean         @default(true)
@@ -42,6 +42,8 @@ model Setting {
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@unique([organizationId, key])
+  @@index([organizationId])
   @@index([category])
   @@index([public, enabled])
   @@map("settings")

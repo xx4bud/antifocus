@@ -1,0 +1,138 @@
+// ==============================
+// QUALITY ENUMS
+// ==============================
+
+enum QualityCheckResult {
+  pass
+  fail
+  warning
+}
+
+enum QualityAlertStatus {
+  new_alert
+  in_progress
+  resolved
+  closed
+}
+
+enum QualityPointType {
+  before_production
+  during_production
+  after_production
+  before_shipping
+}
+
+// ==============================
+// QUALITY POINTS (Where to check)
+// ==============================
+
+model QualityPoint {
+  id             String  @id @default(cuid())
+  organizationId String
+  productId      String? // Specific product or null = all
+
+  name String // "Color Accuracy Check", "Print Alignment"
+  type QualityPointType @default(after_production)
+
+  // What to check
+  instructions String?
+  criteria     String? // Pass/Fail criteria description
+  testType     String? // visual, measurement, sample
+
+  active   Boolean @default(true)
+  position Int     @default(0)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  checks QualityCheck[]
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([type])
+  @@index([active])
+  @@map("quality_points")
+}
+
+// ==============================
+// QUALITY CHECKS (Individual inspections)
+// ==============================
+
+model QualityCheck {
+  id                   String  @id @default(cuid())
+  organizationId       String
+  qualityPointId       String
+  manufacturingOrderId String? // If linked to MO
+  stockPickingId       String? // If linked to delivery
+
+  // Results
+  result  QualityCheckResult @default(pass)
+  note    String?
+  images  String[] // Evidence photos
+  measure Decimal? // If measurement-based
+
+  inspectorId String? // Who did the check
+  checkedAt   DateTime @default(now())
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  qualityPoint       QualityPoint        @relation(fields: [qualityPointId], references: [id])
+  manufacturingOrder ManufacturingOrder? @relation(fields: [manufacturingOrderId], references: [id], onDelete: SetNull)
+  stockPicking       StockPicking?       @relation(fields: [stockPickingId], references: [id], onDelete: SetNull)
+  inspector          User?               @relation("QualityInspector", fields: [inspectorId], references: [id], onDelete: SetNull)
+
+  alerts QualityAlert[]
+
+  @@index([organizationId])
+  @@index([qualityPointId])
+  @@index([manufacturingOrderId])
+  @@index([stockPickingId])
+  @@index([result])
+  @@map("quality_checks")
+}
+
+// ==============================
+// QUALITY ALERTS (Issues found)
+// ==============================
+
+model QualityAlert {
+  id             String  @id @default(cuid())
+  organizationId String
+  checkId        String? // If linked to a check
+  productId      String?
+
+  name        String
+  description String?
+  status      QualityAlertStatus @default(new_alert)
+  priority    String?            @default("medium") // low, medium, high
+
+  // Root cause & corrective
+  rootCause        String?
+  correctiveAction String?
+
+  assigneeId String? // Who handles this alert
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  check        QualityCheck? @relation(fields: [checkId], references: [id], onDelete: SetNull)
+  product      Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  assignee     User?         @relation("QualityAlertAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([checkId])
+  @@index([productId])
+  @@index([status])
+  @@map("quality_alerts")
+}

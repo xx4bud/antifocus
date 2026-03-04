@@ -20,6 +20,9 @@ model Country {
   timeZones  TimeZone[]
   currencies CountryCurrency[]
 
+  // Taxes
+  fiscalPositions FiscalPosition[]
+
   @@index([enabled])
   @@map("countries")
 }
@@ -120,8 +123,15 @@ model Currency {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rates     CurrencyRate[]
-  countries CountryCurrency[]
+  rates          CurrencyRate[]
+  countries      CountryCurrency[]
+  variants       Variant[]
+  saleOrders     SaleOrder[]
+  purchaseOrders PurchaseOrder[]
+  accountMoves   AccountMove[]
+  payments       Payment[]
+  priceLists     PriceList[]
+  subscriptions  Subscription[]
 
   @@index([enabled])
   @@map("currencies")
@@ -166,7 +176,13 @@ model TaxRate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  saleOrderLines     SaleOrderLine[]
+  purchaseOrderLines PurchaseOrderLine[]
+  fiscalTaxesSrc     FiscalPositionTax[] @relation("FiscalTaxSrc")
+  fiscalTaxesDest    FiscalPositionTax[] @relation("FiscalTaxDest")
+
   @@index([type])
+  @@index([scope])
   @@index([enabled])
   @@map("tax_rates")
 }

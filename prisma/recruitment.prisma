@@ -1,0 +1,173 @@
+// ==============================
+// RECRUITMENT ENUMS
+// ==============================
+
+enum ApplicationStatus {
+  new_application
+  screening
+  interview
+  offer
+  hired
+  rejected
+  withdrawn
+}
+
+// ==============================
+// JOB POSITIONS
+// ==============================
+
+model JobPosition {
+  id             String  @id @default(cuid())
+  organizationId String
+  departmentId   String?
+
+  title       String // "Operator Mesin DTG", "Desainer Grafis", "Packer"
+  description String?
+
+  // Requirements
+  requirements     String?
+  qualifications   String?
+  responsibilities String?
+
+  // Compensation
+  salaryMin Decimal?
+  salaryMax Decimal?
+  currency  String?  @default("IDR")
+
+  // Hiring
+  vacancies   Int       @default(1)
+  hiredCount  Int       @default(0)
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+
+  // Employment type
+  employmentType String? // full_time, part_time, contract, intern
+
+  location String? // Office/workshop location
+  remote   Boolean @default(false)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department   Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  applications JobApplication[]
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([isPublished])
+  @@map("job_positions")
+}
+
+// ==============================
+// INTERVIEW STAGES
+// ==============================
+
+model InterviewStage {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String // "HR Screening", "Technical Test", "Manager Interview", "Offer"
+  position Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([position])
+  @@map("interview_stages")
+}
+
+// ==============================
+// JOB APPLICATIONS
+// ==============================
+
+model JobApplication {
+  id          String  @id @default(cuid())
+  positionId  String
+  stageId     String?
+  recruiterId String? // HR user handling
+
+  // Applicant info
+  applicantName  String
+  applicantEmail String
+  applicantPhone String?
+  resumeUrl      String?
+  portfolioUrl   String?
+  coverLetter    String?
+
+  status ApplicationStatus @default(new_application)
+
+  // Source
+  source String? // website, linkedin, referral, job_portal
+
+  // Scoring
+  rating Int? // 1-5 internal rating
+  note   String?
+
+  // Dates
+  applicationDate DateTime  @default(now())
+  interviewDate   DateTime?
+  offerDate       DateTime?
+  hireDate        DateTime?
+  rejectionDate   DateTime?
+
+  // Salary
+  expectedSalary Decimal?
+  offeredSalary  Decimal?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  position  JobPosition     @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  stage     InterviewStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  recruiter User?           @relation("RecruiterApplications", fields: [recruiterId], references: [id], onDelete: SetNull)
+
+  schedules InterviewSchedule[]
+
+  @@index([positionId])
+  @@index([stageId])
+  @@index([recruiterId])
+  @@index([status])
+  @@index([applicationDate])
+  @@map("job_applications")
+}
+
+// ==============================
+// INTERVIEW SCHEDULES
+// ==============================
+
+model InterviewSchedule {
+  id            String  @id @default(cuid())
+  applicationId String
+  interviewerId String? // User conducting interview
+
+  scheduledAt DateTime
+  duration    Int?     @default(60) // minutes
+  location    String? // Room or online link
+  type        String? // onsite, video_call, phone
+
+  // Result
+  feedback String?
+  rating   Int? // 1-5
+  passed   Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  application JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interviewer User?          @relation("InterviewerSchedules", fields: [interviewerId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([interviewerId])
+  @@index([scheduledAt])
+  @@map("interview_schedules")
+}

@@ -1,0 +1,191 @@
+// ==============================
+// EMAIL MARKETING ENUMS
+// ==============================
+
+enum CampaignStatus {
+  draft
+  scheduled
+  sending
+  sent
+  canceled
+}
+
+enum SubscriberStatus {
+  subscribed
+  unsubscribed
+  bounced
+  complained
+}
+
+enum EmailLogStatus {
+  queued
+  sent
+  delivered
+  opened
+  clicked
+  bounced
+  failed
+  unsubscribed
+}
+
+// ==============================
+// SUBSCRIBER LISTS
+// ==============================
+
+model SubscriberList {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscribers  Subscriber[]
+  campaigns    EmailCampaign[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("subscriber_lists")
+}
+
+// ==============================
+// SUBSCRIBERS
+// ==============================
+
+model Subscriber {
+  id     String @id @default(cuid())
+  listId String
+
+  email  String
+  name   String?
+  status SubscriberStatus @default(subscribed)
+  tags   String[]
+
+  // Tracking
+  subscribedAt   DateTime  @default(now())
+  unsubscribedAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  list SubscriberList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, email])
+  @@index([listId])
+  @@index([status])
+  @@index([email])
+  @@map("subscribers")
+}
+
+// ==============================
+// EMAIL TEMPLATES
+// ==============================
+
+model EmailTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String
+  subject  String
+  bodyHtml String // HTML content
+  bodyText String? // Plain text fallback
+
+  // Design
+  previewText String?
+  fromName    String?
+  fromEmail   String?
+  replyTo     String?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns    EmailCampaign[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([active])
+  @@map("email_templates")
+}
+
+// ==============================
+// EMAIL CAMPAIGNS
+// ==============================
+
+model EmailCampaign {
+  id             String @id @default(cuid())
+  organizationId String
+  templateId     String
+  listId         String
+
+  name   String
+  status CampaignStatus @default(draft)
+
+  // Schedule
+  scheduledAt DateTime?
+  sentAt      DateTime?
+
+  // Stats
+  totalSent      Int @default(0)
+  totalDelivered Int @default(0)
+  totalOpened    Int @default(0)
+  totalClicked   Int @default(0)
+  totalBounced   Int @default(0)
+  totalFailed    Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     EmailTemplate  @relation(fields: [templateId], references: [id])
+  list         SubscriberList @relation(fields: [listId], references: [id])
+
+  logs EmailLog[]
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([listId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("email_campaigns")
+}
+
+// ==============================
+// EMAIL LOGS (Per-recipient tracking)
+// ==============================
+
+model EmailLog {
+  id         String @id @default(cuid())
+  campaignId String
+
+  recipientEmail String
+  status         EmailLogStatus @default(queued)
+
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  bouncedAt   DateTime?
+
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([recipientEmail])
+  @@index([status])
+  @@map("email_logs")
+}

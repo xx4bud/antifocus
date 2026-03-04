@@ -24,7 +24,7 @@ enum ProductStatus {
 // ==============================
 
 model Product {
-  id             String   @id @default(uuid())
+  id             String   @id @default(cuid())
   organizationId String
   unitId         String
   name           String
@@ -53,8 +53,7 @@ model Product {
   alternatives Json?
 
   // specs
-  attributes Json?
-  metadata   Json?
+  metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -62,15 +61,50 @@ model Product {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   unit         Unit         @relation(fields: [unitId], references: [id])
 
-  categories  CategoryProduct[]
-  options     Option[]
-  variants    Variant[]
-  collections CollectionProduct[]
-  tags        TagProduct[]
-  images      ProductImage[]
-  videos      ProductVideo[]
+  categories         CategoryProduct[]
+  options            Option[]
+  variants           Variant[]
+  collections        CollectionProduct[]
+  tags               TagProduct[]
+  images             ProductImage[]
+  videos             ProductVideo[]
+  attributes         Attribute[]
+  values             Value[]
+  saleOrderLines     SaleOrderLine[]
+  purchaseOrderLines PurchaseOrderLine[]
+  stockMoves         StockMove[]
+  accountMoveLines   AccountMoveLine[]
+
+  // Manufacturing
+  billOfMaterials    BillOfMaterial[]
+  bomComponents      BomLine[]            @relation("BomComponent")
+  manufacturedOrders ManufacturingOrder[] @relation("ManufacturedProduct")
+
+  // Returns
+  returnOrderLines ReturnOrderLine[]
+
+  // Reviews
+  productReviews ProductReview[] @relation("ProductReviews")
+
+  // Quality
+  qualityPoints QualityPoint[]
+  qualityAlerts QualityAlert[]
+
+  // POS
+  posOrderLines PosOrderLine[]
+
+  // Marketplace
+  marketplaceListings   MarketplaceListing[]
+  marketplaceOrderLines MarketplaceOrderLine[]
+
+  // Subscriptions
+  subscriptionLines SubscriptionLine[]
+
+  // Design Assets
+  designAssets DesignAsset[]
 
   @@unique([organizationId, slug])
+  @@index([organizationId, status])
   @@map("products")
 }
 
@@ -79,7 +113,7 @@ model Product {
 // ==============================
 
 model Variant {
-  id             String  @id @default(uuid())
+  id             String  @id @default(cuid())
   organizationId String
   productId      String
   unitId         String
@@ -93,8 +127,9 @@ model Variant {
   formula    String?
 
   // price
-  unitPrice Decimal @default(0)
-  salePrice Decimal @default(0)
+  currencyId String?
+  unitPrice  Decimal @default(0)
+  salePrice  Decimal @default(0)
 
   // cost
   taxPrice     Decimal @default(0)
@@ -126,13 +161,44 @@ model Variant {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   unit         Unit         @relation(fields: [unitId], references: [id])
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
 
-  values        Value[]
-  stores        StockStore[]
-  priceLists    PriceList[]
-  variantImages VariantImage[]
+  values             Value[]
+  stores             StockStore[]
+  priceLists         PriceList[]
+  variantImages      VariantImage[]
+  cartItems          CartItem[]
+  saleOrderLines     SaleOrderLine[]
+  purchaseOrderLines PurchaseOrderLine[]
+  stockMoves         StockMove[]
+  accountMoveLines   AccountMoveLine[]
+
+  // Manufacturing
+  billOfMaterials      BillOfMaterial[]
+  bomComponentVariants BomLine[]            @relation("BomComponentVariant")
+  manufacturedOrders   ManufacturingOrder[] @relation("ManufacturedVariant")
+
+  // Returns
+  returnOrderLines ReturnOrderLine[]
+
+  // Reviews
+  // productReviews ProductReview[]
+
+  // POS
+  posOrderLines PosOrderLine[]
+
+  // Marketplace
+  marketplaceListings   MarketplaceListing[]
+  marketplaceOrderLines MarketplaceOrderLine[]
+
+  // Subscriptions
+  subscriptionLines SubscriptionLine[]
+
+  // Design Assets
+  designAssets DesignAsset[]
 
   @@unique([organizationId, productId, sku])
+  @@index([productId])
   @@map("variants")
 }
 
@@ -141,9 +207,10 @@ model Variant {
 // ==============================
 
 model PriceList {
-  id         String  @id @default(uuid())
-  variantId  String?
-  materialId String?
+  id             String  @id @default(cuid())
+  organizationId String
+  variantId      String?
+  materialId     String?
 
   minPrice Decimal @default(0)
   maxPrice Decimal @default(0)
@@ -153,13 +220,17 @@ model PriceList {
   maxCostPrice Decimal @default(0)
   avgCostPrice Decimal @default(0)
 
-  rules    Json?
-  metadata Json?
+  currencyId String?
+  rules      Json?
+  metadata   Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  variant Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variant      Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
 
+  @@index([organizationId])
   @@map("price_lists")
 }

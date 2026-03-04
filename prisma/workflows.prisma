@@ -1,0 +1,134 @@
+// ==============================
+// WORKFLOW / STATE MACHINE
+// ==============================
+
+// ==============================
+// WORKFLOW TEMPLATES
+// ==============================
+
+model WorkflowTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String // "Standard Sale Order Flow"
+  targetModel String // Model this applies to (e.g. "SaleOrder")
+  description String?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  states      WorkflowState[]
+  transitions WorkflowTransition[]
+  instances   WorkflowInstance[]
+
+  @@index([organizationId])
+  @@index([targetModel])
+  @@map("workflow_templates")
+}
+
+// ==============================
+// WORKFLOW STATES
+// ==============================
+
+model WorkflowState {
+  id         String @id @default(cuid())
+  templateId String
+
+  name      String // "Draft", "Confirmed", "In Production", "Done"
+  code      String // "draft", "done"
+  isInitial Boolean @default(false)
+  isFinal   Boolean @default(false)
+  color     String?
+  position  Int     @default(0)
+
+  template WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  // Valid outgoing/incoming transitions
+  outgoingTransitions WorkflowTransition[] @relation("TransitionFrom")
+  incomingTransitions WorkflowTransition[] @relation("TransitionTo")
+  activeInstances     WorkflowInstance[]
+
+  @@unique([templateId, code])
+  @@map("workflow_states")
+}
+
+// ==============================
+// WORKFLOW TRANSITIONS
+// ==============================
+
+model WorkflowTransition {
+  id         String @id @default(cuid())
+  templateId String
+
+  name        String // "Confirm Order"
+  fromStateId String
+  toStateId   String
+
+  // Rules
+  requireApproval Boolean  @default(false)
+  allowedRoleIds  String[] // Which roles can trigger this
+  conditions      Json? // External engine conditions { "amount": { ">": 1000 } }
+  actionToRun     String? // Integration hook or server action to run upon transition
+
+  template  WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fromState WorkflowState    @relation("TransitionFrom", fields: [fromStateId], references: [id])
+  toState   WorkflowState    @relation("TransitionTo", fields: [toStateId], references: [id])
+
+  history WorkflowHistory[]
+
+  @@index([fromStateId])
+  @@index([toStateId])
+  @@map("workflow_transitions")
+}
+
+// ==============================
+// WORKFLOW INSTANCES (Running on records)
+// ==============================
+
+model WorkflowInstance {
+  id         String @id @default(cuid())
+  templateId String
+  recordId   String // The ID of the SaleOrder, PurchaseOrder, etc.
+
+  currentStateId String
+  status         String @default("active") // active, completed, canceled
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  template     WorkflowTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  currentState WorkflowState     @relation(fields: [currentStateId], references: [id])
+  history      WorkflowHistory[]
+
+  @@unique([templateId, recordId])
+  @@index([currentStateId])
+  @@map("workflow_instances")
+}
+
+// ==============================
+// WORKFLOW HISTORY (Audit trail per instance)
+// ==============================
+
+model WorkflowHistory {
+  id           String  @id @default(cuid())
+  instanceId   String
+  transitionId String? // The transition that was used
+
+  actorId String? // Who made the state change
+  note    String?
+
+  createdAt DateTime @default(now())
+
+  instance   WorkflowInstance    @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  transition WorkflowTransition? @relation(fields: [transitionId], references: [id])
+  actor      User?               @relation( fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([instanceId])
+  @@index([actorId])
+  @@map("workflow_history")
+}

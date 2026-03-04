@@ -23,9 +23,10 @@ enum FileType {
 // ==============================
 
 model Media {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   name           String
+  alt            String?
   url            String
 
   public  Boolean     @default(true)
@@ -51,6 +52,8 @@ model Media {
   bannerImages  BannerImage[]
 
   @@index([organizationId])
+  @@index([fileType])
+  @@index([storage])
   @@map("medias")
 }
 
@@ -110,6 +113,8 @@ model VariantImage {
   id        String @id @default(cuid())
   variantId String
   mediaId   String
+
+  position Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

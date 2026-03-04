@@ -1,0 +1,126 @@
+// ==============================
+// REPORTS ENUMS
+// ==============================
+
+enum ReportFormat {
+  pdf
+  excel
+  csv
+  html
+}
+
+enum ReportDeliveryMethod {
+  download
+  email
+  webhook // Push report data to external system
+}
+
+// ==============================
+// REPORT TEMPLATES (Predefined layouts)
+// ==============================
+
+model ReportTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String // "Monthly Sales Summary"
+  code        String // "sales.summary.monthly"
+  description String?
+  category    String // sales, inventory, hr, finance
+
+  // Query / Definition
+  modelName  String // e.g. "SaleOrder"
+  queryLogic Json? // JSON representation of the query
+  sqlQuery   String? // Raw SQL if needed (admin only)
+
+  // Output
+  defaultFormat ReportFormat @default(pdf)
+  layout        Json? // UI layout definition (columns, charts, groups)
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  savedReports    SavedReport[]
+  reportSchedules ReportSchedule[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([category])
+  @@index([active])
+  @@map("report_templates")
+}
+
+// ==============================
+// SAVED REPORTS (User customized views)
+// ==============================
+
+model SavedReport {
+  id             String @id @default(cuid())
+  organizationId String
+  templateId     String
+  authorId       String
+
+  name        String // "My Q1 T-Shirt Sales"
+  description String?
+
+  // Customization
+  filters Json? // User's selected filters
+  columns String[] // Selected columns to show
+  sortBy  String?
+  sortDir String?  @default("desc")
+
+  isPublic Boolean @default(false) // Viewable by others in org
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  author       User           @relation("SavedReportAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([authorId])
+  @@index([isPublic])
+  @@map("saved_reports")
+}
+
+// ==============================
+// REPORT SCHEDULES (Auto-generation)
+// ==============================
+
+model ReportSchedule {
+  id             String @id @default(cuid())
+  organizationId String
+  templateId     String
+
+  name     String
+  cronExpr String // Schedule timing
+
+  // Delivery
+  format         ReportFormat         @default(pdf)
+  deliveryMethod ReportDeliveryMethod @default(email)
+  recipients     String[] // Email addresses or webhook URLs
+
+  // Data filter
+  filters Json?
+
+  nextRunAt DateTime?
+  lastRunAt DateTime?
+  active    Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([active])
+  @@map("report_schedules")
+}

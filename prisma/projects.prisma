@@ -1,0 +1,210 @@
+// ==============================
+// PROJECT ENUMS
+// ==============================
+
+enum ProjectPrivacy {
+  public // Visible to all
+  internal // Visible to members
+  private // Visible to followers only
+}
+
+enum TaskPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+// ==============================
+// PROJECT STAGES
+// ==============================
+
+model ProjectStage {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String // "Backlog", "Design", "In Progress", "Review", "Done"
+  isClosed Boolean @default(false)
+  color    String?
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        ProjectTask[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([position])
+  @@map("project_stages")
+}
+
+// ==============================
+// PROJECTS
+// ==============================
+
+model Project {
+  id             String  @id @default(cuid())
+  organizationId String
+  managerId      String? // User who manages
+
+  name        String
+  description String?
+  color       String?
+  privacy     ProjectPrivacy @default(internal)
+  active      Boolean        @default(true)
+
+  // Billing
+  customerId      String? // Customer for this project
+  saleOrderId     String?
+  allowTimesheets Boolean @default(false)
+
+  // Dates
+  startDate DateTime?
+  endDate   DateTime?
+  deadline  DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  manager      User?        @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  tasks      ProjectTask[]
+  timesheets Timesheet[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([managerId])
+  @@index([customerId])
+  @@index([active])
+  @@map("projects")
+}
+
+// ==============================
+// PROJECT TASK TAGS
+// ==============================
+
+model ProjectTaskTag {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String
+  color String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        TaskToTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("project_task_tags")
+}
+
+// ==============================
+// TASK ↔ TAG (Many-to-Many)
+// ==============================
+
+model TaskToTag {
+  id     String @id @default(cuid())
+  taskId String
+  tagId  String
+
+  task ProjectTask    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  ProjectTaskTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, tagId])
+  @@map("task_to_tags")
+}
+
+// ==============================
+// TASKS
+// ==============================
+
+model ProjectTask {
+  id             String  @id @default(cuid())
+  organizationId String
+  projectId      String
+  stageId        String
+  parentId       String? // Sub-task
+  assigneeId     String? // User responsible
+
+  name        String
+  description String?
+  priority    TaskPriority @default(normal)
+  sequence    Int          @default(0)
+
+  // Progress
+  progress       Decimal @default(0) // 0-100
+  plannedHours   Decimal @default(0)
+  effectiveHours Decimal @default(0) // Actual hours logged
+
+  // Dates
+  startDate DateTime?
+  deadline  DateTime?
+  doneDate  DateTime?
+
+  // Kanban
+  kanbanState String? // normal, done, blocked
+  color       String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage        ProjectStage @relation(fields: [stageId], references: [id])
+  parent       ProjectTask? @relation("TaskHierarchy", fields: [parentId], references: [id])
+  assignee     User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  children   ProjectTask[] @relation("TaskHierarchy")
+  tags       TaskToTag[]
+  timesheets Timesheet[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([stageId])
+  @@index([assigneeId])
+  @@index([parentId])
+  @@index([priority])
+  @@index([deadline])
+  @@map("project_tasks")
+}
+
+// ==============================
+// TIMESHEETS
+// ==============================
+
+model Timesheet {
+  id             String  @id @default(cuid())
+  organizationId String
+  employeeId     String
+  projectId      String
+  taskId         String?
+
+  date        DateTime
+  hours       Decimal  @default(0)
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task         ProjectTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([projectId])
+  @@index([taskId])
+  @@index([date])
+  @@map("timesheets")
+}

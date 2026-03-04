@@ -1,0 +1,193 @@
+// ==============================
+// MAINTENANCE ENUMS (Equipment & Machines)
+// ==============================
+
+enum MaintenanceType {
+  preventive // Scheduled routine
+  corrective // Fix after breakdown
+  predictive // Based on monitoring data
+}
+
+enum MaintenancePriority {
+  low
+  medium
+  high
+  critical // Machine down!
+}
+
+enum MaintenanceStatus {
+  draft
+  requested
+  in_progress
+  done
+  canceled
+}
+
+// ==============================
+// EQUIPMENT CATEGORIES
+// ==============================
+
+model EquipmentCategory {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String // Printing Machines, Cutting Tools, Heat Press, etc.
+  description String?
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment    Equipment[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("equipment_categories")
+}
+
+// ==============================
+// EQUIPMENT (Machines & Tools)
+// ==============================
+
+model Equipment {
+  id             String  @id @default(cuid())
+  organizationId String
+  categoryId     String?
+  storeId        String? // Which workshop/location
+
+  name         String // "Epson F2100 DTG Printer #1"
+  serialNumber String?
+  model        String? // Machine model
+  manufacturer String? // Brand/maker
+
+  // Status
+  active    Boolean @default(true)
+  condition String? // excellent, good, fair, needs_repair, decommissioned
+
+  // Financials
+  purchaseDate  DateTime?
+  purchasePrice Decimal?
+  warrantyEnd   DateTime?
+
+  // Usage
+  printCount     Int? // Total prints done (for printers)
+  operatingHours Decimal? // Total hours used
+
+  // Specs
+  specs    Json? // { ink_type, max_size, resolution, etc. }
+  image    String?
+  location String? // Physical location in workshop
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     EquipmentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  store        Store?             @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  maintenanceRequests  MaintenanceRequest[]
+  maintenanceSchedules MaintenanceSchedule[]
+
+  @@unique([organizationId, serialNumber])
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([storeId])
+  @@index([active])
+  @@map("equipment")
+}
+
+// ==============================
+// MAINTENANCE REQUESTS
+// ==============================
+
+model MaintenanceRequest {
+  id             String  @id @default(cuid())
+  organizationId String
+  equipmentId    String
+  requestedById  String? // Employee/User who reported
+  assignedToId   String? // Technician
+
+  name        String // "Printhead clogged on DTG #1"
+  type        MaintenanceType     @default(corrective)
+  priority    MaintenancePriority @default(medium)
+  status      MaintenanceStatus   @default(draft)
+  description String?
+
+  // Dates
+  requestDate   DateTime  @default(now())
+  scheduledDate DateTime?
+  startDate     DateTime?
+  endDate       DateTime?
+
+  // Cost
+  laborCost Decimal @default(0)
+  partsCost Decimal @default(0)
+  totalCost Decimal @default(0)
+
+  // Downtime
+  downtimeHours Decimal? // Hours machine was down
+
+  // Parts used
+  partsUsed Json? // [{ name, quantity, cost }]
+
+  resolution String?
+  note       String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment    Equipment    @relation(fields: [equipmentId], references: [id])
+  requestedBy  User?        @relation("MaintenanceRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  assignedTo   User?        @relation("MaintenanceTechnician", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([equipmentId])
+  @@index([requestedById])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([type])
+  @@map("maintenance_requests")
+}
+
+// ==============================
+// MAINTENANCE SCHEDULES (Preventive)
+// ==============================
+
+model MaintenanceSchedule {
+  id             String @id @default(cuid())
+  organizationId String
+  equipmentId    String
+
+  name        String // "Monthly printhead cleaning"
+  type        MaintenanceType @default(preventive)
+  description String?
+
+  // Recurring schedule
+  intervalDays Int // Every N days
+  lastDoneDate DateTime?
+  nextDueDate  DateTime?
+
+  // Assigned technician
+  assignedToId String?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment    Equipment    @relation(fields: [equipmentId], references: [id])
+
+  @@index([organizationId])
+  @@index([equipmentId])
+  @@index([active])
+  @@index([nextDueDate])
+  @@map("maintenance_schedules")
+}

@@ -1,0 +1,67 @@
+// ==============================
+// SEQUENCES ENUMS
+// ==============================
+
+enum SequenceResetPeriod {
+  never
+  yearly
+  monthly
+  daily
+}
+
+// ==============================
+// SEQUENCES (Auto-numbering rules)
+// ==============================
+
+model Sequence {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String // "Sale Orders"
+  code        String // "sale.order"
+  description String?
+
+  // Pattern formatting
+  prefix      String? // "SO/{yyyy}/{mm}/"
+  suffix      String?
+  padding     Int     @default(4) // 0001
+  nextNumber  Int     @default(1)
+  incrementBy Int     @default(1)
+
+  // Reset rules
+  resetPeriod SequenceResetPeriod @default(never)
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  counters     SequenceCounter[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([active])
+  @@map("sequences")
+}
+
+// ==============================
+// SEQUENCE COUNTERS (Period tracking)
+// ==============================
+
+model SequenceCounter {
+  id         String @id @default(cuid())
+  sequenceId String
+
+  // E.g., period = "2026-03" or "2026"
+  period     String // Represents the timeframe for the counter
+  nextNumber Int
+
+  updatedAt DateTime @updatedAt
+
+  sequence Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@unique([sequenceId, period])
+  @@map("sequence_counters")
+}

@@ -24,6 +24,16 @@ enum AddressType {
   mixed
 }
 
+enum ProfileType {
+  user
+  customer
+  vendor
+  store
+  employee
+  organization
+  other
+}
+
 enum AddressLabel {
   home
   office
@@ -36,17 +46,19 @@ enum AddressLabel {
 // ==============================
 
 model Profile {
-  id             String  @id @default(cuid())
+  id             String      @id @default(cuid())
   organizationId String
-  userId         String?
-  storeId        String?
-  customerId     String?
-  vendorId       String?
+  type           ProfileType @default(other)
+
+  userId     String?
+  storeId    String?
+  customerId String?
+  vendorId   String?
 
   // personal
   name      String?
   gender    String?
-  birthDate String?
+  birthDate DateTime?
 
   // contacts
   email       String?
@@ -64,16 +76,23 @@ model Profile {
   customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   vendor       Vendor?      @relation(fields: [vendorId], references: [id], onDelete: SetNull)
 
-  addresses    Address[]
-  documents    Document[]
-  socials      Social[]
-  bankAccounts BankAccount[]
+  addresses     Address[]
+  documents     Document[]
+  socials       Social[]
+  bankAccounts  BankAccount[]
+  accountMoves  AccountMove[]
+  payments      Payment[]
+  stockPickings StockPicking[]
+
+  // HR
+  employee Employee?
 
   @@index([organizationId])
   @@index([userId])
   @@index([storeId])
   @@index([customerId])
   @@index([vendorId])
+  @@index([type])
   @@map("profiles")
 }
 
@@ -100,7 +119,10 @@ model Document {
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
+  @@unique([profileId, type, number])
   @@index([profileId])
+  @@index([type])
+  @@index([status])
   @@map("documents")
 }
 
@@ -132,7 +154,7 @@ model Address {
 
   // zones
   postalCode  String
-  country     String @default("indonesian")
+  country     String @default("Indonesia")
   countryCode String @default("ID")
 
   // geo locations
@@ -146,11 +168,16 @@ model Address {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile        Profile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  shippingOrders SaleOrder[]     @relation("OrderShippingAddress")
+  billingOrders  SaleOrder[]     @relation("OrderBillingAddress")
+  purchaseOrders PurchaseOrder[]
 
   @@index([organizationId])
   @@index([profileId])
+  @@index([type, label])
+  @@index([default])
   @@map("addresses")
 }
 
@@ -159,9 +186,9 @@ model Address {
 // ==============================
 
 model Social {
-  id        String @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
-  profileId String
+  profileId      String
 
   platform String // instagram, tiktok, etc
   username String
@@ -184,9 +211,9 @@ model Social {
 // ==============================
 
 model BankAccount {
-  id        String @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
-  profileId String
+  profileId      String
 
   bankName      String
   accountName   String
@@ -203,6 +230,7 @@ model BankAccount {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  payments     Payment[]
 
   @@index([organizationId])
   @@index([profileId])

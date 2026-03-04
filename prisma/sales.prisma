@@ -1,0 +1,189 @@
+// ==============================
+// SALES ENUMS
+// ==============================
+
+enum OrderStatus {
+  draft // cart / quotation
+  checkout // customer is checking out
+  pending // waiting payment
+  confirmed // sale order confirmed (ERP)
+  processing // payment confirmed, preparing
+  shipped // on the way
+  delivered // received
+  completed // accepted by customer
+  canceled
+  refunded
+}
+
+enum PaymentState {
+  unpaid
+  partial
+  paid
+  refunded
+}
+
+enum OrderSource {
+  web
+  pos
+  app
+  manual
+}
+
+// ==============================
+// CARTS & CART ITEMS
+// ==============================
+
+model Cart {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String?
+  sessionId      String? // for guest carts
+
+  // Totals
+  subtotal Decimal @default(0)
+  taxTotal Decimal @default(0)
+  total    Decimal @default(0)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  items CartItem[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  variantId String
+
+  quantity Decimal @default(1)
+  price    Decimal // price at the time of adding
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([variantId])
+  @@map("cart_items")
+}
+
+// ==============================
+// SALE ORDERS
+// ==============================
+
+model SaleOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  customerId     String?
+  storeId        String?
+
+  orderNumber String      @unique // e.g. SO-2026-0001
+  source      OrderSource @default(web)
+  status      OrderStatus @default(draft)
+
+  // Addresses
+  shippingAddressId String?
+  billingAddressId  String?
+
+  // Financials
+  currencyId    String?
+  subtotal      Decimal      @default(0)
+  discountTotal Decimal      @default(0)
+  taxTotal      Decimal      @default(0)
+  shippingTotal Decimal      @default(0)
+  grandTotal    Decimal      @default(0)
+  paymentStatus PaymentState @default(unpaid)
+
+  // Dates
+  orderDate     DateTime  @default(now())
+  expectedDate  DateTime?
+  deliveredDate DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  store        Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+
+  shippingAddress Address? @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  billingAddress  Address? @relation("OrderBillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
+
+  lines         SaleOrderLine[]
+  invoices      AccountMove[]
+  stockPickings StockPicking[]
+
+  // Manufacturing
+  manufacturingOrders ManufacturingOrder[]
+
+  // Returns
+  returnOrders ReturnOrder[]
+
+  // Shipping
+  shipments Shipment[]
+
+  // Reviews
+  productReviews ProductReview[]
+
+  // Helpdesk
+  tickets Ticket[]
+
+  // Marketplace
+  marketplaceOrders MarketplaceOrder[]
+
+  // Design Assets
+  designAssets DesignAsset[]
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([status])
+  @@index([orderDate])
+  @@index([paymentStatus])
+  @@map("sale_orders")
+}
+
+model SaleOrderLine {
+  id        String  @id @default(cuid())
+  orderId   String
+  variantId String
+  productId String
+  taxRateId String?
+
+  description String?
+  quantity    Decimal @default(1)
+  unitPrice   Decimal
+  discount    Decimal @default(0) // percentage or fixed
+  taxAmount   Decimal @default(0)
+  subtotal    Decimal // quantity * (unitPrice - discount)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   SaleOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product   @relation(fields: [productId], references: [id])
+  variant Variant   @relation(fields: [variantId], references: [id])
+  taxRate TaxRate?  @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("sale_order_lines")
+}

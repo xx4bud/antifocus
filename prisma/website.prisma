@@ -1,0 +1,128 @@
+// ==============================
+// WEBSITE / CMS
+// ==============================
+
+enum PageStatus {
+  draft
+  published
+  archived
+}
+
+// ==============================
+// WEB MENUS
+// ==============================
+
+model WebMenu {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+
+  name     String
+  url      String?
+  pageId   String? // Link to WebPage
+  position Int     @default(0)
+  visible  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       WebMenu?     @relation("MenuHierarchy", fields: [parentId], references: [id])
+  children     WebMenu[]    @relation("MenuHierarchy")
+  page         WebPage?     @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([position])
+  @@map("web_menus")
+}
+
+// ==============================
+// WEB PAGES
+// ==============================
+
+model WebPage {
+  id             String  @id @default(cuid())
+  organizationId String
+  authorId       String?
+
+  title   String
+  slug    String
+  content String? // HTML/Markdown body
+  excerpt String?
+  status  PageStatus @default(draft)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  ogImage         String?
+  canonical       String?
+
+  // Settings
+  template    String? // Which layout template
+  publishedAt DateTime?
+
+  viewCount Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User?        @relation("PageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  menus WebMenu[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([publishedAt])
+  @@map("web_pages")
+}
+
+// ==============================
+// BLOG POSTS
+// ==============================
+
+model BlogPost {
+  id             String  @id @default(cuid())
+  organizationId String
+  authorId       String?
+  categoryId     String?
+
+  title      String
+  slug       String
+  content    String?
+  excerpt    String?
+  coverImage String?
+  status     PageStatus @default(draft)
+  featured   Boolean    @default(false)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+
+  tags        String[]
+  publishedAt DateTime?
+  viewCount   Int       @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User?        @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  category     Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([authorId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([featured])
+  @@map("blog_posts")
+}

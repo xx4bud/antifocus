@@ -1,0 +1,152 @@
+// ==============================
+// HELPDESK ENUMS
+// ==============================
+
+enum TicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+// ==============================
+// TICKET STAGES (Kanban)
+// ==============================
+
+model TicketStage {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String // New, In Progress, Awaiting Reply, Resolved, Closed
+  isClosed Boolean @default(false)
+  color    String?
+  position Int     @default(0)
+
+  // SLA
+  slaHours Int? // Max hours to resolve in this stage
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tickets      Ticket[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([position])
+  @@map("ticket_stages")
+}
+
+// ==============================
+// TICKET TAGS
+// ==============================
+
+model TicketTag {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String
+  color String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tickets      TicketToTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("ticket_tags")
+}
+
+// ==============================
+// TICKET ↔ TAG (Many-to-Many)
+// ==============================
+
+model TicketToTag {
+  id       String @id @default(cuid())
+  ticketId String
+  tagId    String
+
+  ticket TicketTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tag    Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, tagId])
+  @@map("ticket_to_tags")
+}
+
+// ==============================
+// TICKETS
+// ==============================
+
+model Ticket {
+  id             String  @id @default(cuid())
+  organizationId String
+  stageId        String
+  customerId     String? // Linked customer
+  assigneeId     String? // Employee/User handling
+  saleOrderId    String? // Related order
+
+  // Info
+  ticketNumber String         @unique // TK-2026-0001
+  subject      String
+  description  String?
+  priority     TicketPriority @default(medium)
+
+  // Channel
+  channel String? // email, whatsapp, web, phone
+
+  // SLA tracking
+  slaDeadline DateTime?
+  slaBreach   Boolean   @default(false)
+
+  // Resolution
+  resolvedAt DateTime?
+  rating     Int? // 1-5 CSAT
+  feedback   String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage        TicketStage  @relation(fields: [stageId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  assignee     User?        @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  saleOrder    SaleOrder?   @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+
+  tags     TicketToTag[]
+  messages TicketMessage[]
+
+  @@index([organizationId])
+  @@index([stageId])
+  @@index([customerId])
+  @@index([assigneeId])
+  @@index([priority])
+  @@index([slaBreach])
+  @@map("tickets")
+}
+
+// ==============================
+// TICKET MESSAGES (Thread)
+// ==============================
+
+model TicketMessage {
+  id       String  @id @default(cuid())
+  ticketId String
+  authorId String? // User who wrote
+
+  body        String
+  isInternal  Boolean  @default(false) // Internal note vs customer-facing
+  attachments String[] // URLs
+
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User?  @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([authorId])
+  @@map("ticket_messages")
+}

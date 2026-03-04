@@ -1,0 +1,106 @@
+// ==============================
+// RETURN ENUMS
+// ==============================
+
+enum ReturnStatus {
+  requested // Customer initiated
+  approved // Admin approved
+  rejected // Admin rejected
+  received // Items returned to warehouse
+  refunded // Refund processed
+  exchanged // Replaced with new items
+  canceled
+}
+
+enum ReturnReason {
+  damaged
+  defective
+  wrong_item
+  not_as_described
+  change_of_mind
+  late_delivery
+  other
+}
+
+enum ReturnType {
+  refund
+  exchange
+  store_credit
+}
+
+// ==============================
+// RETURN ORDERS
+// ==============================
+
+model ReturnOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  saleOrderId    String
+  customerId     String?
+  profileId      String? // Contact/person handling the return
+
+  returnNumber String       @unique // RMA/2026/001
+  status       ReturnStatus @default(requested)
+  type         ReturnType   @default(refund)
+
+  // Financials
+  refundAmount  Decimal @default(0)
+  restockingFee Decimal @default(0)
+
+  // Dates
+  requestDate  DateTime  @default(now())
+  approvalDate DateTime?
+  receiveDate  DateTime?
+  refundDate   DateTime?
+
+  reason   ReturnReason @default(other)
+  note     String?
+  proof    String[] // Photo/evidence URLs
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  saleOrder    SaleOrder    @relation(fields: [saleOrderId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  lines ReturnOrderLine[]
+
+  @@index([organizationId])
+  @@index([saleOrderId])
+  @@index([customerId])
+  @@index([status])
+  @@index([requestDate])
+  @@map("return_orders")
+}
+
+// ==============================
+// RETURN ORDER LINES
+// ==============================
+
+model ReturnOrderLine {
+  id            String @id @default(cuid())
+  returnOrderId String
+  productId     String
+  variantId     String
+
+  quantity         Decimal      @default(1)
+  quantityReceived Decimal      @default(0)
+  unitPrice        Decimal      @default(0) // Original price
+  reason           ReturnReason @default(other)
+  note             String?
+  metadata         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  returnOrder ReturnOrder @relation(fields: [returnOrderId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+  variant     Variant     @relation(fields: [variantId], references: [id])
+
+  @@index([returnOrderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("return_order_lines")
+}
