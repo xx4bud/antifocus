@@ -1,0 +1,315 @@
+// ============================================================
+// INTEGRATION MODULE
+// Covers: Integration, IntegrationLog, Webhook, WebhookLog,
+//         InboundWebhookLog, IntegrationItem, IntegrationOrder,
+//         IntegrationOrderItem
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum IntegrationStatus {
+  pending
+  active
+  inactive
+  banned
+  deleted
+}
+
+enum SyncStatus {
+  synced
+  pending
+  error
+  failed
+}
+
+enum WebhookMethod {
+  POST
+  PUT
+  PATCH
+}
+
+// ─────────────────────────────────────────────
+// INTEGRATION (Koneksi ke Platform Eksternal)
+// Shopee | Tokopedia | Lazada | WooCommerce | Shopify | etc
+// ─────────────────────────────────────────────
+
+model Integration {
+  id             String @id @default(cuid())
+  organizationId String
+  providerId     String @db.VarChar(100) // shopee | tokopedia | lazada | woocommerce | shopify
+
+  name   String            @db.VarChar(255)
+  type   String            @db.VarChar(50) // marketplace | webstore | pos | erp
+  status IntegrationStatus @default(pending)
+
+  // Credentials (encrypted at application level)
+  apiKey       String? @db.Text
+  apiSecret    String? @db.Text
+  accessToken  String? @db.Text
+  refreshToken String? @db.Text
+  shopUrl      String? @db.VarChar(500)
+  shopId       String? @db.VarChar(100)
+
+  // Sync settings
+  autoSync     Boolean   @default(true)
+  syncInterval Int       @default(15) // menit
+  lastSyncAt   DateTime?
+
+  // Fitur yang diaktifkan
+  syncProducts Boolean @default(true)
+  syncOrders   Boolean @default(true)
+  syncStock    Boolean @default(true)
+  syncPrices   Boolean @default(false)
+
+  settings Json?
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization    Organization        @relation("org_integrations", fields: [organizationId], references: [id], onDelete: Cascade)
+  logs            IntegrationLog[]    @relation("integration_logs")
+  inboundWebhooks InboundWebhookLog[] @relation("integration_inbound_webhooks")
+  items           IntegrationItem[]   @relation("integration_items")
+  orders          IntegrationOrder[]  @relation("integration_orders")
+  prices          Price[]             @relation("integration_prices")
+
+  @@index([organizationId])
+  @@index([providerId])
+  @@index([status])
+  @@map("integrations")
+}
+
+model IntegrationLog {
+  id            String @id @default(cuid())
+  integrationId String
+
+  action           String @db.VarChar(100) // sync_products | sync_orders | push_stock
+  status           String @db.VarChar(50) // success | error | partial
+  recordsProcessed Int    @default(0)
+  recordsFailed    Int    @default(0)
+
+  errorMsg     String? @db.Text
+  requestData  Json?
+  responseData Json?
+
+  durationMs Int?
+  createdAt  DateTime @default(now())
+
+  integration Integration @relation("integration_logs", fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([integrationId, createdAt])
+  @@map("integration_logs")
+}
+
+// ─────────────────────────────────────────────
+// OUTBOUND WEBHOOK (Webhook yang dikirim ke pihak ketiga)
+// ─────────────────────────────────────────────
+
+model Webhook {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String        @db.VarChar(255)
+  url            String        @db.VarChar(500)
+  method         WebhookMethod @default(POST)
+  events         String[] // ["order.created", "order.shipped"]
+  headers        Json?
+  secret         String?       @db.Text // HMAC signing secret
+
+  retryCount Int     @default(3)
+  enabled    Boolean @default(true)
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_webhooks", fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         WebhookLog[] @relation("webhook_logs")
+
+  @@index([organizationId])
+  @@index([enabled])
+  @@map("webhooks")
+}
+
+model WebhookLog {
+  id        String @id @default(cuid())
+  webhookId String
+
+  event       String    @db.VarChar(255)
+  url         String    @db.VarChar(500)
+  httpStatus  Int?
+  attempts    Int       @default(1)
+  nextRetryAt DateTime?
+
+  errorMessage    String? @db.Text
+  requestPayload  Json?
+  responseHeaders Json?
+  responseBody    String? @db.Text
+  durationMs      Int?
+
+  createdAt DateTime @default(now())
+
+  webhook Webhook @relation("webhook_logs", fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([httpStatus])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
+
+// ─────────────────────────────────────────────
+// INBOUND WEBHOOK LOG (Webhook masuk dari marketplace)
+// ─────────────────────────────────────────────
+
+model InboundWebhookLog {
+  id             String  @id @default(cuid())
+  organizationId String
+  integrationId  String?
+
+  event    String  @db.VarChar(255)
+  sourceIp String? @db.VarChar(50)
+  headers  Json?
+  payload  Json
+
+  status      String    @db.VarChar(50) // received | processed | failed | ignored
+  errorMsg    String?   @db.Text
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  organization Organization @relation("org_inbound_webhooks", fields: [organizationId], references: [id], onDelete: Cascade)
+  integration  Integration? @relation("integration_inbound_webhooks", fields: [integrationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("inbound_webhook_logs")
+}
+
+// ─────────────────────────────────────────────
+// INTEGRATION ITEM (Mapping Produk ↔ SKU Eksternal)
+// ─────────────────────────────────────────────
+
+model IntegrationItem {
+  id             String  @id @default(cuid())
+  organizationId String
+  integrationId  String
+  productId      String
+  variantId      String?
+
+  externalId  String? @db.VarChar(255) // ID produk/variant di platform eksternal
+  externalSku String? @db.VarChar(100) // SKU di marketplace
+  externalUrl String? @db.VarChar(500)
+
+  syncStatus SyncStatus @default(pending)
+  lastSyncAt DateTime?
+  errorMsg   String?    @db.Text
+
+  // Payload terakhir yang dikirim/diterima
+  lastPayload  Json?
+  lastResponse Json?
+
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_integration_items", fields: [organizationId], references: [id], onDelete: Cascade)
+  integration  Integration  @relation("integration_items", fields: [integrationId], references: [id], onDelete: Cascade)
+  product      Product      @relation("product_integration_items", fields: [productId], references: [id], onDelete: Cascade)
+  variant      Variant?     @relation("variant_integration_items", fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, productId, variantId])
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([productId])
+  @@index([syncStatus])
+  @@map("integration_items")
+}
+
+// ─────────────────────────────────────────────
+// INTEGRATION ORDER (Order dari Marketplace)
+// ─────────────────────────────────────────────
+
+model IntegrationOrder {
+  id            String @id @default(cuid())
+  integrationId String
+
+  externalOrderId String      @db.VarChar(255)
+  idempotencyKey  String?     @unique @db.VarChar(255)
+  status          OrderStatus @default(pending)
+
+  // Snapshot data dari marketplace
+  buyerName  String? @db.VarChar(255)
+  buyerPhone String? @db.VarChar(50)
+  buyerEmail String? @db.VarChar(255)
+
+  subtotal     Decimal @default(0) @db.Decimal(19, 4)
+  shippingCost Decimal @default(0) @db.Decimal(19, 4)
+  discount     Decimal @default(0) @db.Decimal(19, 4)
+  total        Decimal @default(0) @db.Decimal(19, 4)
+
+  orderedAt   DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+
+  syncStatus SyncStatus @default(pending)
+  lastSyncAt DateTime?
+  errorMsg   String?    @db.Text
+
+  // Raw payload dari marketplace
+  rawPayload Json?
+  metadata   Json?
+
+  // Setelah diproses → linkkan ke Order internal
+  internalOrderId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  integration Integration            @relation("integration_orders", fields: [integrationId], references: [id], onDelete: Cascade)
+  items       IntegrationOrderItem[] @relation("integration_order_items")
+
+  @@unique([integrationId, externalOrderId])
+  @@index([integrationId])
+  @@index([status])
+  @@index([syncStatus])
+  @@map("integration_orders")
+}
+
+model IntegrationOrderItem {
+  id                 String  @id @default(cuid())
+  integrationOrderId String
+  productId          String
+  variantId          String?
+
+  externalItemId String? @db.VarChar(255)
+  name           String  @db.VarChar(255)
+  quantity       Decimal @default(1) @db.Decimal(10, 4)
+  unitPrice      Decimal @default(0) @db.Decimal(19, 4)
+  discount       Decimal @default(0) @db.Decimal(19, 4)
+  lineTotal      Decimal @default(0) @db.Decimal(19, 4)
+
+  syncStatus SyncStatus @default(synced)
+  lastSyncAt DateTime?
+  errorMsg   String?    @db.Text
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  integrationOrder IntegrationOrder @relation("integration_order_items", fields: [integrationOrderId], references: [id], onDelete: Cascade)
+  product          Product          @relation("product_integration_order_items", fields: [productId], references: [id], onDelete: Restrict)
+  variant          Variant?         @relation("variant_integration_order_items", fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([integrationOrderId])
+  @@index([productId])
+  @@map("integration_order_items")
+}

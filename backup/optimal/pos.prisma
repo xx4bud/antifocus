@@ -1,0 +1,155 @@
+// ==============================
+// POS ENUMS
+// ==============================
+
+enum PosSessionStatus {
+  opening
+  opened
+  closing
+  closed
+}
+
+enum PosOrderStatus {
+  draft
+  paid
+  invoiced
+  canceled
+}
+
+enum PosPaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+// ==============================
+// POS SESSIONS
+// ==============================
+
+model PosSession {
+  id             String @id @default(cuid())
+  organizationId String
+  storeId        String
+  cashierId      String
+
+  name   String
+  status PosSessionStatus @default(opening)
+
+  // Balances
+  openingBalance Decimal @default(0)
+  closingBalance Decimal @default(0)
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  store        Store        @relation(fields: [storeId], references: [id])
+  cashier      Employee     @relation(fields: [cashierId], references: [id])
+
+  orders PosOrder[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([storeId])
+  @@index([status])
+  @@map("pos_sessions")
+}
+
+// ==============================
+// POS ORDERS
+// ==============================
+
+model PosOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  sessionId      String
+  customerId     String?
+
+  orderNumber String
+  status      PosOrderStatus @default(draft)
+
+  subtotal  Decimal @default(0)
+  taxAmount Decimal @default(0)
+  discount  Decimal @default(0)
+  total     Decimal @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  session      PosSession   @relation(fields: [sessionId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  lines    PosOrderLine[]
+  payments PosPayment[]
+
+  @@unique([organizationId, orderNumber])
+  @@index([organizationId])
+  @@index([sessionId])
+  @@index([status])
+  @@map("pos_orders")
+}
+
+// ==============================
+// POS ORDER LINES
+// ==============================
+
+model PosOrderLine {
+  id         String @id @default(cuid())
+  posOrderId String
+  productId  String
+  variantId  String
+
+  name      String
+  quantity  Decimal @default(1)
+  unitPrice Decimal @default(0)
+  discount  Decimal @default(0)
+  taxAmount Decimal @default(0)
+  subtotal  Decimal @default(0)
+  total     Decimal @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  posOrder PosOrder @relation(fields: [posOrderId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+  variant  Variant  @relation(fields: [variantId], references: [id])
+
+  @@index([posOrderId])
+  @@map("pos_order_lines")
+}
+
+// ==============================
+// POS PAYMENTS
+// ==============================
+
+model PosPayment {
+  id         String @id @default(cuid())
+  posOrderId String
+
+  method String // cash, card, e-wallet, qris
+  amount Decimal @default(0)
+
+  status PosPaymentStatus @default(pending)
+
+  reference String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  posOrder PosOrder @relation(fields: [posOrderId], references: [id], onDelete: Cascade)
+
+  @@index([posOrderId])
+  @@index([status])
+  @@map("pos_payments")
+}

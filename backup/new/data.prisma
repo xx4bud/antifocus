@@ -1,0 +1,259 @@
+// ============================================================
+// DATA MODULE
+// Covers: ReportTemplate, SavedReport, ReportSchedule,
+//         DataExportJob, DataImportJob, DatabaseBackup
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum ReportFormat {
+  pdf
+  excel
+  csv
+  html
+  json
+}
+
+enum ReportDeliveryMethod {
+  download
+  email
+  webhook
+  sftp
+}
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+  canceled
+}
+
+enum ExportFormat {
+  csv
+  excel
+  pdf
+  json
+}
+
+enum ImportAction {
+  create_only
+  update_only
+  upsert // create or update
+}
+
+// ─────────────────────────────────────────────
+// REPORT TEMPLATE
+// ─────────────────────────────────────────────
+
+model ReportTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  code        String
+  description String?
+  category    String // sales | finance | inventory | production | marketing
+
+  modelName  String // entity yang jadi sumber data
+  queryLogic Json? // filter / group-by config
+  sqlQuery   String? @db.Text // raw query (untuk laporan kompleks)
+
+  defaultFormat ReportFormat @default(pdf)
+  layout        Json? // konfigurasi layout / kolom
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization    Organization     @relation("org_report_templates", fields: [organizationId], references: [id], onDelete: Cascade)
+  savedReports    SavedReport[]    @relation("template_saved_reports")
+  reportSchedules ReportSchedule[] @relation("template_schedules")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([category])
+  @@index([active])
+  @@map("report_templates")
+}
+
+// ─────────────────────────────────────────────
+// SAVED REPORT (View / Konfigurasi Laporan Tersimpan)
+// ─────────────────────────────────────────────
+
+model SavedReport {
+  id             String @id @default(cuid())
+  organizationId String
+  templateId     String
+  authorId       String // User
+
+  name        String
+  description String?
+
+  filters Json?
+  columns String[]
+  sortBy  String?
+  sortDir String?  @default("desc")
+  groupBy String?
+
+  isPublic Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation("org_saved_reports", fields: [organizationId], references: [id], onDelete: Cascade)
+  template     ReportTemplate @relation("template_saved_reports", fields: [templateId], references: [id], onDelete: Cascade)
+  author       User           @relation("saved_report_author", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([authorId])
+  @@index([isPublic])
+  @@map("saved_reports")
+}
+
+// ─────────────────────────────────────────────
+// REPORT SCHEDULE (Otomasi Pengiriman Laporan)
+// ─────────────────────────────────────────────
+
+model ReportSchedule {
+  id             String @id @default(cuid())
+  organizationId String
+  templateId     String
+
+  name     String
+  cronExpr String // "0 8 * * 1" = setiap Senin jam 08:00
+
+  format         ReportFormat         @default(pdf)
+  deliveryMethod ReportDeliveryMethod @default(email)
+  recipients     String[] // email atau webhook URL
+
+  filters Json?
+
+  nextRunAt DateTime?
+  lastRunAt DateTime?
+  active    Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation("org_report_schedules", fields: [organizationId], references: [id], onDelete: Cascade)
+  template     ReportTemplate @relation("template_schedules", fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([active, nextRunAt])
+  @@map("report_schedules")
+}
+
+// ─────────────────────────────────────────────
+// DATA EXPORT JOB
+// ─────────────────────────────────────────────
+
+model DataExportJob {
+  id             String @id @default(cuid())
+  organizationId String
+  requestedById  String // User
+
+  name      String
+  modelName String // entity yang diekspor
+  format    ExportFormat @default(excel)
+
+  filters Json?
+  columns String[]
+
+  status    JobStatus @default(pending)
+  fileUrl   String?
+  fileSize  Int? // bytes
+  expiresAt DateTime? // file akan dihapus setelah waktu ini
+
+  recordsCount Int?
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_data_export_jobs", fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("data_export_requester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("data_export_jobs")
+}
+
+// ─────────────────────────────────────────────
+// DATA IMPORT JOB
+// ─────────────────────────────────────────────
+
+model DataImportJob {
+  id             String @id @default(cuid())
+  organizationId String
+  requestedById  String // User
+
+  name      String
+  modelName String // entity tujuan import
+
+  fileUrl  String
+  fileType String? // csv | excel
+
+  action  ImportAction @default(upsert)
+  mapping Json? // pemetaan kolom file → field model
+
+  status JobStatus @default(pending)
+
+  totalRows   Int @default(0)
+  successRows Int @default(0)
+  failedRows  Int @default(0)
+
+  errorFileUrl String?
+  errorMessage String?
+  errorDetail  Json? // detail baris yang gagal
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_data_import_jobs", fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("data_import_requester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("data_import_jobs")
+}
+
+// ─────────────────────────────────────────────
+// DATABASE BACKUP
+// ─────────────────────────────────────────────
+
+model DatabaseBackup {
+  id             String  @id @default(cuid())
+  organizationId String?
+
+  name   String
+  type   String // full | incremental | schema_only
+  status JobStatus @default(pending)
+
+  fileUrl  String?
+  fileSize Int? // bytes
+  checksum String? // MD5 / SHA256 untuk validasi integritas
+
+  expiresAt    DateTime?
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation("org_database_backups", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@map("database_backups")
+}

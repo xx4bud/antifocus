@@ -1,0 +1,304 @@
+// ============================================================
+// SUPPORT MODULE
+// Covers: Ticket, TicketMessage, Notification, Review,
+//         ReviewReply, Channel, ChannelMember, ChannelMessage
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum TicketStatus {
+  open
+  in_progress
+  waiting_customer // menunggu respons customer
+  resolved
+  closed
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum NotificationStatus {
+  unread
+  read
+  archived
+}
+
+enum NotificationPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum ReviewStatus {
+  pending // belum dimoderasi
+  approved
+  rejected
+  archived
+}
+
+enum ChannelType {
+  public // semua member bisa join
+  private // by invitation
+  direct_message // 1:1
+}
+
+enum MessageChannelType {
+  whatsapp
+  sms
+  email
+  telegram
+  internal
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+  bounced
+}
+
+// ─────────────────────────────────────────────
+// TICKET
+// ─────────────────────────────────────────────
+
+model Ticket {
+  id             String @id @default(cuid())
+  organizationId String
+
+  subject     String         @db.VarChar(255)
+  description String?        @db.Text
+  status      TicketStatus   @default(open)
+  priority    TicketPriority @default(medium)
+
+  // Relasi ke entitas terkait (order, shipment, dll)
+  resModel String? @db.VarChar(100) // "Order" | "Shipment"
+  resId    String? @db.VarChar(100)
+
+  assigneeId String? // Member yang handle
+  closedAt   DateTime?
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_tickets", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  messages TicketMessage[] @relation("ticket_messages")
+  tags     TicketTag[]     @relation("ticket_tags")
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([priority])
+  @@index([assigneeId])
+  @@index([resModel, resId])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id             String  @id @default(cuid())
+  organizationId String
+  ticketId       String
+  customerId     String?
+  memberId       String?
+
+  body        String   @db.Text
+  attachments String[] // URL
+  isInternal  Boolean  @default(false) // catatan internal, tidak terlihat customer
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ticket   Ticket    @relation("ticket_messages", fields: [ticketId], references: [id], onDelete: Cascade)
+  customer Customer? @relation("customer_ticket_messages", fields: [customerId], references: [id], onDelete: SetNull)
+  member   Member?   @relation("member_ticket_messages", fields: [memberId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([customerId])
+  @@index([memberId])
+  @@map("ticket_messages")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION (In-App)
+// ─────────────────────────────────────────────
+
+model Notification {
+  id             String  @id @default(cuid())
+  organizationId String
+  recipientId    String // Member
+  categoryId     String? // ref: Category (system | sale | support | design | stock)
+
+  title   String  @db.VarChar(255)
+  message String  @db.Text
+  url     String? @db.VarChar(500) // deep link
+
+  status   NotificationStatus   @default(unread)
+  priority NotificationPriority @default(low)
+  readAt   DateTime?
+
+  // Push notification payload
+  pushSent Boolean   @default(false)
+  pushedAt DateTime?
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_notifications", fields: [organizationId], references: [id], onDelete: Cascade)
+  recipient    Member       @relation("member_notifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  category     Category?    @relation("category_notifications", fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([recipientId])
+  @@index([recipientId, status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// REVIEW (Ulasan Produk)
+// ─────────────────────────────────────────────
+
+model Review {
+  id             String  @id @default(cuid())
+  organizationId String
+  productId      String
+  customerId     String
+  orderId        String?
+
+  rating  Int      @default(5) // 1–5
+  title   String?  @db.VarChar(255)
+  content String?  @db.Text
+  images  String[] // URL foto
+
+  status             ReviewStatus @default(pending)
+  isVerifiedPurchase Boolean      @default(false)
+  adminReply         String?      @db.Text
+
+  // Social
+  likes    Int @default(0)
+  dislikes Int @default(0)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_reviews", fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation("product_reviews", fields: [productId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation("customer_reviews", fields: [customerId], references: [id], onDelete: Cascade)
+  order        Order?       @relation("order_reviews", fields: [orderId], references: [id], onDelete: SetNull)
+
+  replies ReviewReply[] @relation("review_replies")
+
+  @@unique([productId, customerId, orderId])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([customerId])
+  @@index([rating])
+  @@index([status])
+  @@map("reviews")
+}
+
+model ReviewReply {
+  id       String @id @default(cuid())
+  reviewId String
+  memberId String
+
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review Review @relation("review_replies", fields: [reviewId], references: [id], onDelete: Cascade)
+  member Member @relation("member_review_replies", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_replies")
+}
+
+// ─────────────────────────────────────────────
+// CHANNEL (Internal Chat / Grup Diskusi)
+// ─────────────────────────────────────────────
+
+model Channel {
+  id             String      @id @default(cuid())
+  organizationId String
+  type           ChannelType @default(public)
+
+  name        String? @db.VarChar(255)
+  description String? @db.Text
+  avatar      String? @db.VarChar(500)
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_channels", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  members  ChannelMember[]  @relation("channel_members")
+  messages ChannelMessage[] @relation("channel_messages")
+
+  @@index([organizationId])
+  @@index([type])
+  @@map("channels")
+}
+
+model ChannelMember {
+  id        String @id @default(cuid())
+  channelId String
+  memberId  String
+
+  role     String   @default("member") @db.VarChar(100) // owner | admin | member
+  lastRead DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  channel Channel @relation("channel_members", fields: [channelId], references: [id], onDelete: Cascade)
+  member  Member  @relation("member_channel_members", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, memberId])
+  @@map("channel_members")
+}
+
+model ChannelMessage {
+  id        String @id @default(cuid())
+  channelId String
+  authorId  String
+
+  body        String   @db.Text
+  attachments String[]
+  isSystem    Boolean  @default(false) // pesan otomatis dari sistem
+
+  // Thread / Reply
+  parentId String?
+
+  editedAt  DateTime?
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channel Channel @relation("channel_messages", fields: [channelId], references: [id], onDelete: Cascade)
+  author  Member  @relation("member_channel_messages", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([channelId, createdAt(sort: Desc)])
+  @@index([deletedAt])
+  @@map("channel_messages")
+}

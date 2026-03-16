@@ -1,0 +1,204 @@
+// ==============================
+// CATALOG ENUMS
+// ==============================
+
+enum ProductType {
+  goods
+  service
+  consumable
+  digital
+}
+
+enum ProductStatus {
+  draft
+  active
+  archived
+  banned
+}
+
+// ==============================
+// PRODUCTS
+// ==============================
+
+model Product {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  keywords       String[]
+
+  // type
+  type         ProductType   @default(goods)
+  status       ProductStatus @default(draft)
+  customizable Boolean       @default(false)
+
+  // accessories
+  packagings   Json?
+  optionals    Json?
+  accessories  Json?
+  alternatives Json?
+
+  // flags
+  isSale     Boolean @default(true)
+  isPurchase Boolean @default(false)
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Catalog relations
+  variants   Variant[]
+  priceLists PriceList[]
+  values     Value[]
+
+  // Category & grouping
+  categories  CategoryProduct[]
+  collections CollectionProduct[]
+  tags        TagProduct[]
+
+  // Media
+  images ProductImage[]
+  videos ProductVideo[]
+
+  // Sales & orders
+  saleOrderLines        SaleOrderLine[]
+  cartItems             CartItem[]
+  productReviews        ProductReview[]        @relation("ProductReviews")
+  marketplaceListings   MarketplaceListing[]
+  marketplaceOrderLines MarketplaceOrderLine[]
+
+  // Manufacturing
+  billOfMaterials BillOfMaterial[]
+  bomLines        BomLine[]
+
+  // Design Assets
+  designAssets DesignAsset[]
+
+  // Quality
+  qualityPoints QualityPoint[]
+  qualityAlerts QualityAlert[]
+
+  // Purchasing & returns
+  purchaseOrderLines PurchaseOrderLine[]
+  returnOrderLines   ReturnOrderLine[]
+
+  // POS
+  posOrderLines PosOrderLine[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@map("products")
+}
+
+// ==============================
+// VARIANTS
+// ==============================
+
+model Variant {
+  id             String  @id @default(cuid())
+  organizationId String
+  productId      String
+  currencyId     String?
+
+  name    String
+  sku     String?
+  barcode String?
+
+  // pricing
+  costPrice Decimal @default(0)
+  sellPrice Decimal @default(0)
+  compareAt Decimal @default(0)
+
+  // order
+  minOrder Int @default(1)
+
+  // physical
+  weight Decimal @default(0)
+  volume Decimal @default(0)
+  length Decimal @default(0)
+  width  Decimal @default(0)
+  height Decimal @default(0)
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+
+  values      Value[]
+  images      VariantImage[]
+  stockStores StockStore[]
+
+  // Sales & orders
+  saleOrderLines        SaleOrderLine[]
+  cartItems             CartItem[]
+  marketplaceListings   MarketplaceListing[]
+  marketplaceOrderLines MarketplaceOrderLine[]
+
+  // Manufacturing
+  bomLines BomLine[]
+
+  // Design Assets
+  designAssets DesignAsset[]
+
+  // Purchasing & returns
+  purchaseOrderLines PurchaseOrderLine[]
+  returnOrderLines   ReturnOrderLine[]
+
+  // POS
+  posOrderLines PosOrderLine[]
+
+  // Inventory
+  stockMoves StockMove[]
+
+  @@unique([organizationId, sku])
+  @@index([productId])
+  @@index([enabled])
+  @@map("variants")
+}
+
+// ==============================
+// PRICE LISTS
+// ==============================
+
+model PriceList {
+  id             String  @id @default(cuid())
+  organizationId String
+  variantId      String?
+
+  minPrice Decimal @default(0)
+  maxPrice Decimal @default(0)
+
+  currencyId String?
+  startDate  DateTime?
+  endDate    DateTime?
+
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variant      Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([variantId])
+  @@map("price_lists")
+}

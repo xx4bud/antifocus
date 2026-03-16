@@ -1,0 +1,266 @@
+// ============================================================
+// CRM & SALES PIPELINE MODULE
+// Covers: Lead, Opportunity, Activity
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum LeadSource {
+  website
+  referral
+  organic
+  paid_ads
+  cold_call
+  tradeshow
+  other
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  lost
+}
+
+// Phase 6 Additions
+enum CampaignStatus {
+  draft
+  scheduled
+  sending
+  completed
+  paused
+}
+
+enum MailingType {
+  email
+  sms
+  push
+}
+
+enum OpportunityStage {
+  discovery
+  proposal
+  negotiation
+  won
+  lost
+}
+
+enum ActivityType {
+  email
+  call
+  meeting
+  task
+}
+
+// ─────────────────────────────────────────────
+// LEAD (Prospek Pra-Penjualan)
+// ─────────────────────────────────────────────
+
+model Lead {
+  id             String  @id @default(cuid())
+  organizationId String
+  assignedToId   String? // referensi ke Employee
+
+  firstName   String  @db.VarChar(100)
+  lastName    String? @db.VarChar(100)
+  companyName String? @db.VarChar(255)
+  jobTitle    String? @db.VarChar(100)
+
+  email   String? @db.VarChar(255)
+  phone   String? @db.VarChar(50)
+  website String? @db.VarChar(255)
+
+  source LeadSource @default(other)
+  status LeadStatus @default(new)
+
+  // Nilai harapan transaksi awal
+  expectedRevenue Decimal @default(0) @db.Decimal(19, 4)
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_leads", fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo   Employee?    @relation("employee_leads", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  opportunities Opportunity[] @relation("lead_opportunities")
+  activities    Activity[]    @relation("lead_activities")
+
+  @@index([organizationId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("leads")
+}
+
+// ─────────────────────────────────────────────
+// OPPORTUNITY (Peluang dari Lead Kualifikasi)
+// ─────────────────────────────────────────────
+
+model Opportunity {
+  id             String  @id @default(cuid())
+  organizationId String
+  leadId         String? // asalnya dari Lead mana (opsional jika manual input)
+  customerId     String? // terkait dengan Customer jika menang
+  assignedToId   String? // Employee yang memegang
+
+  name String @db.VarChar(255) // "Proyek Kaos Sablon 10K Pcs"
+
+  stage OpportunityStage @default(discovery)
+
+  expectedRevenue Decimal   @default(0) @db.Decimal(19, 4)
+  probability     Int       @default(10) // 0-100%
+  expectedClosing DateTime?
+
+  lostReason String? @db.Text
+  note       String? @db.Text
+  metadata   Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_opportunities", fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead?        @relation("lead_opportunities", fields: [leadId], references: [id], onDelete: SetNull)
+  customer     Customer?    @relation("customer_opportunities", fields: [customerId], references: [id], onDelete: SetNull)
+  assignedTo   Employee?    @relation("employee_opportunities", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  activities Activity[] @relation("opportunity_activities")
+
+  @@index([organizationId])
+  @@index([assignedToId])
+  @@index([customerId])
+  @@index([stage])
+  @@index([deletedAt])
+  @@map("opportunities")
+}
+
+// ─────────────────────────────────────────────
+// ACTIVITY (Catatan Tindak Lanjut CRM)
+// ─────────────────────────────────────────────
+
+model Activity {
+  id             String @id @default(cuid())
+  organizationId String
+  assignedToId   String // Employee yang melakukan aktivitas
+
+  leadId        String?
+  opportunityId String?
+
+  type        ActivityType @default(task)
+  summary     String       @db.VarChar(255) // "Follow up proposal pricing"
+  description String?      @db.Text
+
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_activities", fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo   Employee     @relation("employee_activities", fields: [assignedToId], references: [id], onDelete: Cascade)
+  lead         Lead?        @relation("lead_activities", fields: [leadId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity? @relation("opportunity_activities", fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([assignedToId])
+  @@index([leadId])
+  @@index([opportunityId])
+  @@index([dueDate])
+  @@map("activities")
+}
+
+// ─────────────────────────────────────────────
+// MARKETING AUTOMATION & MASS MAILING (Phase 6)
+// ─────────────────────────────────────────────
+
+model MailingList {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String  @db.VarChar(255)
+  description String? @db.Text
+  isPublic    Boolean @default(false)
+
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization      @relation("org_mailing_lists", fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns    MailingCampaign[] @relation("list_campaigns")
+
+  @@index([organizationId])
+  @@index([deletedAt])
+  @@map("mailing_lists")
+}
+
+model MailingCampaign {
+  id             String  @id @default(cuid())
+  organizationId String
+  mailingListId  String?
+
+  name     String         @db.VarChar(255)
+  subject  String?        @db.VarChar(255) // Email subject
+  bodyHtml String?        @db.Text
+  type     MailingType    @default(email)
+  status   CampaignStatus @default(draft)
+
+  scheduledAt DateTime?
+  sentAt      DateTime?
+
+  // Stats
+  sentCount   Int @default(0)
+  openCount   Int @default(0)
+  clickCount  Int @default(0)
+  bounceCount Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_campaigns", fields: [organizationId], references: [id], onDelete: Cascade)
+  mailingList  MailingList? @relation("list_campaigns", fields: [mailingListId], references: [id], onDelete: SetNull)
+
+  traces MailingTrace[] @relation("campaign_traces")
+
+  @@index([organizationId])
+  @@index([mailingListId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("mailing_campaigns")
+}
+
+model MailingTrace {
+  id         String @id @default(cuid())
+  campaignId String
+
+  recipientEmail String? @db.VarChar(255)
+  recipientPhone String? @db.VarChar(50)
+
+  status String @default("sent") @db.VarChar(50) // sent | delivered | opened | clicked | bounced
+
+  openedAt  DateTime?
+  clickedAt DateTime?
+  bouncedAt DateTime?
+
+  metadata Json? // Untuk event webhook dari SendGrid / Twilio
+
+  createdAt DateTime @default(now())
+
+  campaign MailingCampaign @relation("campaign_traces", fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([status])
+  @@map("mailing_traces")
+}

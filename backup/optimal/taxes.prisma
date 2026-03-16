@@ -1,0 +1,83 @@
+// ==============================
+// TAX RATES
+// ==============================
+
+model TaxRate {
+  id   String  @id @default(cuid())
+  name String // PPN 12%
+  code String  @unique // ppn-12
+  rate Decimal // 12.00
+
+  type  String  @default("percent") // fixed
+  scope String? // all, goods, services
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  saleOrderLines     SaleOrderLine[]
+  purchaseOrderLines PurchaseOrderLine[]
+  fiscalTaxesSrc     FiscalPositionTax[] @relation("FiscalTaxSrc")
+  fiscalTaxesDest    FiscalPositionTax[] @relation("FiscalTaxDest")
+
+  @@index([type])
+  @@index([scope])
+  @@index([enabled])
+  @@map("tax_rates")
+}
+
+// ==============================
+// FISCAL POSITIONS (Tax Mapping)
+// ==============================
+
+model FiscalPosition {
+  id             String  @id @default(cuid())
+  organizationId String
+  countryId      String?
+
+  name        String
+  description String?
+  active      Boolean @default(true)
+  position    Int     @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  country      Country?     @relation(fields: [countryId], references: [id], onDelete: SetNull)
+
+  taxMappings FiscalPositionTax[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([countryId])
+  @@index([active])
+  @@map("fiscal_positions")
+}
+
+// ==============================
+// FISCAL POSITION TAX MAPPING
+// ==============================
+
+model FiscalPositionTax {
+  id               String @id @default(cuid())
+  fiscalPositionId String
+
+  taxSrcId  String
+  taxDestId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fiscalPosition FiscalPosition @relation(fields: [fiscalPositionId], references: [id], onDelete: Cascade)
+  taxSrc         TaxRate        @relation("FiscalTaxSrc", fields: [taxSrcId], references: [id])
+  taxDest        TaxRate?       @relation("FiscalTaxDest", fields: [taxDestId], references: [id])
+
+  @@unique([fiscalPositionId, taxSrcId])
+  @@index([fiscalPositionId])
+  @@map("fiscal_position_taxes")
+}

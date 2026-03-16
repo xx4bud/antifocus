@@ -1,0 +1,322 @@
+// ==============================
+// ORGANIZATION ENUMS
+// ==============================
+
+enum SystemOrgRole {
+  owner
+  admin
+  member
+  viewer
+}
+
+enum OrganizationStatus {
+  active
+  inactive
+  suspended
+  trial
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+  canceled
+}
+
+enum StoreStatus {
+  open
+  closed
+  maintenance
+}
+
+enum StoreType {
+  retail
+  warehouse
+  workshop
+  popup
+  online
+}
+
+// ==============================
+// ORGANIZATIONS
+// ==============================
+
+model Organization {
+  id    String  @id @default(cuid())
+  name  String
+  slug  String  @unique
+  logo  String?
+  cover String?
+
+  status OrganizationStatus @default(active)
+  banned Boolean            @default(false)
+
+  settings Json?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Core
+  members     Member[]
+  invitations Invitation[]
+  roles       OrganizationRole[]
+  userRoles   UserRole[]
+  settings_   Setting[]
+
+  // Contacts
+  profiles Profile[]
+
+  // Stores
+  stores    Store[]
+  customers Customer[]
+  vendors   Vendor[]
+
+  // Catalog & Products
+  products   Product[]
+  variants   Variant[]
+  priceLists PriceList[]
+  medias     Media[]
+
+  // Categories & Groups
+  units       Unit[]
+  categories  Category[]
+  attributes  Attribute[]
+  options     Option[]
+  collections Collection[]
+  tags        Tag[]
+
+  // Sales
+  carts          Cart[]
+  saleOrders     SaleOrder[]
+  coupons        Coupon[]
+  discountRules  DiscountRule[]
+  productReviews ProductReview[]
+
+  // Purchasing
+  purchaseOrders PurchaseOrder[]
+
+  // Inventory
+  stockLocations StockLocation[]
+  stockPickings  StockPicking[]
+  stockStores    StockStore[]
+
+  // Manufacturing
+  billOfMaterials     BillOfMaterial[]
+  manufacturingOrders ManufacturingOrder[]
+
+  // Design Assets (POD)
+  designTemplates DesignTemplate[]
+  designAssets    DesignAsset[]
+  mockupPresets   MockupPreset[]
+
+  // Shipping & Returns
+  shippingMethods ShippingMethod[]
+  shipments       Shipment[]
+  returnOrders    ReturnOrder[]
+
+  // Marketplace
+  marketplaces Marketplace[]
+
+  // Accounting
+  accounts     ChartOfAccount[]
+  accountMoves AccountMove[]
+  payments     Payment[]
+
+  // Taxes
+  fiscalPositions FiscalPosition[]
+
+  // POS
+  posSessions PosSession[]
+  posOrders   PosOrder[]
+
+  // HR & Maintenance
+  departments          Department[]
+  employees            Employee[]
+  equipmentCategories  EquipmentCategory[]
+  equipment            Equipment[]
+  maintenanceRequests  MaintenanceRequest[]
+  maintenanceSchedules MaintenanceSchedule[]
+
+  // Helpdesk
+  ticketStages TicketStage[]
+  ticketTags   TicketTag[]
+  tickets      Ticket[]
+
+  // Quality
+  qualityPoints QualityPoint[]
+  qualityChecks QualityCheck[]
+  qualityAlerts QualityAlert[]
+
+  // Banners
+  banners Banner[]
+
+  // Platform
+  notifications     Notification[]
+  activities        Activity[]
+  channels          Channel[]
+  followers         Follower[]
+  notes             RecordNote[]
+  messageChannels   MessageChannel[]
+  messageLogs       MessageLog[]
+  documentFolders   DocumentFolder[]
+  documentRecords   DocumentRecord[]
+  documentTags      DocumentTag[]
+  projectStages     ProjectStage[]
+  projects          Project[]
+  projectTaskTags   ProjectTaskTag[]
+  projectTasks      ProjectTask[]
+  timesheets        Timesheet[]
+  reportTemplates   ReportTemplate[]
+  savedReports      SavedReport[]
+  reportSchedules   ReportSchedule[]
+  dataExportJobs    DataExportJob[]
+  dataImportJobs    DataImportJob[]
+  databaseBackups   DatabaseBackup[]
+  automationRules   AutomationRule[]
+  scheduledActions  ScheduledAction[]
+  actionLogs        ActionLog[]
+  integrations      Integration[]
+  webhooks          Webhook[]
+  workflowTemplates WorkflowTemplate[]
+  sequences         Sequence[]
+
+  @@index([status, banned])
+  @@map("organizations")
+}
+
+// ==============================
+// ORGANIZATION ROLES
+// ==============================
+
+model OrganizationRole {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+  permissions String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("organization_roles")
+}
+
+// ==============================
+// MEMBERS
+// ==============================
+
+model Member {
+  id             String @id @default(cuid())
+  organizationId String
+  userId         String
+
+  role SystemOrgRole @default(member)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("members")
+}
+
+// ==============================
+// INVITATIONS
+// ==============================
+
+model Invitation {
+  id             String @id @default(cuid())
+  organizationId String
+  inviterId      String
+
+  email     String
+  role      SystemOrgRole    @default(member)
+  status    InvitationStatus @default(pending)
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter      User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([email])
+  @@index([status])
+  @@map("invitations")
+}
+
+// ==============================
+// CUSTOMERS
+// ==============================
+
+model Customer {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String?
+  image          String?
+  cover          String?
+
+  enabled  Boolean  @default(true)
+  tags     String[]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  profiles       Profile[]
+  saleOrders     SaleOrder[]
+  returnOrders   ReturnOrder[]
+  productReviews ProductReview[] @relation("CustomerReviews")
+  tickets        Ticket[]
+  posOrders      PosOrder[]
+  projects       Project[]
+  designAssets   DesignAsset[]
+
+  @@unique([organizationId, userId])
+  @@index([enabled])
+  @@map("customers")
+}
+
+// ==============================
+// VENDORS
+// ==============================
+
+model Vendor {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String?
+  image          String?
+  cover          String?
+
+  enabled  Boolean  @default(true)
+  tags     String[]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  profiles       Profile[]
+  purchaseOrders PurchaseOrder[]
+
+  @@unique([organizationId, userId])
+  @@index([enabled])
+  @@map("vendors")
+}

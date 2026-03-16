@@ -1,0 +1,595 @@
+// ============================================================
+// ANTIFOCUS ERP — Print on Demand
+// schema.prisma (root config)
+// ============================================================
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+// ============================================================
+// IDENTITY MODULE
+// Covers: Auth (Better-Auth), Users, Organizations, Members
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserStatus {
+  pending // email belum diverifikasi
+  active // aktif
+  inactive // dinonaktifkan manual
+  deleted // soft-deleted
+}
+
+enum OrganizationStatus {
+  pending // menunggu review admin
+  active // disetujui
+  inactive // dinonaktifkan
+  banned // disuspend
+  deleted
+}
+
+enum MemberStatus {
+  pending
+  active
+  inactive
+  banned
+  deleted
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  rejected
+  canceled
+}
+
+enum ActionType {
+  create
+  update
+  delete
+  view
+  export
+  import
+  login
+  register
+  logout
+  request
+  approve
+  reject
+  cancel
+  complete
+  enable
+  disable
+  reset
+}
+
+// ─────────────────────────────────────────────
+// USER ROLES (Global / Platform Level)
+// ─────────────────────────────────────────────
+
+model UserRole {
+  id          String  @id @default(cuid())
+  role        String  @unique @db.VarChar(100)
+  permissions Json // { "entity.action": true }
+  isDefault   Boolean @default(false)
+  description String? @db.Text
+  metadata    Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@map("user_roles")
+}
+
+// ─────────────────────────────────────────────
+// BETTER-AUTH: USER
+// ─────────────────────────────────────────────
+
+model User {
+  id            String  @id @default(cuid())
+  name          String  @db.VarChar(255)
+  email         String  @unique @db.VarChar(255)
+  emailVerified Boolean @default(false)
+  image         String?
+
+  // username plugin
+  username        String? @unique @db.VarChar(100)
+  displayUsername String? @db.VarChar(100)
+
+  // phone plugin
+  phoneNumber         String? @unique @db.VarChar(50)
+  phoneNumberVerified Boolean @default(false)
+
+  // admin plugin
+  role       String    @default("user") @db.VarChar(100) // ref: user_roles.role
+  banned     Boolean   @default(false)
+  banReason  String?   @db.Text
+  banExpires DateTime?
+
+  // 2FA plugin
+  twoFactorEnabled Boolean @default(false)
+
+  status   UserStatus @default(pending)
+  settings Json?
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  profile    Profile?    @relation("user_profile")
+  sessions   Session[]   @relation("user_sessions")
+  accounts   Account[]   @relation("user_accounts")
+  twoFactors TwoFactor[] @relation("user_two_factors")
+
+  members     Member[]     @relation("user_members")
+  invitations Invitation[] @relation("user_invitations")
+  customers   Customer[]   @relation("user_customers")
+
+  carts           Cart[]            @relation("user_carts")
+  followers       Follower[]        @relation("user_followers")
+  workflowHistory WorkflowHistory[] @relation("actor_history")
+  projects        Project[]         @relation("project_manager")
+  projectTasks    ProjectTask[]     @relation("task_assignee")
+  savedReports    SavedReport[]     @relation("saved_report_author")
+  dataExportJobs  DataExportJob[]   @relation("data_export_requester")
+  dataImportJobs  DataImportJob[]   @relation("data_import_requester")
+
+  // Phase 4 Additions
+  commissions Commission[] @relation("user_commissions")
+  payouts     Payout[]     @relation("user_payouts")
+  employees   Employee[]   @relation("user_employee")
+
+  // Phase 5 Additions
+  jobApplications JobApplicant[] @relation("user_job_applicants")
+  subscriptions   Subscription[] @relation("user_subscriptions")
+
+  @@index([name])
+  @@index([role])
+  @@index([status, banned])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// BETTER-AUTH: SESSION
+// ─────────────────────────────────────────────
+
+model Session {
+  id     String @id @default(cuid())
+  userId String
+
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime
+
+  ipAddress String? @db.VarChar(50)
+  userAgent String? @db.Text
+
+  impersonatedBy       String? // admin userId
+  activeOrganizationId String?
+  metadata             Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("user_sessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([impersonatedBy])
+  @@index([activeOrganizationId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ─────────────────────────────────────────────
+// BETTER-AUTH: ACCOUNT (OAuth / Credentials)
+// ─────────────────────────────────────────────
+
+model Account {
+  id     String @id @default(cuid())
+  userId String
+
+  providerId String @db.VarChar(100) // credentials | google | etc
+  accountId  String @db.VarChar(255)
+
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?   @db.Text
+  password              String?   @db.VarChar(255)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("user_accounts", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+// ─────────────────────────────────────────────
+// BETTER-AUTH: VERIFICATION
+// ─────────────────────────────────────────────
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String   @db.VarChar(255) // email | phone | etc
+  value      String   @db.Text
+  expiresAt  DateTime
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("verifications")
+}
+
+// ─────────────────────────────────────────────
+// BETTER-AUTH: TWO FACTOR
+// ─────────────────────────────────────────────
+
+model TwoFactor {
+  id     String @id @default(cuid())
+  userId String
+
+  secret      String @db.Text
+  backupCodes String @db.Text // encrypted JSON array
+
+  user User @relation("user_two_factors", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factors")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOG
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id             String @id @default(cuid())
+  organizationId String
+
+  // Who
+  actorId   String?
+  actorName String  @db.VarChar(255) // snapshot nama aktor
+  ipAddress String? @db.VarChar(50)
+  userAgent String? @db.Text
+
+  // What
+  action ActionType
+
+  // Where (polymorphic)
+  entity   String  @db.VarChar(100)
+  entityId String?
+
+  // Delta
+  changes  Json?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation("org_audit_logs", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([actorId])
+  @@index([action])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────
+// ORGANIZATION
+// ─────────────────────────────────────────────
+
+model Organization {
+  id       String             @id @default(cuid())
+  name     String             @db.VarChar(255)
+  slug     String             @unique @db.VarChar(255)
+  image    String?
+  status   OrganizationStatus @default(pending)
+  settings Json? // timezone, locale, currency defaults, etc
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // ── Identity
+  profile     Profile?           @relation("org_profile")
+  auditLogs   AuditLog[]         @relation("org_audit_logs")
+  orgRoles    OrganizationRole[] @relation("org_roles")
+  members     Member[]           @relation("org_members")
+  invitations Invitation[]       @relation("org_invitations")
+
+  // ── Directory
+  branches           Branch[]            @relation("org_branches")
+  warehouseLocations WarehouseLocation[] @relation("org_locations")
+  customers          Customer[]          @relation("org_customers")
+  resellerConfigs    ResellerConfig[]    @relation("org_reseller_configs")
+  suppliers          Supplier[]          @relation("org_suppliers")
+
+  // ── Asset / Storage
+  folders Folder[] @relation("org_folders")
+  assets  Asset[]  @relation("org_assets")
+
+  // ── Catalog
+  products   Product[]   @relation("org_products")
+  units      Unit[]      @relation("org_units")
+  attributes Attribute[] @relation("org_attributes")
+
+  // ── Grouping
+  categories  Category[]   @relation("org_categories")
+  collections Collection[] @relation("org_collections")
+  tags        Tag[]        @relation("org_tags")
+
+  // ── Marketing
+  banners    Banner[]    @relation("org_banners")
+  promotions Promotion[] @relation("org_promotions")
+
+  // ── Commerce
+  carts        Cart[]        @relation("org_carts")
+  orderSources OrderSource[] @relation("org_order_sources")
+  orders       Order[]       @relation("org_orders")
+  returnOrders ReturnOrder[] @relation("org_return_orders")
+  posSessions  PosSession[]  @relation("org_pos_sessions")
+
+  // ── Finance
+  currencies       CurrencyRate[]    @relation("org_currency_rates")
+  taxRates         TaxRate[]         @relation("org_tax_rates")
+  fiscalPositions  FiscalPos[]       @relation("org_fiscal_pos")
+  chartOfAccounts  ChartOfAccount[]  @relation("org_chart_of_accounts")
+  analyticAccounts AnalyticAccount[] @relation("org_analytic_accounts")
+  accountMoves     AccountMove[]     @relation("org_account_moves")
+  paymentMethods   PaymentMethod[]   @relation("org_payment_methods")
+  payments         Payment[]         @relation("org_payments")
+  taxInvoices      TaxInvoice[]      @relation("org_tax_invoices")
+
+  // ── Supply Chain
+  stockPickings        StockPicking[]         @relation("org_stock_pickings")
+  billOfMaterials      BillOfMaterial[]       @relation("org_boms")
+  routings             Routing[]              @relation("org_routings")
+  operations           Operation[]            @relation("org_operations")
+  jobOrders            JobOrder[]             @relation("org_job_orders")
+  workCenters          WorkCenter[]           @relation("org_work_centers")
+  productionBatches    ProductionBatch[]      @relation("org_production_batches")
+  qualityChecks        QualityCheck[]         @relation("org_quality_checks")
+  purchaseOrders       PurchaseOrder[]        @relation("org_purchase_orders")
+  purchaseRequisitions PurchaseRequisition[]  @relation("org_purchase_reqs")
+  landedCosts          LandedCost[]           @relation("org_landed_costs")
+  maintenanceEquipment MaintenanceEquipment[] @relation("org_maintenance_equip")
+  maintenanceRequests  MaintenanceRequest[]   @relation("org_maintenance_req")
+
+  // ── Logistics
+  shippingMethods ShippingMethod[] @relation("org_shipping_methods")
+  shipments       Shipment[]       @relation("org_shipments")
+
+  // ── Design / PoD
+  designAssets DesignAsset[] @relation("org_design_assets")
+
+  // ── Integration
+  integrations     Integration[]       @relation("org_integrations")
+  integrationItems IntegrationItem[]   @relation("org_integration_items")
+  webhooks         Webhook[]           @relation("org_webhooks")
+  inboundWebhooks  InboundWebhookLog[] @relation("org_inbound_webhooks")
+
+  // ── Project
+  projectStages ProjectStage[] @relation("org_project_stages")
+  projects      Project[]      @relation("org_projects")
+  projectTasks  ProjectTask[]  @relation("org_project_tasks")
+  timesheets    Timesheet[]    @relation("org_timesheets")
+
+  // ── Support
+  tickets       Ticket[]       @relation("org_tickets")
+  notifications Notification[] @relation("org_notifications")
+  reviews       Review[]       @relation("org_reviews")
+  channels      Channel[]      @relation("org_channels")
+  followers     Follower[]     @relation("org_followers")
+
+  // ── Automation
+  workflowTemplates WorkflowTemplate[] @relation("org_workflow_templates")
+  automationRules   AutomationRule[]   @relation("org_automation_rules")
+  scheduledActions  ScheduledAction[]  @relation("org_scheduled_actions")
+  actionLogs        ActionLog[]        @relation("org_action_logs")
+
+  // ── Data / Reporting
+  reportTemplates ReportTemplate[] @relation("org_report_templates")
+  savedReports    SavedReport[]    @relation("org_saved_reports")
+  reportSchedules ReportSchedule[] @relation("org_report_schedules")
+  dataExportJobs  DataExportJob[]  @relation("org_data_export_jobs")
+  dataImportJobs  DataImportJob[]  @relation("org_data_import_jobs")
+  databaseBackups DatabaseBackup[] @relation("org_database_backups")
+
+  // ── Sequences
+  sequences Sequence[] @relation("org_sequences")
+
+  // ── Phase 4 HRIS
+  departments Department[] @relation("org_departments")
+  employees   Employee[]   @relation("org_employees")
+  leaveTypes  LeaveType[]  @relation("org_leave_types")
+  payrolls    Payroll[]    @relation("org_payrolls")
+
+  // ── Phase 4 CRM
+  leads         Lead[]        @relation("org_leads")
+  opportunities Opportunity[] @relation("org_opportunities")
+  activities    Activity[]    @relation("org_activities")
+
+  // ── Phase 4 Commerce & Finance additions
+  royaltyRules     RoyaltyRule[]     @relation("org_royalty_rules")
+  commissions      Commission[]      @relation("org_commissions")
+  payouts          Payout[]          @relation("org_payouts")
+  accountingAssets AccountingAsset[] @relation("org_accounting_assets")
+  bankStatements   BankStatement[]   @relation("org_bank_statements")
+
+  // ── Phase 5 Additions
+  expenseSheets     ExpenseSheet[]     @relation("org_expense_sheets")
+  jobPositions      JobPosition[]      @relation("org_job_positions")
+  jobApplicants     JobApplicant[]     @relation("org_job_applicants")
+  vehicles          Vehicle[]          @relation("org_vehicles")
+  subscriptionPlans SubscriptionPlan[] @relation("org_subscription_plans")
+  subscriptions     Subscription[]     @relation("org_subscriptions")
+  qualityAlerts     QualityAlert[]     @relation("org_quality_alerts")
+
+  // ── Phase 6 Additions
+  documentFolders   DocumentFolder[]   @relation("org_doc_folders")
+  documents         Document[]         @relation("org_documents")
+  signatureRequests SignatureRequest[] @relation("org_signature_requests")
+  iotDevices        IotDevice[]        @relation("org_iot_devices")
+  mailingLists      MailingList[]      @relation("org_mailing_lists")
+  mailingCampaigns  MailingCampaign[]  @relation("org_campaigns")
+  appraisals        Appraisal[]        @relation("org_appraisals")
+
+  @@index([name])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("organizations")
+}
+
+// ─────────────────────────────────────────────
+// ORGANIZATION ROLE (Per-Org RBAC)
+// ─────────────────────────────────────────────
+
+model OrganizationRole {
+  id             String @id @default(cuid())
+  organizationId String
+
+  role        String  @db.VarChar(100)
+  permissions Json // { "entity.action": true }
+  isDefault   Boolean @default(false)
+  description String? @db.Text
+  metadata    Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_roles", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, role])
+  @@index([deletedAt])
+  @@map("org_roles")
+}
+
+// ─────────────────────────────────────────────
+// MEMBER (User ↔ Organization)
+// ─────────────────────────────────────────────
+
+model Member {
+  id             String @id @default(cuid())
+  organizationId String
+  userId         String
+
+  role   String       @default("member") @db.VarChar(100) // ref: org_roles.role
+  status MemberStatus @default(pending)
+
+  // Tambahan PoD: bisa di-assign ke branch tertentu
+  branchId String?
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_members", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("user_members", fields: [userId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation("member_branch", fields: [branchId], references: [id], onDelete: SetNull)
+
+  accountMoveItems     AccountMoveItem[]     @relation("cashier_account_move_items")
+  qualityChecks        QualityCheck[]        @relation("quality_inspector")
+  ticketMessages       TicketMessage[]       @relation("member_ticket_messages")
+  reviewReplies        ReviewReply[]         @relation("member_review_replies")
+  channelMembers       ChannelMember[]       @relation("member_channel_members")
+  channelMessages      ChannelMessage[]      @relation("member_channel_messages")
+  timesheets           Timesheet[]           @relation("member_timesheets")
+  notifications        Notification[]        @relation("member_notifications")
+  posSessions          PosSession[]          @relation("cashier_pos_sessions")
+  maintenanceRequests  MaintenanceRequest[]  @relation("member_maintenance_req")
+  purchaseRequisitions PurchaseRequisition[] @relation("requester_purchase_reqs")
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([role])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("members")
+}
+
+// ─────────────────────────────────────────────
+// INVITATION
+// ─────────────────────────────────────────────
+
+model Invitation {
+  id             String @id @default(cuid())
+  organizationId String
+  inviterId      String
+
+  email     String           @db.VarChar(255)
+  role      String           @default("member") @db.VarChar(100)
+  status    InvitationStatus @default(pending)
+  expiresAt DateTime
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_invitations", fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter      User         @relation("user_invitations", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([inviterId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("invitations")
+}
+
+// ─────────────────────────────────────────────
+// SEQUENCE (Nomor Dokumen Otomatis)
+// ─────────────────────────────────────────────
+
+model Sequence {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String  @db.VarChar(255)
+  code        String  @db.VarChar(100) // sale.order | purchase.order | stock.picking
+  prefix      String? @db.VarChar(100) // SO/{yyyy}/{mm}/
+  suffix      String? @db.VarChar(100)
+  padding     Int     @default(4) // -> 0001
+  nextNumber  Int     @default(1)
+  incrementBy Int     @default(1)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_sequences", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  stockPickings  StockPicking[]  @relation("sequence_stock_pickings")
+  accountMoves   AccountMove[]   @relation("sequence_account_moves")
+  purchaseOrders PurchaseOrder[] @relation("sequence_purchase_orders")
+  orders         Order[]         @relation("sequence_orders")
+
+  @@unique([organizationId, code])
+  @@index([name])
+  @@map("sequences")
+}

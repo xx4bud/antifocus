@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==============================
+// SYSTEM ENUMS
+// ==============================
+
+enum SettingCategory {
+  general
+  security
+  preferences
+  payment
+  shipping
+  notification
+  integration
+}
+
+enum SequenceResetPeriod {
+  never
+  yearly
+  monthly
+  daily
+}
+
+// ==============================
+// SETTINGS
+// ==============================
+
+model Setting {
+  id             String  @id @default(cuid())
+  organizationId String?
+  key            String  @unique
+  value          Json
+  metadata       Json?
+
+  category SettingCategory @default(general)
+  public   Boolean         @default(true)
+
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+  @@index([category])
+  @@index([public, enabled])
+  @@map("settings")
+}
+
+// ==============================
+// THEMES
+// ==============================
+
+model Theme {
+  id       String @id @default(cuid())
+  key      String @unique
+  metadata Json?
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@map("themes")
+}
+
+// ==============================
+// SEQUENCES (Auto-numbering rules)
+// ==============================
+
+model Sequence {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String // "Sale Orders"
+  code        String // "sale.order"
+  description String?
+
+  // Pattern formatting
+  prefix      String? // "SO/{yyyy}/{mm}/"
+  suffix      String?
+  padding     Int     @default(4) // 0001
+  nextNumber  Int     @default(1)
+  incrementBy Int     @default(1)
+
+  // Reset rules
+  resetPeriod SequenceResetPeriod @default(never)
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  counters     SequenceCounter[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("sequences")
+}
+
+// ==============================
+// SEQUENCE COUNTERS (Period tracking)
+// ==============================
+
+model SequenceCounter {
+  id         String @id @default(cuid())
+  sequenceId String
+
+  period     String // E.g., "2026-03" or "2026"
+  nextNumber Int
+
+  updatedAt DateTime @updatedAt
+
+  sequence Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@unique([sequenceId, period])
+  @@map("sequence_counters")
+}

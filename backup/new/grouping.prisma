@@ -1,0 +1,185 @@
+// ============================================================
+// GROUPING MODULE
+// Covers: Category, Collection, Tag + junction tables
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum CategoryType {
+  product
+  branch
+}
+
+enum CollectionType {
+  manual // kurasi manual
+  auto // berdasarkan rules (e.g. tag = "new")
+}
+
+enum TagType {
+  manual
+  auto
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY (Hierarkis)
+// ─────────────────────────────────────────────
+
+model Category {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+  level          Int     @default(0) // 0 = root, 1 = category, 2 = subcategory
+
+  name          String
+  slug          String
+  image         String?
+  type          CategoryType  @default(product)
+  costingMethod CostingMethod @default(standard)
+  position      Int           @default(0)
+  metadata      Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_categories", fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       Category?    @relation("category_tree", fields: [parentId], references: [id], onDelete: SetNull)
+
+  children      Category[]        @relation("category_tree")
+  specs         CategorySpec[]    @relation("category_specs")
+  products      ProductCategory[] @relation("category_products")
+  notifications Notification[]    @relation("category_notifications")
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([name])
+  @@index([type])
+  @@index([parentId, level])
+  @@map("categories")
+}
+
+model ProductCategory {
+  id         String  @id @default(cuid())
+  productId  String
+  categoryId String
+  isDefault  Boolean @default(false)
+  position   Int     @default(0)
+
+  product  Product  @relation("product_categories", fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation("category_products", fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@map("product_categories")
+}
+
+// ─────────────────────────────────────────────
+// COLLECTION
+// ─────────────────────────────────────────────
+
+model Collection {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  image          String?
+  type           CollectionType @default(manual)
+  rules          Json? // untuk CollectionType.auto
+  position       Int            @default(0)
+  metadata       Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_collections", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  products CollectionProduct[] @relation("collection_products")
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([name])
+  @@index([type])
+  @@map("collections")
+}
+
+model CollectionProduct {
+  id           String  @id @default(cuid())
+  collectionId String
+  productId    String
+  position     Int     @default(0)
+  isDefault    Boolean @default(false)
+
+  collection Collection @relation("collection_products", fields: [collectionId], references: [id], onDelete: Cascade)
+  product    Product    @relation("product_collections", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, productId])
+  @@map("collection_products")
+}
+
+// ─────────────────────────────────────────────
+// TAG
+// ─────────────────────────────────────────────
+
+model Tag {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  color          String? // hex color untuk UI
+  type           TagType @default(manual)
+  rules          Json? // untuk TagType.auto
+  metadata       Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_tags", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  productTags ProductTag[] @relation("tag_products")
+  ticketTags  TicketTag[]  @relation("tag_tickets")
+  projectTags ProjectTag[] @relation("tag_projects")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([name])
+  @@map("tags")
+}
+
+model ProductTag {
+  id        String @id @default(cuid())
+  tagId     String
+  productId String
+
+  tag     Tag     @relation("tag_products", fields: [tagId], references: [id], onDelete: Cascade)
+  product Product @relation("product_tags", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, productId])
+  @@map("product_tags")
+}
+
+model TicketTag {
+  id       String @id @default(cuid())
+  tagId    String
+  ticketId String
+
+  tag    Tag    @relation("tag_tickets", fields: [tagId], references: [id], onDelete: Cascade)
+  ticket Ticket @relation("ticket_tags", fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, ticketId])
+  @@map("ticket_tags")
+}
+
+model ProjectTag {
+  id        String @id @default(cuid())
+  tagId     String
+  projectId String
+
+  tag     Tag     @relation("tag_projects", fields: [tagId], references: [id], onDelete: Cascade)
+  project Project @relation("project_tags", fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, projectId])
+  @@map("project_tags")
+}

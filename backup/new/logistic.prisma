@@ -1,0 +1,347 @@
+// ============================================================
+// LOGISTIC MODULE
+// Covers: ShippingMethod, ShippingZone, ShippingZoneArea,
+//         ShippingRate, Shipment, ShipmentItem, ShipmentTracking
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum ShipmentStatus {
+  pending
+  picked_up
+  in_transit
+  out_for_delivery
+  delivered
+  failed_attempt
+  returned_to_sender
+  canceled
+}
+
+// Phase 5 Additions
+enum VehicleStatus {
+  active
+  maintenance
+  retired
+}
+
+enum ServiceType {
+  repair
+  maintenance
+  fuel
+}
+
+// ─────────────────────────────────────────────
+// SHIPPING METHOD
+// ─────────────────────────────────────────────
+
+model ShippingMethod {
+  id             String @id @default(cuid())
+  organizationId String
+  providerId     String @db.VarChar(100) // jne | jnt | sicepat | anteraja | gosend | grab | manual
+
+  name     String  @db.VarChar(255)
+  code     String  @db.VarChar(100) // JNE_REG | GOSEND_INSTANT
+  logo     String?
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_shipping_methods", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  rates     ShippingRate[] @relation("method_rates")
+  shipments Shipment[]     @relation("method_shipments")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([providerId])
+  @@index([deletedAt])
+  @@map("shipping_methods")
+}
+
+// ─────────────────────────────────────────────
+// SHIPPING ZONE (Zona Pengiriman)
+// ─────────────────────────────────────────────
+
+model ShippingZone {
+  id       String @id @default(cuid())
+  branchId String
+
+  name     String @db.VarChar(255)
+  code     String @db.VarChar(100) // ZONE-JKT | ZONE-OUT-JAWA
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  branch Branch @relation("branch_shipping_zones", fields: [branchId], references: [id], onDelete: Cascade)
+
+  areas ShippingZoneArea[] @relation("zone_areas")
+  rates ShippingRate[]     @relation("zone_rates")
+
+  @@unique([branchId, code])
+  @@index([branchId])
+  @@index([deletedAt])
+  @@map("shipping_zones")
+}
+
+model ShippingZoneArea {
+  id         String  @id @default(cuid())
+  zoneId     String
+  countryId  String
+  provinceId String?
+  cityId     String?
+  districtId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  zone     ShippingZone @relation("zone_areas", fields: [zoneId], references: [id], onDelete: Cascade)
+  country  Country      @relation("country_areas", fields: [countryId], references: [id], onDelete: Cascade)
+  province Province?    @relation("province_areas", fields: [provinceId], references: [id], onDelete: SetNull)
+  city     City?        @relation("city_areas", fields: [cityId], references: [id], onDelete: SetNull)
+  district District?    @relation("district_areas", fields: [districtId], references: [id], onDelete: SetNull)
+
+  @@index([zoneId])
+  @@index([countryId, provinceId, cityId])
+  @@map("shipping_zone_areas")
+}
+
+// ─────────────────────────────────────────────
+// SHIPPING RATE (Tarif per metode + zona)
+// ─────────────────────────────────────────────
+
+model ShippingRate {
+  id       String @id @default(cuid())
+  methodId String
+  zoneId   String
+
+  baseCost  Decimal @db.Decimal(19, 4) // biaya dasar
+  costPerKg Decimal @db.Decimal(19, 4) // biaya per kg tambahan
+
+  // Estimasi hari
+  minDays Int?
+  maxDays Int?
+
+  // Free ongkir threshold
+  freeShippingMinOrder Decimal? @db.Decimal(19, 4)
+
+  metadata Json?
+
+  method ShippingMethod @relation("method_rates", fields: [methodId], references: [id], onDelete: Cascade)
+  zone   ShippingZone   @relation("zone_rates", fields: [zoneId], references: [id], onDelete: Cascade)
+
+  carts      Cart[]      @relation("shipping_rate_carts")
+  orders     Order[]     @relation("shipping_rate_orders")
+  orderItems OrderItem[] @relation("shipping_rate_order_items")
+  shipments  Shipment[]  @relation("rate_shipments")
+
+  @@unique([methodId, zoneId])
+  @@map("shipping_rates")
+}
+
+// ─────────────────────────────────────────────
+// SHIPMENT
+// ─────────────────────────────────────────────
+
+model Shipment {
+  id               String  @id @default(cuid())
+  organizationId   String
+  branchId         String
+  orderId          String?
+  returnOrderId    String?
+  shippingRateId   String?
+  shippingMethodId String?
+
+  trackingNumber String?        @db.VarChar(100)
+  status         ShipmentStatus @default(pending)
+
+  // Paket dimensi & berat
+  weight Decimal @default(0) @db.Decimal(10, 2) // kg
+  length Decimal @default(0) @db.Decimal(10, 2) // cm
+  width  Decimal @default(0) @db.Decimal(10, 2)
+  height Decimal @default(0) @db.Decimal(10, 2)
+
+  // Biaya
+  shippingCost Decimal @default(0) @db.Decimal(19, 4)
+  insurance    Decimal @default(0) @db.Decimal(19, 4)
+
+  // Alamat FK (untuk lookup) + snapshot (immutable)
+  senderAddressId    String?
+  recipientAddressId String?
+  senderSnapshot     Json? // snapshot alamat pengirim
+  recipientSnapshot  Json? // snapshot alamat penerima
+
+  // Estimated & actual dates
+  estimatedDelivery DateTime?
+  deliveredAt       DateTime?
+
+  // Phase 5: Internal Fleet
+  vehicleId String?
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization     Organization    @relation("org_shipments", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch           Branch          @relation("branch_shipments", fields: [branchId], references: [id], onDelete: Cascade)
+  order            Order?          @relation("order_shipments", fields: [orderId], references: [id], onDelete: Restrict)
+  returnOrder      ReturnOrder?    @relation("return_order_shipments", fields: [returnOrderId], references: [id], onDelete: SetNull)
+  shippingRate     ShippingRate?   @relation("rate_shipments", fields: [shippingRateId], references: [id], onDelete: SetNull)
+  shippingMethod   ShippingMethod? @relation("method_shipments", fields: [shippingMethodId], references: [id], onDelete: SetNull)
+  senderAddress    Address?        @relation("sender_address_shipments", fields: [senderAddressId], references: [id], onDelete: SetNull)
+  recipientAddress Address?        @relation("recipient_address_shipments", fields: [recipientAddressId], references: [id], onDelete: SetNull)
+  vehicle          Vehicle?        @relation("vehicle_shipments", fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  items     ShipmentItem[]     @relation("shipment_items")
+  packages  ShipmentPackage[]  @relation("shipment_packages")
+  trackings ShipmentTracking[] @relation("shipment_trackings")
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([orderId])
+  @@index([status])
+  @@index([trackingNumber])
+  @@index([deletedAt])
+  @@map("shipments")
+}
+
+model ShipmentItem {
+  id                String  @id @default(cuid())
+  shipmentId        String
+  shipmentPackageId String?
+  orderItemId       String
+
+  quantity Decimal  @default(1) @db.Decimal(10, 4)
+  weight   Decimal? @db.Decimal(10, 2)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipment  Shipment         @relation("shipment_items", fields: [shipmentId], references: [id], onDelete: Cascade)
+  package   ShipmentPackage? @relation("package_items", fields: [shipmentPackageId], references: [id], onDelete: SetNull)
+  orderItem OrderItem        @relation("order_item_shipment_items", fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([shipmentPackageId])
+  @@index([orderItemId])
+  @@map("shipment_items")
+}
+
+// ─────────────────────────────────────────────
+// SHIPMENT PACKAGE (Kardus / Palet di dalam Shipment)
+// ─────────────────────────────────────────────
+
+model ShipmentPackage {
+  id         String @id @default(cuid())
+  shipmentId String
+
+  name           String  @db.VarChar(255) // "Box 1", "Pallet A"
+  trackingNumber String? @db.VarChar(100)
+
+  // Paket dimensi & berat
+  weight Decimal @default(0) @db.Decimal(10, 2) // kg
+  length Decimal @default(0) @db.Decimal(10, 2) // cm
+  width  Decimal @default(0) @db.Decimal(10, 2)
+  height Decimal @default(0) @db.Decimal(10, 2)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipment Shipment       @relation("shipment_packages", fields: [shipmentId], references: [id], onDelete: Cascade)
+  items    ShipmentItem[] @relation("package_items")
+
+  @@index([shipmentId])
+  @@index([trackingNumber])
+  @@map("shipment_packages")
+}
+
+// ─────────────────────────────────────────────
+// SHIPMENT TRACKING (Event Log)
+// ─────────────────────────────────────────────
+
+model ShipmentTracking {
+  id         String @id @default(cuid())
+  shipmentId String
+
+  status      String   @db.VarChar(100) // "In Transit" | "Arrived at Hub" | etc
+  description String?  @db.Text
+  location    String?  @db.VarChar(255)
+  eventAt     DateTime @default(now())
+  source      String?  @db.VarChar(100) // system | api | manual
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  shipment Shipment @relation("shipment_trackings", fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId, eventAt(sort: Desc)])
+  @@map("shipment_trackings")
+}
+
+// ─────────────────────────────────────────────
+// FLEET MANAGEMENT (Phase 5)
+// ─────────────────────────────────────────────
+
+model Vehicle {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+
+  name         String  @db.VarChar(255) // "Mobil Box L300"
+  licensePlate String  @db.VarChar(50) // "B 1234 XYZ"
+  model        String? @db.VarChar(100) // Mitsubishi
+  driverId     String? // Employee ID
+
+  status VehicleStatus @default(active)
+
+  acquisitionDate DateTime?
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_vehicles", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation("branch_vehicles", fields: [branchId], references: [id], onDelete: SetNull)
+  driver       Employee?    @relation("employee_vehicles", fields: [driverId], references: [id], onDelete: SetNull)
+
+  shipments Shipment[]   @relation("vehicle_shipments")
+  logs      VehicleLog[] @relation("vehicle_logs")
+
+  @@unique([organizationId, licensePlate])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([status])
+  @@map("vehicles")
+}
+
+model VehicleLog {
+  id        String @id @default(cuid())
+  vehicleId String
+
+  type     ServiceType @default(maintenance)
+  dateAt   DateTime    @default(now())
+  odometer Decimal?    @db.Decimal(10, 2)
+  amount   Decimal     @default(0) @db.Decimal(19, 4)
+
+  vendor     String? @db.VarChar(255)
+  invoiceRef String? @db.VarChar(100)
+  note       String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicle Vehicle @relation("vehicle_logs", fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([type])
+  @@map("vehicle_logs")
+}

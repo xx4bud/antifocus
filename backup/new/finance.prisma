@@ -1,0 +1,778 @@
+// ============================================================
+// FINANCE MODULE
+// Covers: Currency, CurrencyRate, ChartOfAccount,
+//         AccountMove, AccountMoveItem, FinancialAuditLog,
+//         TaxRate, FiscalPos, PaymentMethod, Payment
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum AccountType {
+  asset
+  liability
+  equity
+  income
+  expense
+}
+
+enum MoveType {
+  sale_invoice // Faktur penjualan
+  purchase_bill // Tagihan pembelian
+  sale_quote // Penawaran penjualan
+  credit_note // Nota kredit (pengembalian)
+  debit_note // Nota debit
+  journal_entry // Jurnal manual
+}
+
+enum MoveStatus {
+  draft
+  pending
+  approved
+  rejected
+  voided
+}
+
+enum PaymentMoveStatus {
+  not_paid
+  partial
+  paid
+  reversed
+}
+
+enum PaymentType {
+  inbound // penerimaan pembayaran
+  outbound // pengeluaran / pembayaran ke supplier
+  transfer // transfer antar akun
+}
+
+enum PaymentStatus {
+  draft
+  pending
+  completed
+  failed
+  canceled
+}
+
+enum ExpenseStatus {
+  draft
+  reported // sudah disubmit ke manager
+  approved // disetujui manager
+  refused // ditolak
+  done // sudah dibayar/di-reimburse
+}
+
+// ─────────────────────────────────────────────
+// CURRENCY
+// ─────────────────────────────────────────────
+
+model Currency {
+  id     String @id @default(cuid())
+  name   String @db.VarChar(255) // Indonesian Rupiah
+  code   String @unique @db.VarChar(10) // IDR (ISO 4217)
+  symbol String @db.VarChar(10) // Rp
+
+  symbolPosition    String @default("before") @db.VarChar(10)
+  decimalPlaces     Int    @default(0)
+  thousandSeparator String @default(".") @db.VarChar(5)
+  decimalSeparator  String @default(",") @db.VarChar(5)
+
+  isDefault Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  rates          CurrencyRate[]      @relation("currency_rates")
+  prices         Price[]             @relation("currency_prices")
+  carts          Cart[]              @relation("currency_carts")
+  cartItems      CartItem[]          @relation("currency_cart_items")
+  orders         Order[]             @relation("currency_orders")
+  orderItems     OrderItem[]         @relation("currency_order_items")
+  purchaseOrders PurchaseOrder[]     @relation("currency_purchase_orders")
+  purchaseItems  PurchaseOrderItem[] @relation("currency_purchase_items")
+  accountMoves   AccountMove[]       @relation("currency_account_moves")
+  payments       Payment[]           @relation("currency_payments")
+  contracts      Contract[]          @relation("currency_contracts")
+
+  // Phase 5 Relations
+  subscriptionPlans SubscriptionPlan[] @relation("currency_subscription_plans")
+
+  @@index([name])
+  @@index([deletedAt])
+  @@map("currencies")
+}
+
+// ─────────────────────────────────────────────
+// CURRENCY RATE (Kurs Harian)
+// ─────────────────────────────────────────────
+
+model CurrencyRate {
+  id             String @id @default(cuid())
+  organizationId String
+  currencyId     String // mata uang target (mis. USD)
+  providerId     String @db.VarChar(100) // bank_indonesia | manual | xe_com
+
+  rate     Decimal  @db.Decimal(18, 6)
+  rateDate DateTime @default(now()) // tanggal berlaku
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_currency_rates", fields: [organizationId], references: [id], onDelete: Cascade)
+  currency     Currency     @relation("currency_rates", fields: [currencyId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([currencyId])
+  @@index([providerId])
+  @@index([rateDate])
+  @@map("currency_rates")
+}
+
+// ─────────────────────────────────────────────
+// TAX RATE
+// ─────────────────────────────────────────────
+
+model TaxRate {
+  id             String  @id @default(cuid())
+  organizationId String
+  countryId      String?
+  provinceId     String?
+  cityId         String?
+
+  name      String  @db.VarChar(255) // PPN 12%
+  code      String  @db.VarChar(100) // PPN-12
+  rate      Decimal @db.Decimal(10, 6)
+  inclusive Boolean @default(false) // harga sudah termasuk pajak?
+
+  // fixed | percentage
+  type  String  @default("percentage") @db.VarChar(50)
+  scope String? @db.VarChar(50) // all | goods | services
+
+  isDefault Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_tax_rates", fields: [organizationId], references: [id], onDelete: Cascade)
+  country      Country?     @relation("country_tax_rates", fields: [countryId], references: [id], onDelete: SetNull)
+  province     Province?    @relation("province_tax_rates", fields: [provinceId], references: [id], onDelete: SetNull)
+  city         City?        @relation("city_tax_rates", fields: [cityId], references: [id], onDelete: SetNull)
+
+  fiscalTaxSrc   FiscalPosTax[]      @relation("fiscal_tax_src")
+  fiscalTaxDest  FiscalPosTax[]      @relation("fiscal_tax_dest")
+  prices         Price[]             @relation("tax_rate_prices")
+  carts          Cart[]              @relation("tax_rate_carts")
+  cartItems      CartItem[]          @relation("tax_rate_cart_items")
+  orders         Order[]             @relation("tax_rate_orders")
+  orderItems     OrderItem[]         @relation("tax_rate_order_items")
+  purchaseOrders PurchaseOrder[]     @relation("tax_rate_purchase_orders")
+  purchaseItems  PurchaseOrderItem[] @relation("tax_rate_purchase_items")
+  accountMoves   AccountMove[]       @relation("tax_rate_account_moves")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([countryId, provinceId, cityId])
+  @@index([deletedAt])
+  @@map("tax_rates")
+}
+
+// ─────────────────────────────────────────────
+// FISCAL POSITION
+// ─────────────────────────────────────────────
+
+model FiscalPos {
+  id             String  @id @default(cuid())
+  organizationId String
+  countryId      String?
+  provinceId     String?
+  cityId         String?
+
+  name      String  @db.VarChar(255) // Bebas PPN - Kawasan Berikat
+  code      String  @db.VarChar(100) // FP-BERIKAT
+  isDefault Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_fiscal_pos", fields: [organizationId], references: [id], onDelete: Cascade)
+  country      Country?     @relation("country_fiscal_pos", fields: [countryId], references: [id], onDelete: SetNull)
+  province     Province?    @relation("province_fiscal_pos", fields: [provinceId], references: [id], onDelete: SetNull)
+  city         City?        @relation("city_fiscal_pos", fields: [cityId], references: [id], onDelete: SetNull)
+
+  taxMaps FiscalPosTax[] @relation("fiscal_pos_taxes")
+
+  @@unique([organizationId, code])
+  @@index([countryId, provinceId, cityId])
+  @@index([deletedAt])
+  @@map("fiscal_pos")
+}
+
+model FiscalPosTax {
+  id               String  @id @default(cuid())
+  fiscalPositionId String
+  taxSrcId         String
+  taxDestId        String?
+  metadata         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fiscalPos FiscalPos @relation("fiscal_pos_taxes", fields: [fiscalPositionId], references: [id], onDelete: Cascade)
+  taxSrc    TaxRate   @relation("fiscal_tax_src", fields: [taxSrcId], references: [id], onDelete: Restrict)
+  taxDest   TaxRate?  @relation("fiscal_tax_dest", fields: [taxDestId], references: [id], onDelete: SetNull)
+
+  @@unique([fiscalPositionId, taxSrcId])
+  @@index([taxDestId])
+  @@map("fiscal_pos_taxes")
+}
+
+// ─────────────────────────────────────────────
+// CHART OF ACCOUNT
+// ─────────────────────────────────────────────
+
+model ChartOfAccount {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+  parentId       String?
+
+  code String      @db.VarChar(100)
+  name String      @db.VarChar(255)
+  type AccountType
+
+  startBalance   Decimal @default(0) @db.Decimal(19, 4)
+  currentBalance Decimal @default(0) @db.Decimal(19, 4)
+
+  reconcile Boolean @default(true)
+  enabled   Boolean @default(true)
+  position  Int     @default(0)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation("org_chart_of_accounts", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?         @relation("branch_chart_of_accounts", fields: [branchId], references: [id], onDelete: SetNull)
+  parent       ChartOfAccount? @relation("account_tree", fields: [parentId], references: [id])
+
+  children           ChartOfAccount[]    @relation("account_tree")
+  accountMoveItems   AccountMoveItem[]   @relation("account_move_items")
+  financialAuditLogs FinancialAuditLog[] @relation("audit_accounts")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([type])
+  @@index([parentId])
+  @@map("chart_of_accounts")
+}
+
+// ─────────────────────────────────────────────
+// ACCOUNT MOVE (Jurnal / Faktur / Tagihan)
+// ─────────────────────────────────────────────
+
+model AccountMove {
+  id             String  @id @default(cuid())
+  organizationId String
+  sequenceId     String? @unique @db.VarChar(100)
+  profileId      String?
+  orderId        String?
+  returnOrderId  String?
+  currencyId     String?
+  taxRateId      String?
+  promotionId    String?
+  taxInvoiceId   String?
+
+  type          MoveType          @default(sale_invoice)
+  status        MoveStatus        @default(draft)
+  paymentStatus PaymentMoveStatus @default(not_paid)
+
+  subtotal   Decimal @default(0) @db.Decimal(19, 4)
+  taxAmount  Decimal @default(0) @db.Decimal(19, 4)
+  total      Decimal @default(0) @db.Decimal(19, 4)
+  amountPaid Decimal @default(0) @db.Decimal(19, 4)
+  amountDue  Decimal @default(0) @db.Decimal(19, 4)
+
+  dateAt    DateTime  @default(now())
+  invoiceAt DateTime?
+  dueAt     DateTime?
+
+  reference String? @db.Text // nomor dokumen referensi
+  note      String? @db.Text
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_account_moves", fields: [organizationId], references: [id], onDelete: Cascade)
+  sequence     Sequence?    @relation("sequence_account_moves", fields: [sequenceId], references: [id])
+  profile      Profile?     @relation("profile_account_moves", fields: [profileId], references: [id], onDelete: SetNull)
+  order        Order?       @relation("order_account_moves", fields: [orderId], references: [id], onDelete: SetNull)
+  returnOrder  ReturnOrder? @relation("return_order_account_moves", fields: [returnOrderId], references: [id], onDelete: SetNull)
+  currency     Currency?    @relation("currency_account_moves", fields: [currencyId], references: [id], onDelete: SetNull)
+  taxRate      TaxRate?     @relation("tax_rate_account_moves", fields: [taxRateId], references: [id], onDelete: SetNull)
+  promotion    Promotion?   @relation("promotion_account_moves", fields: [promotionId], references: [id], onDelete: SetNull)
+  taxInvoice   TaxInvoice?  @relation("tax_invoice_account_moves", fields: [taxInvoiceId], references: [id], onDelete: SetNull)
+
+  items              AccountMoveItem[]   @relation("account_move_items")
+  payments           Payment[]           @relation("payment_account_moves")
+  financialAuditLogs FinancialAuditLog[] @relation("audit_account_moves")
+
+  // Phase 4 Relations
+  depreciationSchedules DepreciationSchedule[] @relation("depreciation_account_moves")
+  payrolls              Payroll[]              @relation("payroll_account_moves")
+  payouts               Payout[]               @relation("payout_account_moves")
+
+  // Phase 5 Relations
+  expenseSheets ExpenseSheet[] @relation("expense_sheet_account_moves")
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@index([dateAt])
+  @@index([orderId])
+  @@index([profileId])
+  @@index([paymentStatus])
+  @@index([taxInvoiceId])
+  @@index([organizationId, type, status])
+  @@index([deletedAt])
+  @@map("account_moves")
+}
+
+// ─────────────────────────────────────────────
+// ACCOUNT MOVE ITEM (Baris Jurnal)
+// ─────────────────────────────────────────────
+
+model AccountMoveItem {
+  id                String  @id @default(cuid())
+  moveId            String
+  accountId         String?
+  analyticAccountId String?
+  cashierId         String? // member yang memproses
+
+  name    String? @db.VarChar(255)
+  debit   Decimal @default(0) @db.Decimal(19, 4)
+  credit  Decimal @default(0) @db.Decimal(19, 4)
+  balance Decimal @default(0) @db.Decimal(19, 4) // debit - credit
+
+  openAt  DateTime?
+  closeAt DateTime?
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  move            AccountMove      @relation("account_move_items", fields: [moveId], references: [id], onDelete: Cascade)
+  account         ChartOfAccount?  @relation("account_move_items", fields: [accountId], references: [id], onDelete: SetNull)
+  analyticAccount AnalyticAccount? @relation("analytic_account_move_items", fields: [analyticAccountId], references: [id], onDelete: SetNull)
+  cashier         Member?          @relation("cashier_account_move_items", fields: [cashierId], references: [id], onDelete: SetNull)
+
+  analyticLines AnalyticLine[] @relation("move_item_analytic_lines")
+
+  @@index([moveId])
+  @@index([accountId])
+  @@index([analyticAccountId])
+  @@index([cashierId])
+  @@map("account_move_items")
+}
+
+// ─────────────────────────────────────────────
+// FINANCIAL AUDIT LOG (Immutable)
+// ─────────────────────────────────────────────
+
+model FinancialAuditLog {
+  id            String @id @default(cuid())
+  accountMoveId String
+  accountId     String
+
+  action  String  @db.VarChar(50) // created | updated | voided | reconciled
+  actorId String?
+
+  debitBefore   Decimal @default(0) @db.Decimal(19, 4)
+  debitAfter    Decimal @default(0) @db.Decimal(19, 4)
+  creditBefore  Decimal @default(0) @db.Decimal(19, 4)
+  creditAfter   Decimal @default(0) @db.Decimal(19, 4)
+  balanceBefore Decimal @default(0) @db.Decimal(19, 4)
+  balanceAfter  Decimal @default(0) @db.Decimal(19, 4)
+
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  accountMove AccountMove    @relation("audit_account_moves", fields: [accountMoveId], references: [id], onDelete: Cascade)
+  account     ChartOfAccount @relation("audit_accounts", fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountMoveId])
+  @@index([accountId])
+  @@index([createdAt])
+  @@map("financial_audit_logs")
+}
+
+// ─────────────────────────────────────────────
+// PAYMENT METHOD
+// ─────────────────────────────────────────────
+
+model PaymentMethod {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String  @db.VarChar(255)
+  code     String  @db.VarChar(100) // cash | bank_transfer | ovo | gopay | midtrans | etc
+  provider String? @db.VarChar(100) // midtrans | xendit | manual
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_payment_methods", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  payments Payment[] @relation("method_payments")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([deletedAt])
+  @@map("payment_methods")
+}
+
+// ─────────────────────────────────────────────
+// PAYMENT
+// ─────────────────────────────────────────────
+
+model Payment {
+  id              String  @id @default(cuid())
+  organizationId  String
+  moveId          String?
+  profileId       String?
+  bankAccountId   String?
+  currencyId      String?
+  paymentMethodId String?
+
+  name   String        @db.VarChar(255)
+  type   PaymentType   @default(inbound)
+  status PaymentStatus @default(draft)
+
+  amount      Decimal @default(0) @db.Decimal(19, 4)
+  reference   String? @db.VarChar(100) // nomor transaksi bank / e-wallet
+  externalRef String? @db.VarChar(100) // referensi dari payment gateway
+
+  paymentDate DateTime @default(now())
+  note        String?  @db.Text
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization   @relation("org_payments", fields: [organizationId], references: [id], onDelete: Cascade)
+  move          AccountMove?   @relation("payment_account_moves", fields: [moveId], references: [id], onDelete: SetNull)
+  profile       Profile?       @relation("profile_payments", fields: [profileId], references: [id], onDelete: SetNull)
+  bankAccount   BankAccount?   @relation("payment_bank_accounts", fields: [bankAccountId], references: [id], onDelete: SetNull)
+  currency      Currency?      @relation("currency_payments", fields: [currencyId], references: [id], onDelete: SetNull)
+  paymentMethod PaymentMethod? @relation("method_payments", fields: [paymentMethodId], references: [id], onDelete: SetNull)
+
+  // Phase 4 Relation
+  statementLines BankStatementLine[] @relation("payment_statement_lines")
+
+  // Phase 5 Relation
+  expenseSheets ExpenseSheet[] @relation("expense_sheet_payments")
+
+  @@index([organizationId])
+  @@index([moveId])
+  @@index([type])
+  @@index([status])
+  @@index([paymentDate])
+  @@index([organizationId, type, status])
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// ANALYTIC ACCOUNTING (Cost Centers / Profit Centers)
+// ─────────────────────────────────────────────
+
+model AnalyticAccount {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+
+  name        String  @db.VarChar(255)
+  code        String  @db.VarChar(100)
+  active      Boolean @default(true)
+  description String? @db.Text
+  planId      String? @db.VarChar(100) // Bisa dikelompokkan berdasarkan Analytic Plan
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization     @relation("org_analytic_accounts", fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       AnalyticAccount? @relation("analytic_tree", fields: [parentId], references: [id], onDelete: SetNull)
+
+  children         AnalyticAccount[] @relation("analytic_tree")
+  lines            AnalyticLine[]    @relation("account_analytic_lines")
+  accountMoveItems AccountMoveItem[] @relation("analytic_account_move_items")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([active])
+  @@index([deletedAt])
+  @@map("analytic_accounts")
+}
+
+model AnalyticLine {
+  id                String  @id @default(cuid())
+  analyticAccountId String
+  accountMoveItemId String?
+
+  name   String   @db.VarChar(255)
+  amount Decimal  @default(0) @db.Decimal(19, 4) // positif (income), negatif (expense)
+  dateAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  analyticAccount AnalyticAccount  @relation("account_analytic_lines", fields: [analyticAccountId], references: [id], onDelete: Cascade)
+  accountMoveItem AccountMoveItem? @relation("move_item_analytic_lines", fields: [accountMoveItemId], references: [id], onDelete: SetNull)
+
+  @@index([analyticAccountId])
+  @@index([accountMoveItemId])
+  @@index([dateAt])
+  @@map("analytic_lines")
+}
+
+// ─────────────────────────────────────────────
+// TAX INVOICE (Faktur Pajak)
+// ─────────────────────────────────────────────
+
+model TaxInvoice {
+  id             String @id @default(cuid())
+  organizationId String
+
+  // Nomor Seri Faktur Pajak (NSFP)
+  number String @unique @db.VarChar(100)
+
+  // Tanggal terbit NSFP dari DJP
+  issuedAt DateTime?
+
+  // Tanggal lapor
+  reportedAt DateTime?
+
+  status String @default("available") @db.VarChar(50) // available | used | canceled | replaced
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization  @relation("org_tax_invoices", fields: [organizationId], references: [id], onDelete: Cascade)
+  accountMoves AccountMove[] @relation("tax_invoice_account_moves")
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("tax_invoices")
+}
+
+// ─────────────────────────────────────────────
+// FIXED ASSETS (Aset Tetap & Penyusutan)
+// ─────────────────────────────────────────────
+
+enum AssetStatusAccounting {
+  draft
+  running
+  closed
+  disposed
+}
+
+enum DepreciationMethod {
+  linear
+  degressive
+}
+
+model AccountingAsset {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name String @db.VarChar(255) // "Mesin Kornit Avalanche"
+  code String @db.VarChar(100) // FA/2026/001
+
+  purchaseValue Decimal @default(0) @db.Decimal(19, 4)
+  salvageValue  Decimal @default(0) @db.Decimal(19, 4)
+
+  depreciationMethod DepreciationMethod @default(linear)
+  durationMonths     Int                @default(60) // 5 tahun
+
+  status AssetStatusAccounting @default(draft)
+
+  purchaseDate DateTime?
+  disposalDate DateTime?
+  note         String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_accounting_assets", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  schedules DepreciationSchedule[] @relation("asset_depreciation")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([status])
+  @@map("accounting_assets")
+}
+
+model DepreciationSchedule {
+  id      String @id @default(cuid())
+  assetId String
+
+  depreciationDate DateTime @db.Date
+  amount           Decimal  @db.Decimal(19, 4)
+
+  isPosted      Boolean @default(false)
+  accountMoveId String? // Jurnal penyusutan
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  asset       AccountingAsset @relation("asset_depreciation", fields: [assetId], references: [id], onDelete: Cascade)
+  accountMove AccountMove?    @relation("depreciation_account_moves", fields: [accountMoveId], references: [id], onDelete: SetNull)
+
+  @@index([assetId])
+  @@index([isPosted])
+  @@index([depreciationDate])
+  @@map("depreciation_schedules")
+}
+
+// ─────────────────────────────────────────────
+// BANK RECONCILIATION
+// ─────────────────────────────────────────────
+
+enum BankStatementStatus {
+  open
+  processing
+  validated
+}
+
+model BankStatement {
+  id             String @id @default(cuid())
+  organizationId String
+  bankAccountId  String
+
+  name      String   @db.VarChar(255) // "Mutasi BCA Maret 2026"
+  reference String?  @db.VarChar(100)
+  date      DateTime @default(now())
+
+  startingBalance Decimal @default(0) @db.Decimal(19, 4)
+  endingBalance   Decimal @default(0) @db.Decimal(19, 4)
+
+  status BankStatementStatus @default(open)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_bank_statements", fields: [organizationId], references: [id], onDelete: Cascade)
+  bankAccount  BankAccount  @relation("bank_account_statements", fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  lines BankStatementLine[] @relation("statement_lines")
+
+  @@index([organizationId])
+  @@index([bankAccountId])
+  @@index([status])
+  @@map("bank_statements")
+}
+
+model BankStatementLine {
+  id          String @id @default(cuid())
+  statementId String
+
+  date       DateTime @db.Date
+  paymentRef String   @db.VarChar(255) // Deskripsi dari bank
+  amount     Decimal  @db.Decimal(19, 4)
+
+  isReconciled Boolean @default(false)
+  paymentId    String? // Reconnected to our Payment system
+
+  note String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  statement BankStatement @relation("statement_lines", fields: [statementId], references: [id], onDelete: Cascade)
+  payment   Payment?      @relation("payment_statement_lines", fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([statementId])
+  @@index([isReconciled])
+  @@map("bank_statement_lines")
+}
+
+// ─────────────────────────────────────────────
+// EMPLOYEE EXPENSES (Phase 5)
+// ─────────────────────────────────────────────
+
+model ExpenseSheet {
+  id             String  @id @default(cuid())
+  organizationId String
+  employeeId     String
+  approverId     String? // Manager yang menyetujui
+
+  name   String        @db.VarChar(255) // e.g. "Klaim Bensin & Makan Maret 2026"
+  status ExpenseStatus @default(draft)
+
+  totalAmount Decimal @default(0) @db.Decimal(19, 4)
+
+  paymentMode String @default("company_account") @db.VarChar(50) // own_account | company_account
+
+  accountMoveId String? // Jurnal kas bon / reimbursement
+  paymentId     String? // Link ke pembayaran aktual
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_expense_sheets", fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation("employee_expense_sheets", fields: [employeeId], references: [id], onDelete: Cascade)
+  approver     Employee?    @relation("approver_expense_sheets", fields: [approverId], references: [id], onDelete: SetNull)
+  accountMove  AccountMove? @relation("expense_sheet_account_moves", fields: [accountMoveId], references: [id], onDelete: SetNull)
+  payment      Payment?     @relation("expense_sheet_payments", fields: [paymentId], references: [id], onDelete: SetNull)
+
+  expenses EmployeeExpense[] @relation("sheet_expenses")
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([status])
+  @@map("expense_sheets")
+}
+
+model EmployeeExpense {
+  id             String @id @default(cuid())
+  expenseSheetId String
+
+  name        String   @db.VarChar(255) // "Bensin Jakarta-Bandung"
+  dateAt      DateTime @db.Date
+  amount      Decimal  @db.Decimal(19, 4)
+  taxAmount   Decimal  @default(0) @db.Decimal(19, 4)
+  totalAmount Decimal  @db.Decimal(19, 4)
+
+  reference  String? @db.VarChar(100) // Nomor struk
+  attachment String? // URL foto nota
+  note       String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expenseSheet ExpenseSheet @relation("sheet_expenses", fields: [expenseSheetId], references: [id], onDelete: Cascade)
+
+  @@index([expenseSheetId])
+  @@map("employee_expenses")
+}

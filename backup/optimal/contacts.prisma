@@ -1,0 +1,196 @@
+// ==============================
+// CONTACT ENUMS
+// ==============================
+
+enum DocumentType {
+  ktp
+  sim
+  passport
+  npwp
+  siup
+  other
+}
+
+enum DocumentStatus {
+  pending
+  verified
+  rejected
+  expired
+}
+
+enum AddressType {
+  billing
+  shipping
+  both
+}
+
+enum ProfileType {
+  personal
+  company
+}
+
+enum AddressLabel {
+  home
+  office
+  warehouse
+  other
+}
+
+// ==============================
+// PROFILES
+// ==============================
+
+model Profile {
+  id             String  @id @default(cuid())
+  organizationId String
+  customerId     String?
+  vendorId       String?
+  storeId        String?
+
+  type        ProfileType @default(personal)
+  name        String
+  email       String?
+  phone       String?
+  mobile      String?
+  fax         String?
+  website     String?
+  taxId       String?
+  jobTitle    String?
+  companyName String?
+
+  default  Boolean @default(false)
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vendor       Vendor?      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  store        Store?       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  documents    Document[]
+  addresses    Address[]
+  socials      Social[]
+  bankAccounts BankAccount[]
+
+  // Relations from other modules
+  accountMoves AccountMove[]
+  payments     Payment[]
+  returnOrders ReturnOrder[]
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([vendorId])
+  @@index([storeId])
+  @@index([type])
+  @@map("profiles")
+}
+
+// ==============================
+// DOCUMENTS (Identity)
+// ==============================
+
+model Document {
+  id        String @id @default(cuid())
+  profileId String
+
+  type      DocumentType   @default(ktp)
+  number    String
+  issuedAt  DateTime?
+  expiresAt DateTime?
+  fileUrl   String?
+  status    DocumentStatus @default(pending)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([type])
+  @@map("documents")
+}
+
+// ==============================
+// ADDRESSES
+// ==============================
+
+model Address {
+  id        String @id @default(cuid())
+  profileId String
+
+  label   AddressLabel @default(home)
+  type    AddressType  @default(both)
+  name    String?
+  phone   String?
+  street  String
+  street2 String?
+  city    String
+  state   String?
+  zip     String?
+  country String?
+
+  default  Boolean @default(false)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([type])
+  @@map("addresses")
+}
+
+// ==============================
+// SOCIALS
+// ==============================
+
+model Social {
+  id        String @id @default(cuid())
+  profileId String
+
+  platform String // instagram, tiktok, facebook, etc.
+  url      String?
+  username String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, platform])
+  @@map("socials")
+}
+
+// ==============================
+// BANK ACCOUNTS
+// ==============================
+
+model BankAccount {
+  id        String @id @default(cuid())
+  profileId String
+
+  bankName      String
+  accountName   String
+  accountNumber String
+  branchCode    String?
+  swiftCode     String?
+
+  default  Boolean @default(false)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile  Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([profileId])
+  @@map("bank_accounts")
+}

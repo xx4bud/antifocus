@@ -1,0 +1,243 @@
+// ============================================================
+// AUTOMATION MODULE
+// Covers: WorkflowTemplate, WorkflowState, WorkflowTransition,
+//         WorkflowInstance, WorkflowHistory,
+//         AutomationRule, ScheduledAction, ActionLog
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum AutomationTrigger {
+  on_create
+  on_update
+  on_delete
+  on_status_change
+  time_based
+  webhook_received
+}
+
+enum AutomationActionType {
+  send_email
+  send_whatsapp
+  send_push_notification
+  create_record
+  update_record
+  call_webhook
+  execute_code
+  assign_task
+}
+
+// ─────────────────────────────────────────────
+// WORKFLOW TEMPLATE
+// State machine per entity (Order, DesignAsset, etc)
+// ─────────────────────────────────────────────
+
+model WorkflowTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  targetModel String // "Order" | "DesignAsset" | "JobOrder"
+  description String?
+  active      Boolean @default(true)
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_workflow_templates", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  states      WorkflowState[]      @relation("template_states")
+  transitions WorkflowTransition[] @relation("template_transitions")
+  instances   WorkflowInstance[]   @relation("template_instances")
+
+  @@unique([organizationId, targetModel])
+  @@index([organizationId])
+  @@map("workflow_templates")
+}
+
+model WorkflowState {
+  id         String @id @default(cuid())
+  templateId String
+
+  name      String
+  code      String
+  isInitial Boolean @default(false)
+  isFinal   Boolean @default(false)
+  color     String?
+  position  Int     @default(0)
+  metadata  Json?
+
+  template WorkflowTemplate @relation("template_states", fields: [templateId], references: [id], onDelete: Cascade)
+
+  outgoingTransitions WorkflowTransition[] @relation("state_outgoing")
+  incomingTransitions WorkflowTransition[] @relation("state_incoming")
+  activeInstances     WorkflowInstance[]   @relation("state_instances")
+
+  @@unique([templateId, code])
+  @@map("workflow_states")
+}
+
+model WorkflowTransition {
+  id         String @id @default(cuid())
+  templateId String
+
+  name        String
+  fromStateId String
+  toStateId   String
+
+  requireApproval Boolean  @default(false)
+  allowedRoles    String[] // role codes yang boleh trigger transisi ini
+  conditions      Json? // ekspresi kondisi JSON
+  sideEffects     Json? // actions yang dijalankan saat transisi
+
+  template  WorkflowTemplate @relation("template_transitions", fields: [templateId], references: [id], onDelete: Cascade)
+  fromState WorkflowState    @relation("state_outgoing", fields: [fromStateId], references: [id], onDelete: Cascade)
+  toState   WorkflowState    @relation("state_incoming", fields: [toStateId], references: [id], onDelete: Cascade)
+
+  history WorkflowHistory[] @relation("transition_history")
+
+  @@index([templateId])
+  @@index([fromStateId])
+  @@index([toStateId])
+  @@map("workflow_transitions")
+}
+
+model WorkflowInstance {
+  id         String @id @default(cuid())
+  templateId String
+  recordId   String // ID entity yang sedang dalam workflow
+
+  currentStateId String
+  status         String @default("active") // active | completed | aborted
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  template     WorkflowTemplate  @relation("template_instances", fields: [templateId], references: [id], onDelete: Cascade)
+  currentState WorkflowState     @relation("state_instances", fields: [currentStateId], references: [id], onDelete: Restrict)
+  history      WorkflowHistory[] @relation("instance_history")
+
+  @@unique([templateId, recordId])
+  @@index([currentStateId])
+  @@index([status])
+  @@map("workflow_instances")
+}
+
+model WorkflowHistory {
+  id           String  @id @default(cuid())
+  instanceId   String
+  transitionId String?
+  actorId      String?
+
+  fromStateCode String? // snapshot
+  toStateCode   String?
+  note          String?
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+
+  instance   WorkflowInstance    @relation("instance_history", fields: [instanceId], references: [id], onDelete: Cascade)
+  transition WorkflowTransition? @relation("transition_history", fields: [transitionId], references: [id])
+  actor      User?               @relation("actor_history", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([instanceId])
+  @@index([actorId])
+  @@index([instanceId, createdAt])
+  @@map("workflow_history")
+}
+
+// ─────────────────────────────────────────────
+// AUTOMATION RULE (Event-driven / Timed Actions)
+// ─────────────────────────────────────────────
+
+model AutomationRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+  targetModel String?
+
+  trigger    AutomationTrigger
+  cronExpr   String? // untuk time_based
+  conditions Json? // filter kondisi
+
+  actionType AutomationActionType
+  actionData Json // template email, URL webhook, dsb
+
+  priority Int     @default(0)
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_automation_rules", fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         ActionLog[]  @relation("rule_action_logs")
+
+  @@index([organizationId])
+  @@index([trigger])
+  @@index([targetModel])
+  @@index([active])
+  @@map("automation_rules")
+}
+
+// ─────────────────────────────────────────────
+// SCHEDULED ACTION (Cron Jobs)
+// ─────────────────────────────────────────────
+
+model ScheduledAction {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String
+  cronExpr String // "0 9 * * 1" = setiap Senin jam 09:00
+  jobName  String // nama fungsi / job yang dipanggil
+  payload  Json?
+
+  nextRunAt DateTime?
+  lastRunAt DateTime?
+  active    Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_scheduled_actions", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([active])
+  @@index([nextRunAt])
+  @@map("scheduled_actions")
+}
+
+// ─────────────────────────────────────────────
+// ACTION LOG (Hasil eksekusi automation)
+// ─────────────────────────────────────────────
+
+model ActionLog {
+  id             String  @id @default(cuid())
+  organizationId String?
+  ruleId         String?
+
+  actionName String
+  status     String // success | error | skipped
+  errorMsg   String?
+  durationMs Int?
+
+  payload Json?
+  result  Json?
+
+  createdAt DateTime @default(now())
+
+  organization Organization?   @relation("org_action_logs", fields: [organizationId], references: [id], onDelete: Cascade)
+  rule         AutomationRule? @relation("rule_action_logs", fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([ruleId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("action_logs")
+}

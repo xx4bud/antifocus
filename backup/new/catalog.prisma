@@ -1,0 +1,430 @@
+// ============================================================
+// CATALOG MODULE
+// Covers: Product, Variant, Price, PriceTier,
+//         Unit, Attribute, Option, Spec, Category grouping
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum ProductType {
+  goods // produk fisik (kaos, mug, dll)
+  service // jasa (desain, konsultasi)
+  consumable // bahan habis pakai (tinta, kertas)
+  digital // produk digital (template, font)
+}
+
+enum ProductStatus {
+  draft // belum dipublish
+  pending // menunggu review
+  active // live / dijual
+  archived // disembunyikan
+  banned // disuspend admin
+  deleted
+}
+
+enum UnitType {
+  weight
+  length
+  volume
+  quantity
+  time
+  area
+}
+
+enum AttributeType {
+  select
+  multi_select
+  text
+  number
+  boolean
+  color
+  date
+  json
+}
+
+enum PricingType {
+  fixed
+  percentage
+  formula
+}
+
+enum CostingMethod {
+  standard
+  fifo
+  average
+}
+
+// ─────────────────────────────────────────────
+// UNIT OF MEASURE
+// ─────────────────────────────────────────────
+
+model Unit {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String   @db.VarChar(255) // Kilogram
+  code           String   @db.VarChar(50) // kg (SI)
+  type           UnitType
+  baseId         String? // null = base unit
+  level          Int      @default(0) // 0 = base, 1 = derived
+
+  ratio     Decimal @default(1) @db.Decimal(15, 6) // 1 kg = 1000 g → ratio 1000
+  isDefault Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_units", fields: [organizationId], references: [id], onDelete: Cascade)
+  base         Unit?        @relation("base_unit", fields: [baseId], references: [id], onDelete: SetNull)
+
+  children   Unit[]      @relation("base_unit")
+  products   Product[]   @relation("product_units")
+  stocks     Stock[]     @relation("unit_stocks")
+  stockMoves StockMove[] @relation("unit_stock_moves")
+
+  @@unique([organizationId, code])
+  @@index([type])
+  @@index([baseId, level])
+  @@index([deletedAt])
+  @@map("units")
+}
+
+// ─────────────────────────────────────────────
+// ATTRIBUTE & OPTION
+// ─────────────────────────────────────────────
+
+model Attribute {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String        @db.VarChar(255)
+  code           String        @db.VarChar(100)
+  type           AttributeType @default(select)
+  filterable     Boolean       @default(false)
+  position       Int           @default(0)
+  metadata       Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_attributes", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  options       Option[]       @relation("attribute_options")
+  categorySpecs CategorySpec[] @relation("spec_categories")
+  productSpecs  ProductSpec[]  @relation("spec_products")
+
+  @@unique([organizationId, code])
+  @@index([name])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("attributes")
+}
+
+model Option {
+  id          String @id @default(cuid())
+  attributeId String
+  name        String @db.VarChar(255)
+  code        String @db.VarChar(255) // slug / value
+
+  // Biaya tambahan per opsi (misal: warna premium +Rp5.000)
+  costType PricingType @default(fixed)
+  cost     Decimal     @default(0) @db.Decimal(19, 4)
+
+  position Int   @default(0)
+  metadata Json?
+
+  attribute Attribute @relation("attribute_options", fields: [attributeId], references: [id], onDelete: Cascade)
+
+  variantOptions VariantOption[] @relation("option_variants")
+
+  @@unique([attributeId, code])
+  @@index([name])
+  @@map("options")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCT
+// ─────────────────────────────────────────────
+
+model Product {
+  id             String  @id @default(cuid())
+  organizationId String
+  unitId         String?
+
+  name        String        @db.VarChar(255)
+  slug        String        @db.VarChar(255)
+  description String        @db.Text
+  sku         String?       @db.VarChar(100) // SKU level produk (opsional)
+  type        ProductType   @default(goods)
+  status      ProductStatus @default(draft)
+
+  // Dimensi & Berat (default, bisa di-override di Variant)
+  weight Decimal @default(0) @db.Decimal(10, 2) // gram
+  length Decimal @default(0) @db.Decimal(10, 2) // mm
+  width  Decimal @default(0) @db.Decimal(10, 2)
+  height Decimal @default(0) @db.Decimal(10, 2)
+
+  // PoD: apakah produk ini memerlukan file desain customer?
+  requiresDesign Boolean       @default(false)
+  costingMethod  CostingMethod @default(standard)
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_products", fields: [organizationId], references: [id], onDelete: Cascade)
+  unit         Unit?        @relation("product_units", fields: [unitId], references: [id], onDelete: SetNull)
+
+  images                ProductImage[]         @relation("product_images")
+  videos                ProductVideo[]         @relation("product_videos")
+  categories            ProductCategory[]      @relation("product_categories")
+  collections           CollectionProduct[]    @relation("product_collections")
+  tags                  ProductTag[]           @relation("product_tags")
+  specs                 ProductSpec[]          @relation("product_specs")
+  variants              Variant[]              @relation("product_variants")
+  prices                Price[]                @relation("product_prices")
+  designAreas           DesignArea[]           @relation("product_design_areas")
+  cartItems             CartItem[]             @relation("product_cart_items")
+  orderItems            OrderItem[]            @relation("product_order_items")
+  designAssets          DesignAsset[]          @relation("product_design_assets")
+  stocks                Stock[]                @relation("product_stocks")
+  stockMoves            StockMove[]            @relation("product_stock_moves")
+  boms                  BillOfMaterial[]       @relation("product_boms")
+  bomItems              BomItem[]              @relation("product_bom_items")
+  consumedMaterials     ConsumedMaterial[]     @relation("product_consumed")
+  returnOrderItems      ReturnOrderItem[]      @relation("product_return_order_items")
+  reviews               Review[]               @relation("product_reviews")
+  purchaseItems         PurchaseOrderItem[]    @relation("product_purchase_items")
+  integrationItems      IntegrationItem[]      @relation("product_integration_items")
+  integrationOrderItems IntegrationOrderItem[] @relation("product_integration_order_items")
+
+  royaltyRules  RoyaltyRule[]  @relation("product_royalty_rules")
+  qualityAlerts QualityAlert[] @relation("product_quality_alerts")
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([name])
+  @@index([sku])
+  @@index([type])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("products")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCT SPEC (nilai attribute pada produk)
+// ─────────────────────────────────────────────
+
+model ProductSpec {
+  id          String @id @default(cuid())
+  productId   String
+  attributeId String
+
+  // Nilai tergantung tipe attribute
+  optionId     String?
+  textValue    String?   @db.Text
+  numberValue  Decimal?  @db.Decimal(19, 4)
+  booleanValue Boolean?
+  dateValue    DateTime?
+  jsonValue    Json?
+
+  // Biaya tambahan spesifikasi (misal: ukuran besar +Rp10.000)
+  costType PricingType @default(fixed)
+  cost     Decimal     @default(0) @db.Decimal(19, 4)
+
+  position Int   @default(0)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product   Product   @relation("product_specs", fields: [productId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation("spec_products", fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, attributeId])
+  @@index([attributeId])
+  @@index([optionId])
+  @@map("product_specs")
+}
+
+// ─────────────────────────────────────────────
+// VARIANT
+// ─────────────────────────────────────────────
+
+model Variant {
+  id        String  @id @default(cuid())
+  productId String
+  name      String  @db.VarChar(255) // "Merah / L"
+  code      String  @db.VarChar(100) // KAOS-RED-L
+  sku       String? @db.VarChar(100)
+  barcode   String? @db.VarChar(100)
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+
+  // Override dimensi & berat dari produk induk
+  weight Decimal? @db.Decimal(10, 2)
+  length Decimal? @db.Decimal(10, 2)
+  width  Decimal? @db.Decimal(10, 2)
+  height Decimal? @db.Decimal(10, 2)
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  product Product @relation("product_variants", fields: [productId], references: [id], onDelete: Cascade)
+
+  variantOptions VariantOption[] @relation("variant_options")
+  variantImages  VariantImage[]  @relation("variant_images")
+  prices         Price[]         @relation("variant_prices")
+  designAreas    DesignArea[]    @relation("variant_design_areas")
+
+  cartItems             CartItem[]             @relation("variant_cart_items")
+  orderItems            OrderItem[]            @relation("variant_order_items")
+  designAssets          DesignAsset[]          @relation("variant_design_assets")
+  stocks                Stock[]                @relation("variant_stocks")
+  stockMoves            StockMove[]            @relation("variant_stock_moves")
+  bomItems              BomItem[]              @relation("variant_bom_items")
+  consumedMaterials     ConsumedMaterial[]     @relation("variant_consumed")
+  returnOrderItems      ReturnOrderItem[]      @relation("variant_return_order_items")
+  purchaseItems         PurchaseOrderItem[]    @relation("variant_purchase_items")
+  integrationItems      IntegrationItem[]      @relation("variant_integration_items")
+  integrationOrderItems IntegrationOrderItem[] @relation("variant_integration_order_items")
+
+  @@unique([productId, sku])
+  @@index([productId])
+  @@index([code])
+  @@index([barcode])
+  @@index([enabled])
+  @@index([deletedAt])
+  @@map("variants")
+}
+
+// ─────────────────────────────────────────────
+// VARIANT OPTION (mapping Variant ↔ Option)
+// ─────────────────────────────────────────────
+
+model VariantOption {
+  id        String @id @default(cuid())
+  variantId String
+  optionId  String
+  position  Int    @default(0)
+
+  variant Variant @relation("variant_options", fields: [variantId], references: [id], onDelete: Cascade)
+  option  Option  @relation("option_variants", fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, optionId])
+  @@map("variant_options")
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY SPEC (attribute yang wajib ada di suatu kategori)
+// ─────────────────────────────────────────────
+
+model CategorySpec {
+  id          String  @id @default(cuid())
+  categoryId  String
+  attributeId String
+  required    Boolean @default(false)
+  position    Int     @default(0)
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category  Category  @relation("category_specs", fields: [categoryId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation("spec_categories", fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, attributeId])
+  @@map("category_specs")
+}
+
+// ─────────────────────────────────────────────
+// PRICE
+// ─────────────────────────────────────────────
+
+model Price {
+  id            String  @id @default(cuid())
+  productId     String
+  variantId     String?
+  currencyId    String?
+  promotionId   String?
+  taxRateId     String?
+  integrationId String? // harga khusus per channel marketplace
+
+  type    PricingType @default(fixed)
+  formula String?     @db.Text
+
+  // Harga Dasar
+  costPrice Decimal @db.Decimal(19, 4) // HPP
+  unitPrice Decimal @db.Decimal(19, 4) // harga jual sebelum diskon
+
+  // Kalkulasi (snapshot saat price aktif)
+  discountPrice Decimal  @default(0) @db.Decimal(19, 4)
+  sellPrice     Decimal  @db.Decimal(19, 4) // unitPrice - discountPrice
+  taxAmount     Decimal? @db.Decimal(19, 4)
+  finalPrice    Decimal? @db.Decimal(19, 4) // sellPrice + tax
+  comparePrice  Decimal? @db.Decimal(19, 4) // coret: harga sebelum promo
+
+  // Batas kuantitas / nominal order
+  minOrderQty Int      @default(1)
+  maxOrderQty Int?
+  minOrderAmt Decimal? @db.Decimal(19, 4)
+  maxOrderAmt Decimal? @db.Decimal(19, 4)
+
+  validAt   DateTime?
+  expiresAt DateTime?
+  enabled   Boolean   @default(true)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product     Product      @relation("product_prices", fields: [productId], references: [id], onDelete: Cascade)
+  variant     Variant?     @relation("variant_prices", fields: [variantId], references: [id], onDelete: Cascade)
+  currency    Currency?    @relation("currency_prices", fields: [currencyId], references: [id], onDelete: SetNull)
+  promotion   Promotion?   @relation("promotion_prices", fields: [promotionId], references: [id], onDelete: SetNull)
+  taxRate     TaxRate?     @relation("tax_rate_prices", fields: [taxRateId], references: [id], onDelete: SetNull)
+  integration Integration? @relation("integration_prices", fields: [integrationId], references: [id], onDelete: SetNull)
+
+  priceTiers PriceTier[] @relation("price_tiers")
+  cartItems  CartItem[]  @relation("price_cart_items")
+  orderItems OrderItem[] @relation("price_order_items")
+
+  @@index([productId, variantId])
+  @@index([currencyId])
+  @@index([taxRateId])
+  @@index([promotionId])
+  @@index([integrationId])
+  @@index([enabled])
+  @@index([validAt, expiresAt])
+  @@map("prices")
+}
+
+// ─────────────────────────────────────────────
+// PRICE TIER (Volume Discount)
+// ─────────────────────────────────────────────
+
+model PriceTier {
+  id      String @id @default(cuid())
+  priceId String
+
+  minQty    Int
+  maxQty    Int?
+  unitPrice Decimal @db.Decimal(19, 4)
+  position  Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  price Price @relation("price_tiers", fields: [priceId], references: [id], onDelete: Cascade)
+
+  @@unique([priceId, minQty])
+  @@index([priceId])
+  @@map("price_tiers")
+}

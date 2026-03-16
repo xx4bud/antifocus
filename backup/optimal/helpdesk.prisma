@@ -1,0 +1,131 @@
+// ==============================
+// HELPDESK ENUMS
+// ==============================
+
+enum TicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+// ==============================
+// TICKET STAGES
+// ==============================
+
+model TicketStage {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String
+  isClosed Boolean @default(false)
+  color    String?
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tickets      Ticket[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("ticket_stages")
+}
+
+// ==============================
+// TICKET TAGS
+// ==============================
+
+model TicketTag {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String
+  color String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tickets      TicketToTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("ticket_tags")
+}
+
+// ==============================
+// TICKET ↔ TAG
+// ==============================
+
+model TicketToTag {
+  id       String @id @default(cuid())
+  ticketId String
+  tagId    String
+
+  ticket TicketTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tag    Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, tagId])
+  @@map("ticket_to_tags")
+}
+
+// ==============================
+// TICKETS
+// ==============================
+
+model Ticket {
+  id             String  @id @default(cuid())
+  organizationId String
+  stageId        String
+  customerId     String?
+  assigneeId     String?
+
+  subject     String
+  description String?
+  priority    TicketPriority @default(medium)
+
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage        TicketStage  @relation(fields: [stageId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  assignee     User?        @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  tags     TicketToTag[]
+  messages TicketMessage[]
+
+  @@index([organizationId])
+  @@index([stageId])
+  @@index([customerId])
+  @@index([assigneeId])
+  @@index([priority])
+  @@map("tickets")
+}
+
+// ==============================
+// TICKET MESSAGES
+// ==============================
+
+model TicketMessage {
+  id       String @id @default(cuid())
+  ticketId String
+  authorId String
+
+  body        String
+  attachments String[]
+  isInternal  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([authorId])
+  @@map("ticket_messages")
+}

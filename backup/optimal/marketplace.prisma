@@ -1,0 +1,173 @@
+// ==============================
+// MARKETPLACE ENUMS
+// ==============================
+
+enum MarketplaceStatus {
+  active
+  inactive
+  pending
+  suspended
+}
+
+enum ListingSyncStatus {
+  synced
+  pending
+  error
+  not_listed
+}
+
+enum MarketplaceOrderStatus {
+  new_order
+  confirmed
+  processing
+  shipped
+  delivered
+  canceled
+  returned
+}
+
+// ==============================
+// MARKETPLACES
+// ==============================
+
+model Marketplace {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String // "Tokopedia Store", "Shopee Official"
+  platform String // tokopedia, shopee, lazada, tiktok_shop
+  shopUrl  String?
+  shopId   String?
+
+  status MarketplaceStatus @default(active)
+
+  // Credentials
+  apiKey       String?
+  apiSecret    String?
+  accessToken  String?
+  refreshToken String?
+
+  // Sync settings
+  autoSync     Boolean   @default(true)
+  syncInterval Int       @default(15) // minutes
+  lastSyncAt   DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  listings     MarketplaceListing[]
+  orders       MarketplaceOrder[]
+
+  @@index([organizationId])
+  @@index([platform])
+  @@index([status])
+  @@map("marketplaces")
+}
+
+// ==============================
+// MARKETPLACE LISTINGS
+// ==============================
+
+model MarketplaceListing {
+  id            String  @id @default(cuid())
+  marketplaceId String
+  productId     String
+  variantId     String?
+
+  externalId  String? // Product ID on marketplace
+  externalUrl String?
+
+  // Pricing
+  price Decimal @default(0)
+  stock Int     @default(0)
+
+  syncStatus ListingSyncStatus @default(not_listed)
+  lastSyncAt DateTime?
+  errorMsg   String?
+
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  marketplace Marketplace @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant     Variant?    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([marketplaceId, externalId])
+  @@index([marketplaceId])
+  @@index([productId])
+  @@index([syncStatus])
+  @@map("marketplace_listings")
+}
+
+// ==============================
+// MARKETPLACE ORDERS
+// ==============================
+
+model MarketplaceOrder {
+  id            String @id @default(cuid())
+  marketplaceId String
+
+  externalOrderId String
+  status          MarketplaceOrderStatus @default(new_order)
+
+  // Customer info
+  buyerName  String?
+  buyerPhone String?
+
+  // Financials
+  subtotal     Decimal @default(0)
+  shippingCost Decimal @default(0)
+  total        Decimal @default(0)
+
+  orderedAt   DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  marketplace Marketplace            @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+  lines       MarketplaceOrderLine[]
+
+  @@unique([marketplaceId, externalOrderId])
+  @@index([marketplaceId])
+  @@index([status])
+  @@map("marketplace_orders")
+}
+
+// ==============================
+// MARKETPLACE ORDER LINES
+// ==============================
+
+model MarketplaceOrderLine {
+  id                 String  @id @default(cuid())
+  marketplaceOrderId String
+  productId          String
+  variantId          String?
+
+  externalItemId String?
+  name           String
+  quantity       Decimal @default(1)
+  unitPrice      Decimal @default(0)
+  total          Decimal @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  marketplaceOrder MarketplaceOrder @relation(fields: [marketplaceOrderId], references: [id], onDelete: Cascade)
+  product          Product          @relation(fields: [productId], references: [id])
+  variant          Variant?         @relation(fields: [variantId], references: [id])
+
+  @@index([marketplaceOrderId])
+  @@index([productId])
+  @@map("marketplace_order_lines")
+}

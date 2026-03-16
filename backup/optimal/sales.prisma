@@ -1,0 +1,347 @@
+// ==============================
+// SALES ENUMS
+// ==============================
+
+enum OrderStatus {
+  draft
+  confirmed
+  processing
+  ready
+  shipped
+  delivered
+  canceled
+  returned
+}
+
+enum PaymentState {
+  pending
+  partial
+  paid
+  refunded
+}
+
+enum OrderSource {
+  web
+  pos
+  marketplace
+  phone
+  walk_in
+}
+
+enum ReviewStatus {
+  pending
+  approved
+  rejected
+  archived
+}
+
+enum DiscountType {
+  percentage
+  fixed
+  free_shipping
+  buy_x_get_y
+}
+
+enum CouponStatus {
+  active
+  expired
+  used_up
+  disabled
+}
+
+// ==============================
+// CARTS
+// ==============================
+
+model Cart {
+  id             String  @id @default(cuid())
+  organizationId String
+  sessionId      String?
+  userId         String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CartItem[]
+
+  @@index([organizationId])
+  @@index([sessionId])
+  @@index([userId])
+  @@map("carts")
+}
+
+// ==============================
+// CART ITEMS
+// ==============================
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  productId String
+  variantId String
+
+  quantity Decimal @default(1)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId])
+  @@map("cart_items")
+}
+
+// ==============================
+// SALE ORDERS
+// ==============================
+
+model SaleOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  currencyId     String?
+  customerId     String?
+  storeId        String?
+
+  orderNumber String
+  source      OrderSource @default(web)
+  status      OrderStatus @default(draft)
+
+  // Financials
+  subtotal      Decimal      @default(0)
+  taxAmount     Decimal      @default(0)
+  discount      Decimal      @default(0)
+  shippingCost  Decimal      @default(0)
+  total         Decimal      @default(0)
+  paymentStatus PaymentState @default(pending)
+
+  // Dates
+  orderDate    DateTime  @default(now())
+  confirmDate  DateTime?
+  deliveryDate DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  store        Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  lines               SaleOrderLine[]
+  invoices            AccountMove[]
+  stockPickings       StockPicking[]
+  returnOrders        ReturnOrder[]
+  shipments           Shipment[]
+  productReviews      ProductReview[]
+  manufacturingOrders ManufacturingOrder[]
+
+  // Design Assets
+  designAssets DesignAsset[]
+
+  @@unique([organizationId, orderNumber])
+  @@index([organizationId, status, orderDate])
+  @@index([customerId])
+  @@index([paymentStatus])
+  @@map("sale_orders")
+}
+
+// ==============================
+// SALE ORDER LINES
+// ==============================
+
+model SaleOrderLine {
+  id          String  @id @default(cuid())
+  saleOrderId String
+  productId   String
+  variantId   String
+  taxId       String?
+
+  name     String
+  quantity Decimal @default(1)
+
+  // Pricing
+  unitPrice Decimal @default(0)
+  discount  Decimal @default(0)
+  taxAmount Decimal @default(0)
+  subtotal  Decimal @default(0)
+  total     Decimal @default(0)
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  saleOrder SaleOrder @relation(fields: [saleOrderId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+  variant   Variant   @relation(fields: [variantId], references: [id])
+  tax       TaxRate?  @relation(fields: [taxId], references: [id], onDelete: SetNull)
+
+  @@index([saleOrderId])
+  @@index([productId])
+  @@map("sale_order_lines")
+}
+
+// ==============================
+// PRODUCT REVIEWS
+// ==============================
+
+model ProductReview {
+  id             String  @id @default(cuid())
+  organizationId String
+  productId      String
+  customerId     String
+  saleOrderId    String?
+
+  rating  Int      @default(5)
+  title   String?
+  content String?
+  images  String[]
+
+  status             ReviewStatus @default(pending)
+  isVerifiedPurchase Boolean      @default(false)
+  reply              String?
+
+  likes    Int @default(0)
+  dislikes Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation("ProductReviews", fields: [productId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation("CustomerReviews", fields: [customerId], references: [id], onDelete: Cascade)
+  saleOrder    SaleOrder?   @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, customerId, saleOrderId])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([customerId])
+  @@index([rating])
+  @@index([status])
+  @@map("product_reviews")
+}
+
+// ==============================
+// COUPONS
+// ==============================
+
+model Coupon {
+  id             String @id @default(cuid())
+  organizationId String
+
+  code        String
+  name        String
+  description String?
+
+  type  DiscountType @default(percentage)
+  value Decimal      @default(0)
+
+  // Constraints
+  minOrderAmount  Decimal?
+  maxDiscount     Decimal?
+  maxUsage        Int?
+  maxUsagePerUser Int?
+  usageCount      Int      @default(0)
+
+  // Validity
+  status    CouponStatus @default(active)
+  startDate DateTime     @default(now())
+  endDate   DateTime?
+
+  // Scope
+  productIds  String[]
+  categoryIds String[]
+  customerIds String[]
+
+  stackable Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  usages       CouponUsage[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([code])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("coupons")
+}
+
+// ==============================
+// COUPON USAGE TRACKING
+// ==============================
+
+model CouponUsage {
+  id         String  @id @default(cuid())
+  couponId   String
+  orderId    String
+  customerId String?
+
+  discountAmount Decimal
+
+  createdAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([orderId])
+  @@index([customerId])
+  @@map("coupon_usages")
+}
+
+// ==============================
+// AUTOMATIC DISCOUNTS (Rule-Based)
+// ==============================
+
+model DiscountRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+
+  type  DiscountType @default(percentage)
+  value Decimal      @default(0)
+
+  // Conditions
+  minOrderAmount Decimal?
+  minQuantity    Int?
+
+  // Scope
+  productIds  String[]
+  categoryIds String[]
+
+  // Validity
+  enabled   Boolean   @default(true)
+  priority  Int       @default(0)
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  stackable Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([enabled])
+  @@index([priority])
+  @@index([startDate, endDate])
+  @@map("discount_rules")
+}

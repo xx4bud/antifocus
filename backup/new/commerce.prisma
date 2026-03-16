@@ -1,0 +1,778 @@
+// ============================================================
+// COMMERCE MODULE
+// Covers: Cart, Order, OrderItem, OrderStatusHistory,
+//         ReturnOrder, ReturnOrderItem,
+//         Promotion, PromotionUsage, Banner, Follower
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum OrderStatus {
+  draft // sedang dibuat
+  pending // menunggu pembayaran
+  confirmed // pembayaran dikonfirmasi
+  processing // sedang diproses / cetak
+  shipped // sudah dikirim
+  delivered // sudah diterima customer
+  completed // selesai & closed
+  canceled // dibatalkan
+  returned // dikembalikan
+}
+
+enum PaymentState {
+  unpaid
+  pending
+  partial
+  paid
+  refunded
+  overpaid
+}
+
+enum ReturnReason {
+  damaged
+  defective
+  wrong_item
+  not_as_described
+  change_of_mind
+  late_delivery
+  other
+}
+
+enum ReturnStatus {
+  requested
+  approved
+  rejected
+  received
+  refunded
+  exchanged
+  canceled
+}
+
+enum ReturnType {
+  refund
+  exchange
+  store_credit
+}
+
+enum PromotionType {
+  percentage
+  fixed_amount
+  free_shipping
+  buy_x_get_y
+}
+
+enum PromotionStatus {
+  draft
+  scheduled // belum mulai
+  active
+  expired
+  depleted // stok/kuota habis
+  disabled
+}
+
+enum BannerType {
+  hero
+  sidebar
+  footer
+  popup
+  inline
+}
+
+// Phase 5 Additions
+enum BillingInterval {
+  weekly
+  monthly
+  yearly
+}
+
+enum SubscriptionStatus {
+  active
+  past_due
+  canceled
+  expired
+}
+
+// ─────────────────────────────────────────────
+// ORDER SOURCE (Channel Penjualan)
+// ─────────────────────────────────────────────
+
+model OrderSource {
+  id             String @id @default(cuid())
+  organizationId String
+  name           String @db.VarChar(255)
+  code           String @db.VarChar(100) // direct | tokopedia | shopee | whatsapp | pos
+  metadata       Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_order_sources", fields: [organizationId], references: [id], onDelete: Cascade)
+  orders       Order[]      @relation("order_sources")
+
+  @@unique([organizationId, code])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("order_sources")
+}
+
+// ─────────────────────────────────────────────
+// CART
+// ─────────────────────────────────────────────
+
+model Cart {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String?
+  sessionId      String? @db.VarChar(255) // guest cart
+
+  currencyId     String?
+  promotionId    String?
+  taxRateId      String?
+  shippingRateId String?
+
+  subTotal      Decimal @default(0) @db.Decimal(19, 4)
+  discountTotal Decimal @default(0) @db.Decimal(19, 4)
+  taxTotal      Decimal @default(0) @db.Decimal(19, 4)
+  shippingTotal Decimal @default(0) @db.Decimal(19, 4)
+  grandTotal    Decimal @default(0) @db.Decimal(19, 4)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization  @relation("org_carts", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?         @relation("user_carts", fields: [userId], references: [id], onDelete: Cascade)
+  currency     Currency?     @relation("currency_carts", fields: [currencyId], references: [id], onDelete: SetNull)
+  promotion    Promotion?    @relation("promotion_carts", fields: [promotionId], references: [id], onDelete: SetNull)
+  taxRate      TaxRate?      @relation("tax_rate_carts", fields: [taxRateId], references: [id], onDelete: SetNull)
+  shippingRate ShippingRate? @relation("shipping_rate_carts", fields: [shippingRateId], references: [id], onDelete: SetNull)
+
+  items CartItem[] @relation("cart_items")
+
+  @@index([organizationId, sessionId])
+  @@index([deletedAt])
+  @@map("carts")
+}
+
+model CartItem {
+  id         String  @id @default(cuid())
+  cartId     String
+  productId  String
+  variantId  String?
+  priceId    String?
+  currencyId String?
+  taxRateId  String?
+
+  quantity       Int     @default(1)
+  unitPrice      Decimal @default(0) @db.Decimal(19, 4)
+  discountAmount Decimal @default(0) @db.Decimal(19, 4)
+  taxAmount      Decimal @default(0) @db.Decimal(19, 4)
+  lineTotal      Decimal @default(0) @db.Decimal(19, 4)
+
+  // PoD: desain yang dipilih customer saat add to cart
+  designAssetId String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  cart     Cart      @relation("cart_items", fields: [cartId], references: [id], onDelete: Cascade)
+  product  Product   @relation("product_cart_items", fields: [productId], references: [id], onDelete: Cascade)
+  variant  Variant?  @relation("variant_cart_items", fields: [variantId], references: [id], onDelete: Cascade)
+  price    Price?    @relation("price_cart_items", fields: [priceId], references: [id], onDelete: SetNull)
+  currency Currency? @relation("currency_cart_items", fields: [currencyId], references: [id], onDelete: SetNull)
+  taxRate  TaxRate?  @relation("tax_rate_cart_items", fields: [taxRateId], references: [id], onDelete: SetNull)
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@index([deletedAt])
+  @@map("cart_items")
+}
+
+// ─────────────────────────────────────────────
+// ORDER
+// ─────────────────────────────────────────────
+
+model Order {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+  orderSourceId  String?
+  customerId     String?
+  sequenceId     String? @unique @db.VarChar(100)
+  profileId      String? // snapshot kontak
+  posSessionId   String?
+
+  currencyId        String?
+  promotionId       String?
+  taxRateId         String?
+  shippingRateId    String?
+  shippingAddressId String?
+  billingAddressId  String?
+  resellerConfigId  String?
+
+  // Phase 5: Subscription Billing
+  subscriptionId String?
+
+  status       OrderStatus  @default(draft)
+  paymentState PaymentState @default(unpaid)
+  isDropship   Boolean      @default(false)
+
+  subTotal      Decimal @default(0) @db.Decimal(19, 4)
+  discountTotal Decimal @default(0) @db.Decimal(19, 4)
+  taxTotal      Decimal @default(0) @db.Decimal(19, 4)
+  shippingTotal Decimal @default(0) @db.Decimal(19, 4)
+  grandTotal    Decimal @default(0) @db.Decimal(19, 4)
+
+  // PoD: catatan produksi / instruksi khusus dari customer
+  productionNote String? @db.Text
+  customerNote   String? @db.Text
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization    Organization    @relation("org_orders", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch          Branch?         @relation("branch_orders", fields: [branchId], references: [id], onDelete: SetNull)
+  orderSource     OrderSource?    @relation("order_sources", fields: [orderSourceId], references: [id], onDelete: SetNull)
+  customer        Customer?       @relation("customer_orders", fields: [customerId], references: [id], onDelete: SetNull)
+  sequence        Sequence?       @relation("sequence_orders", fields: [sequenceId], references: [id])
+  profile         Profile?        @relation("profile_orders", fields: [profileId], references: [id], onDelete: SetNull)
+  currency        Currency?       @relation("currency_orders", fields: [currencyId], references: [id], onDelete: SetNull)
+  promotion       Promotion?      @relation("promotion_orders", fields: [promotionId], references: [id], onDelete: SetNull)
+  taxRate         TaxRate?        @relation("tax_rate_orders", fields: [taxRateId], references: [id], onDelete: SetNull)
+  shippingRate    ShippingRate?   @relation("shipping_rate_orders", fields: [shippingRateId], references: [id], onDelete: SetNull)
+  shippingAddress Address?        @relation("shipping_order_addresses", fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  billingAddress  Address?        @relation("billing_order_addresses", fields: [billingAddressId], references: [id], onDelete: SetNull)
+  resellerConfig  ResellerConfig? @relation("reseller_orders", fields: [resellerConfigId], references: [id], onDelete: SetNull)
+  posSession      PosSession?     @relation("session_orders", fields: [posSessionId], references: [id], onDelete: SetNull)
+  subscription    Subscription?   @relation("subscription_orders", fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  items           OrderItem[]          @relation("order_items")
+  statusHistory   OrderStatusHistory[] @relation("order_status_history")
+  stockPickings   StockPicking[]       @relation("order_stock_pickings")
+  accountMoves    AccountMove[]        @relation("order_account_moves")
+  shipments       Shipment[]           @relation("order_shipments")
+  returnOrders    ReturnOrder[]        @relation("order_return_orders")
+  reviews         Review[]             @relation("order_reviews")
+  projects        Project[]            @relation("project_order")
+  jobOrders       JobOrder[]           @relation("order_job_orders")
+  promotionUsages PromotionUsage[]     @relation("order_promotion_usages")
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([status])
+  @@index([paymentState])
+  @@index([orderSourceId])
+  @@index([posSessionId])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status, paymentState])
+  @@index([deletedAt])
+  @@map("orders")
+}
+
+// ─────────────────────────────────────────────
+// ORDER STATUS HISTORY (Immutable)
+// ─────────────────────────────────────────────
+
+model OrderStatusHistory {
+  id      String @id @default(cuid())
+  orderId String
+
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  actorId    String?
+  note       String?      @db.Text
+
+  createdAt DateTime @default(now())
+
+  order Order @relation("order_status_history", fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
+}
+
+// ─────────────────────────────────────────────
+// ORDER ITEM
+// ─────────────────────────────────────────────
+
+model OrderItem {
+  id             String  @id @default(cuid())
+  orderId        String
+  productId      String
+  variantId      String?
+  priceId        String?
+  currencyId     String?
+  taxRateId      String?
+  shippingRateId String?
+
+  quantity Int @default(1)
+
+  // Snapshot (immutable setelah order confirmed)
+  snapshotProductName  String? @db.VarChar(255)
+  snapshotVariantName  String? @db.VarChar(255)
+  snapshotSku          String? @db.VarChar(100)
+  snapshotCurrencyCode String? @db.VarChar(10)
+
+  unitPrice      Decimal @default(0) @db.Decimal(19, 4)
+  discountAmount Decimal @default(0) @db.Decimal(19, 4)
+  taxAmount      Decimal @default(0) @db.Decimal(19, 4)
+  shippingAmount Decimal @default(0) @db.Decimal(19, 4)
+  lineTotal      Decimal @default(0) @db.Decimal(19, 4)
+
+  // Dimensi berat untuk perhitungan ongkir
+  weight Decimal @default(0) @db.Decimal(10, 2)
+  length Decimal @default(0) @db.Decimal(10, 2)
+  width  Decimal @default(0) @db.Decimal(10, 2)
+  height Decimal @default(0) @db.Decimal(10, 2)
+
+  // PoD: tracking status desain per item
+  designStatus DesignStatus @default(draft)
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  order        Order         @relation("order_items", fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product       @relation("product_order_items", fields: [productId], references: [id], onDelete: Restrict)
+  variant      Variant?      @relation("variant_order_items", fields: [variantId], references: [id], onDelete: SetNull)
+  price        Price?        @relation("price_order_items", fields: [priceId], references: [id], onDelete: SetNull)
+  currency     Currency?     @relation("currency_order_items", fields: [currencyId], references: [id], onDelete: SetNull)
+  taxRate      TaxRate?      @relation("tax_rate_order_items", fields: [taxRateId], references: [id], onDelete: SetNull)
+  shippingRate ShippingRate? @relation("shipping_rate_order_items", fields: [shippingRateId], references: [id], onDelete: SetNull)
+
+  designAssets  DesignAsset[]  @relation("order_item_design_assets")
+  jobOrders     JobOrder[]     @relation("order_item_job_orders")
+  shipmentItems ShipmentItem[] @relation("order_item_shipment_items")
+  commissions   Commission[]   @relation("order_item_commissions")
+
+  @@index([orderId])
+  @@index([variantId])
+  @@index([designStatus])
+  @@index([deletedAt])
+  @@map("order_items")
+}
+
+// ─────────────────────────────────────────────
+// RETURN ORDER
+// ─────────────────────────────────────────────
+
+model ReturnOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  orderId        String
+  profileId      String?
+
+  returnNumber String       @db.VarChar(100)
+  status       ReturnStatus @default(requested)
+  type         ReturnType   @default(refund)
+  reason       ReturnReason @default(other)
+
+  refundAmount  Decimal @default(0) @db.Decimal(19, 4)
+  restockingFee Decimal @default(0) @db.Decimal(19, 4)
+
+  requestDate  DateTime  @default(now())
+  approvalDate DateTime?
+  receiveDate  DateTime?
+  refundDate   DateTime?
+
+  note     String?  @db.Text
+  proof    String[] // URL foto bukti
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_return_orders", fields: [organizationId], references: [id], onDelete: Cascade)
+  order        Order        @relation("order_return_orders", fields: [orderId], references: [id], onDelete: Restrict)
+  profile      Profile?     @relation("profile_return_orders", fields: [profileId], references: [id], onDelete: SetNull)
+
+  accountMoves     AccountMove[]     @relation("return_order_account_moves")
+  shipments        Shipment[]        @relation("return_order_shipments")
+  returnOrderItems ReturnOrderItem[] @relation("return_order_items")
+
+  @@unique([organizationId, returnNumber])
+  @@index([orderId])
+  @@index([status])
+  @@index([requestDate])
+  @@map("return_orders")
+}
+
+model ReturnOrderItem {
+  id            String  @id @default(cuid())
+  returnOrderId String
+  productId     String
+  variantId     String?
+
+  quantity         Decimal      @default(1) @db.Decimal(10, 4)
+  quantityReceived Decimal      @default(0) @db.Decimal(10, 4)
+  unitPrice        Decimal      @default(0) @db.Decimal(19, 4)
+  reason           ReturnReason @default(other)
+  note             String?      @db.Text
+  metadata         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  returnOrder ReturnOrder @relation("return_order_items", fields: [returnOrderId], references: [id], onDelete: Cascade)
+  product     Product     @relation("product_return_order_items", fields: [productId], references: [id], onDelete: Restrict)
+  variant     Variant?    @relation("variant_return_order_items", fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([returnOrderId])
+  @@index([productId])
+  @@map("return_order_items")
+}
+
+// ─────────────────────────────────────────────
+// PROMOTION
+// ─────────────────────────────────────────────
+
+model Promotion {
+  id             String @id @default(cuid())
+  organizationId String
+  name           String @db.VarChar(255)
+  code           String @db.VarChar(100) // PROMO10 | FREESHIP
+
+  type      PromotionType   @default(percentage)
+  value     Decimal         @db.Decimal(19, 4)
+  status    PromotionStatus @default(draft)
+  priority  Int             @default(0)
+  stackable Boolean         @default(false)
+
+  // Batas penggunaan
+  minOrderQty     Int      @default(1)
+  maxOrderQty     Int?
+  minOrderAmount  Decimal? @db.Decimal(19, 4)
+  maxOrderAmount  Decimal? @db.Decimal(19, 4)
+  maxDiscount     Decimal? @db.Decimal(19, 4)
+  maxUsage        Int?
+  maxUsagePerUser Int?
+  usageCount      Int      @default(0)
+
+  // Eligibilitas (JSON rules: by category, product, customer group, etc)
+  scope String? @db.VarChar(50) // all | product | category | customer_group
+  rules Json?
+
+  startAt  DateTime?
+  endAt    DateTime?
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_promotions", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  usages       PromotionUsage[] @relation("promotion_usages")
+  prices       Price[]          @relation("promotion_prices")
+  carts        Cart[]           @relation("promotion_carts")
+  orders       Order[]          @relation("promotion_orders")
+  accountMoves AccountMove[]    @relation("promotion_account_moves")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@index([startAt, endAt])
+  @@index([deletedAt])
+  @@map("promotions")
+}
+
+model PromotionUsage {
+  id          String  @id @default(cuid())
+  promotionId String
+  customerId  String?
+  orderId     String?
+  value       Decimal @db.Decimal(19, 4)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  promotion Promotion @relation("promotion_usages", fields: [promotionId], references: [id], onDelete: Cascade)
+  customer  Customer? @relation("customer_promotion_usages", fields: [customerId], references: [id], onDelete: SetNull)
+  order     Order?    @relation("order_promotion_usages", fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([promotionId, customerId, orderId])
+  @@index([promotionId])
+  @@index([customerId])
+  @@map("promotion_usages")
+}
+
+// ─────────────────────────────────────────────
+// BANNER
+// ─────────────────────────────────────────────
+
+model Banner {
+  id             String @id @default(cuid())
+  organizationId String
+  assetId        String
+
+  type     BannerType @default(hero)
+  title    String     @db.VarChar(255)
+  subTitle String?    @db.VarChar(255)
+  content  String?    @db.Text
+  url      String?    @db.VarChar(255) // CTA link
+  position Int        @default(0)
+
+  startAt  DateTime?
+  endAt    DateTime?
+  enabled  Boolean   @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_banners", fields: [organizationId], references: [id], onDelete: Cascade)
+  asset        Asset        @relation("asset_banners", fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([enabled, startAt, endAt])
+  @@map("banners")
+}
+
+// ─────────────────────────────────────────────
+// FOLLOWER (Subscribe notifikasi entity tertentu)
+// ─────────────────────────────────────────────
+
+model Follower {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+  userId         String
+
+  resModel     String // "Order" | "Product" | "Ticket"
+  resId        String
+  notifyEvents String[] // ["status_changed", "commented"]
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation("org_followers", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation("branch_followers", fields: [branchId], references: [id], onDelete: Cascade)
+  user         User         @relation("user_followers", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resModel, resId])
+  @@index([organizationId])
+  @@index([resModel, resId])
+  @@map("followers")
+}
+
+// ─────────────────────────────────────────────
+// POS SESSION (Sesi Kasir)
+// ─────────────────────────────────────────────
+
+model PosSession {
+  id             String @id @default(cuid())
+  organizationId String
+  branchId       String
+  cashierId      String // Member
+
+  name   String @db.VarChar(100) // POS/2026/03/001
+  status String @default("opening_control") @db.VarChar(50) // opening_control | opened | closing_control | closed | nullified
+
+  startAt DateTime?
+  stopAt  DateTime?
+
+  openingBalance Decimal @default(0) @db.Decimal(19, 4)
+  closingBalance Decimal @default(0) @db.Decimal(19, 4)
+
+  note String? @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_pos_sessions", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch       @relation("branch_pos_sessions", fields: [branchId], references: [id], onDelete: Cascade)
+  cashier      Member       @relation("cashier_pos_sessions", fields: [cashierId], references: [id], onDelete: Restrict)
+  orders       Order[]      @relation("session_orders")
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([cashierId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("pos_sessions")
+}
+
+// ─────────────────────────────────────────────
+// CREATOR ECONOMY (Royalty & Komisi Afiliasi)
+// ─────────────────────────────────────────────
+
+enum CommissionType {
+  percentage
+  fixed_amount
+}
+
+enum CommissionStatus {
+  pending
+  approved
+  paid
+  canceled
+}
+
+enum PayoutStatus {
+  requested
+  processing
+  completed
+  failed
+}
+
+model RoyaltyRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String         @db.VarChar(255)
+  type  CommissionType @default(percentage)
+  value Decimal        @db.Decimal(19, 4)
+
+  // Eligibilitas
+  productId String? // spesifik ke barang
+  assetId   String? // spesifik ke desain tertentu
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_royalty_rules", fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product?     @relation("product_royalty_rules", fields: [productId], references: [id], onDelete: SetNull)
+  asset        Asset?       @relation("asset_royalty_rules", fields: [assetId], references: [id], onDelete: SetNull)
+
+  commissions Commission[] @relation("rule_commissions")
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([assetId])
+  @@map("royalty_rules")
+}
+
+model Commission {
+  id             String  @id @default(cuid())
+  organizationId String
+  orderItemId    String
+  creatorId      String // Referensi ke User
+  ruleId         String?
+
+  amount Decimal          @db.Decimal(19, 4)
+  status CommissionStatus @default(pending)
+
+  payoutId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_commissions", fields: [organizationId], references: [id], onDelete: Cascade)
+  orderItem    OrderItem    @relation("order_item_commissions", fields: [orderItemId], references: [id], onDelete: Restrict)
+  creator      User         @relation("user_commissions", fields: [creatorId], references: [id], onDelete: Cascade)
+  rule         RoyaltyRule? @relation("rule_commissions", fields: [ruleId], references: [id], onDelete: SetNull)
+  payout       Payout?      @relation("payout_commissions", fields: [payoutId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([orderItemId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("commissions")
+}
+
+model Payout {
+  id             String @id @default(cuid())
+  organizationId String
+  creatorId      String
+
+  amount Decimal      @db.Decimal(19, 4)
+  status PayoutStatus @default(requested)
+
+  paymentDate   DateTime?
+  reference     String?   @db.VarChar(100)
+  accountMoveId String?
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_payouts", fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User         @relation("user_payouts", fields: [creatorId], references: [id], onDelete: Cascade)
+  accountMove  AccountMove? @relation("payout_account_moves", fields: [accountMoveId], references: [id], onDelete: SetNull)
+
+  commissions Commission[] @relation("payout_commissions")
+
+  @@index([organizationId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("payouts")
+}
+
+// ─────────────────────────────────────────────
+// SUBSCRIPTION (Phase 5)
+// ─────────────────────────────────────────────
+
+model SubscriptionPlan {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name String @db.VarChar(255) // "Pro Reseller"
+  code String @db.VarChar(100) // PRO-MONTHLY
+
+  interval   BillingInterval @default(monthly)
+  price      Decimal         @db.Decimal(19, 4)
+  currencyId String?
+
+  trialDays Int     @default(0)
+  active    Boolean @default(true)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_subscription_plans", fields: [organizationId], references: [id], onDelete: Cascade)
+  currency     Currency?    @relation("currency_subscription_plans", fields: [currencyId], references: [id], onDelete: SetNull)
+
+  subscriptions Subscription[] @relation("plan_subscriptions")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([active])
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id             String  @id @default(cuid())
+  organizationId String
+  planId         String
+  customerId     String
+  userId         String? // Apabila customer juga memiliki user login
+
+  status SubscriptionStatus @default(active)
+
+  startDate         DateTime @default(now())
+  currentPeriodEnd  DateTime
+  cancelAtPeriodEnd Boolean  @default(false)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation("org_subscriptions", fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         SubscriptionPlan @relation("plan_subscriptions", fields: [planId], references: [id], onDelete: Restrict)
+  customer     Customer         @relation("customer_subscriptions", fields: [customerId], references: [id], onDelete: Cascade)
+  user         User?            @relation("user_subscriptions", fields: [userId], references: [id], onDelete: SetNull)
+
+  orders Order[] @relation("subscription_orders")
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([userId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}

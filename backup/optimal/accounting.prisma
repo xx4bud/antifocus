@@ -1,0 +1,204 @@
+// ==============================
+// ACCOUNTING ENUMS
+// ==============================
+
+enum AccountType {
+  asset
+  liability
+  equity
+  income
+  expense
+}
+
+enum MoveType {
+  invoice
+  bill
+  credit_note
+  debit_note
+  journal_entry
+}
+
+enum MoveStatus {
+  draft
+  posted
+  canceled
+}
+
+enum PaymentStatus {
+  draft
+  pending
+  completed
+  failed
+  canceled
+}
+
+enum PaymentMoveStatus {
+  not_paid
+  partial
+  paid
+  reversed
+}
+
+enum PaymentType {
+  inbound
+  outbound
+  transfer
+}
+
+// ==============================
+// CHART OF ACCOUNTS (CoA)
+// ==============================
+
+model ChartOfAccount {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+
+  code String
+  name String
+  type AccountType
+
+  currentBalance Decimal @default(0)
+
+  reconcile Boolean @default(true)
+  metadata  Json?
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("AccountHierarchy")
+
+  moveLines AccountMoveLine[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([type])
+  @@index([parentId])
+  @@map("chart_of_accounts")
+}
+
+// ==============================
+// ACCOUNT MOVES (Invoices/Journal Entries)
+// ==============================
+
+model AccountMove {
+  id             String  @id @default(cuid())
+  organizationId String
+  saleOrderId    String?
+  profileId      String?
+  currencyId     String?
+
+  moveNumber String
+  type       MoveType   @default(invoice)
+  status     MoveStatus @default(draft)
+
+  // Financials
+  subtotal      Decimal           @default(0)
+  taxAmount     Decimal           @default(0)
+  total         Decimal           @default(0)
+  amountPaid    Decimal           @default(0)
+  amountDue     Decimal           @default(0)
+  paymentStatus PaymentMoveStatus @default(not_paid)
+
+  // Dates
+  moveDate DateTime  @default(now())
+  dueDate  DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  saleOrder    SaleOrder?   @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+  profile      Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+
+  lines    AccountMoveLine[]
+  payments Payment[]
+
+  @@unique([organizationId, moveNumber])
+  @@index([organizationId])
+  @@index([saleOrderId])
+  @@index([type])
+  @@index([status])
+  @@index([paymentStatus])
+  @@map("account_moves")
+}
+
+// ==============================
+// ACCOUNT MOVE LINES
+// ==============================
+
+model AccountMoveLine {
+  id        String  @id @default(cuid())
+  moveId    String
+  accountId String?
+
+  name String?
+
+  debit  Decimal @default(0)
+  credit Decimal @default(0)
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  move    AccountMove     @relation(fields: [moveId], references: [id], onDelete: Cascade)
+  account ChartOfAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([moveId])
+  @@index([accountId])
+  @@map("account_move_lines")
+}
+
+// ==============================
+// PAYMENTS
+// ==============================
+
+model Payment {
+  id             String  @id @default(cuid())
+  organizationId String
+  moveId         String?
+  profileId      String?
+  bankAccountId  String?
+  currencyId     String?
+
+  name   String
+  type   PaymentType   @default(inbound)
+  status PaymentStatus @default(draft)
+
+  amount Decimal @default(0)
+
+  paymentMethod String? // cash, bank_transfer, e-wallet, credit_card
+  reference     String?
+
+  paymentDate DateTime @default(now())
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  move         AccountMove? @relation(fields: [moveId], references: [id], onDelete: SetNull)
+  profile      Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  bankAccount  BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([moveId])
+  @@index([type])
+  @@index([status])
+  @@map("payments")
+}

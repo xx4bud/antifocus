@@ -1,0 +1,318 @@
+// ============================================================
+// ASSET MODULE
+// Covers: Folder, Asset, ProductImage, ProductVideo,
+//         VariantImage, DesignArea, DesignAsset, DesignStatusHistory
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum StorageProvider {
+  cloudinary
+  cloudflare_r2
+  aws_s3
+  local
+  external
+}
+
+enum FileType {
+  image
+  video
+  audio
+  document
+  archive
+  other
+}
+
+enum AssetStatus {
+  draft // baru diupload, belum diproses
+  pending // menunggu review
+  active // sudah diapprove
+  archived
+  banned
+  deleted
+}
+
+enum DesignStatus {
+  draft // customer baru upload
+  review // sedang di-review operator
+  approved // disetujui, masuk antrian cetak
+  rejected // ditolak, customer perlu revisi
+  production // sedang dicetak
+  archived
+}
+
+// ─────────────────────────────────────────────
+// FOLDER (DAM - Digital Asset Management)
+// ─────────────────────────────────────────────
+
+model Folder {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+  level          Int     @default(0) // 0 = root
+
+  name     String @db.VarChar(255)
+  path     String @db.VarChar(500) // /kaos/desain-2024/
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_folders", fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       Folder?      @relation("folder_tree", fields: [parentId], references: [id], onDelete: SetNull)
+
+  children Folder[] @relation("folder_tree")
+  assets   Asset[]  @relation("folder_assets")
+
+  @@unique([organizationId, path])
+  @@index([organizationId])
+  @@index([parentId, level])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("folders")
+}
+
+// ─────────────────────────────────────────────
+// ASSET
+// ─────────────────────────────────────────────
+
+model Asset {
+  id             String  @id @default(cuid())
+  organizationId String
+  folderId       String?
+
+  provider   AssetProvider @default(local)
+  storageKey String        @db.VarChar(500) // path / key di storage provider
+
+  name     String   @db.VarChar(255)
+  fileType FileType
+  mimeType String   @db.VarChar(100)
+  size     Int // bytes
+  width    Int? // px (untuk image)
+  height   Int?
+  dpi      Int? // resolusi cetak
+
+  isPublic          Boolean     @default(false)
+  isResolutionValid Boolean     @default(false) // validasi DPI untuk PoD
+  status            AssetStatus @default(draft)
+  metadata          Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_assets", fields: [organizationId], references: [id], onDelete: Cascade)
+  folder       Folder?      @relation("folder_assets", fields: [folderId], references: [id], onDelete: SetNull)
+
+  productImages        ProductImage[] @relation("asset_product_images")
+  productVideos        ProductVideo[] @relation("asset_product_videos")
+  variantImages        VariantImage[] @relation("asset_variant_images")
+  designAssets         DesignAsset[]  @relation("asset_design_assets")
+  mockupDesignAssets   DesignAsset[]  @relation("asset_mockup_design_assets")
+  prepressDesignAssets DesignAsset[]  @relation("asset_prepress_design_assets")
+  banners              Banner[]       @relation("asset_banners")
+
+  royaltyRules RoyaltyRule[] @relation("asset_royalty_rules")
+
+  @@unique([organizationId, provider, storageKey])
+  @@index([organizationId])
+  @@index([folderId])
+  @@index([isPublic])
+  @@index([status])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("assets")
+}
+
+// Alias untuk menghindari conflict nama enum
+enum AssetProvider {
+  cloudinary
+  cloudflare_r2
+  aws_s3
+  local
+  external
+}
+
+// ─────────────────────────────────────────────
+// PRODUCT MEDIA
+// ─────────────────────────────────────────────
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  assetId   String
+  isMain    Boolean @default(false)
+  position  Int     @default(0)
+  altText   String? @db.VarChar(255)
+
+  product Product @relation("product_images", fields: [productId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation("asset_product_images", fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, assetId])
+  @@index([productId, position])
+  @@map("product_images")
+}
+
+model ProductVideo {
+  id        String  @id @default(cuid())
+  productId String
+  assetId   String
+  isMain    Boolean @default(false)
+  position  Int     @default(0)
+  title     String? @db.VarChar(255)
+
+  product Product @relation("product_videos", fields: [productId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation("asset_product_videos", fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, assetId])
+  @@map("product_videos")
+}
+
+model VariantImage {
+  id        String  @id @default(cuid())
+  variantId String
+  assetId   String
+  isMain    Boolean @default(false)
+  position  Int     @default(0)
+  altText   String? @db.VarChar(255)
+
+  variant Variant @relation("variant_images", fields: [variantId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation("asset_variant_images", fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@unique([variantId, assetId])
+  @@map("variant_images")
+}
+
+// ─────────────────────────────────────────────
+// DESIGN AREA (Template zona cetak per produk/variant)
+// Area di mana customer bisa menempatkan desain
+// ─────────────────────────────────────────────
+
+model DesignArea {
+  id        String  @id @default(cuid())
+  productId String
+  variantId String?
+
+  name String @db.VarChar(255) // "Front", "Back", "Left Sleeve"
+  code String @db.VarChar(100) // front | back | left_sleeve
+
+  // Posisi & ukuran di canvas produk (mm)
+  width    Decimal @default(0) @db.Decimal(10, 2)
+  height   Decimal @default(0) @db.Decimal(10, 2)
+  offsetX  Decimal @default(0) @db.Decimal(10, 2)
+  offsetY  Decimal @default(0) @db.Decimal(10, 2)
+  rotation Decimal @default(0) @db.Decimal(5, 2)
+  zIndex   Int     @default(0)
+  scale    Decimal @default(1) @db.Decimal(5, 2)
+
+  // Spec cetak
+  colorMode String @default("CMYK") @db.VarChar(50) // CMYK | RGB
+  dpi       Int    @default(300)
+
+  // Batas ukuran desain yang diizinkan (mm)
+  minWidth  Decimal? @db.Decimal(10, 2)
+  maxWidth  Decimal? @db.Decimal(10, 2)
+  minHeight Decimal? @db.Decimal(10, 2)
+  maxHeight Decimal? @db.Decimal(10, 2)
+
+  // Biaya tambahan per area cetak
+  printCost Decimal @default(0) @db.Decimal(19, 4)
+
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product  @relation("product_design_areas", fields: [productId], references: [id], onDelete: Cascade)
+  variant Variant? @relation("variant_design_areas", fields: [variantId], references: [id], onDelete: Cascade)
+
+  designAssets DesignAsset[] @relation("design_area_assets")
+
+  @@unique([productId, variantId, code])
+  @@index([productId, variantId])
+  @@map("design_areas")
+}
+
+// ─────────────────────────────────────────────
+// DESIGN ASSET (File desain yang diupload customer)
+// ─────────────────────────────────────────────
+
+model DesignAsset {
+  id             String  @id @default(cuid())
+  organizationId String
+  assetId        String
+  productId      String
+  variantId      String?
+  customerId     String?
+  orderItemId    String?
+  designAreaId   String?
+
+  name    String       @db.VarChar(255)
+  version Int          @default(1)
+  status  DesignStatus @default(draft)
+
+  // Desain turunan
+  mockupAssetId   String? // File mockup/preview
+  prepressAssetId String? // File siap cetak (RIP/edit)
+
+  // Spec cetak
+  colorMode  String?  @db.VarChar(50) // CMYK | RGB
+  dpi        Int?
+  fileFormat String?  @db.VarChar(50) // PNG | PDF | AI | CDR
+  bleedMm    Decimal? @db.Decimal(5, 2) // area bleed
+  safeZoneMm Decimal? @db.Decimal(5, 2) // zona aman
+
+  // Validasi teknis
+  isValidated       Boolean @default(false)
+  validationMessage String? @db.Text // pesan error jika tidak valid
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization @relation("org_design_assets", fields: [organizationId], references: [id], onDelete: Cascade)
+  asset         Asset        @relation("asset_design_assets", fields: [assetId], references: [id], onDelete: Restrict)
+  mockupAsset   Asset?       @relation("asset_mockup_design_assets", fields: [mockupAssetId], references: [id], onDelete: SetNull)
+  prepressAsset Asset?       @relation("asset_prepress_design_assets", fields: [prepressAssetId], references: [id], onDelete: SetNull)
+  product       Product      @relation("product_design_assets", fields: [productId], references: [id], onDelete: Cascade)
+  variant       Variant?     @relation("variant_design_assets", fields: [variantId], references: [id], onDelete: Cascade)
+  customer      Customer?    @relation("customer_design_assets", fields: [customerId], references: [id], onDelete: Cascade)
+  orderItem     OrderItem?   @relation("order_item_design_assets", fields: [orderItemId], references: [id], onDelete: Cascade)
+  designArea    DesignArea?  @relation("design_area_assets", fields: [designAreaId], references: [id], onDelete: SetNull)
+
+  statusHistory DesignStatusHistory[] @relation("design_asset_history")
+
+  @@index([organizationId])
+  @@index([assetId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([customerId])
+  @@index([orderItemId])
+  @@index([designAreaId])
+  @@index([status])
+  @@map("design_assets")
+}
+
+// ─────────────────────────────────────────────
+// DESIGN STATUS HISTORY
+// ─────────────────────────────────────────────
+
+model DesignStatusHistory {
+  id            String @id @default(cuid())
+  designAssetId String
+
+  fromStatus DesignStatus?
+  toStatus   DesignStatus
+  actorId    String?
+  note       String?       @db.Text
+
+  createdAt DateTime @default(now())
+
+  designAsset DesignAsset @relation("design_asset_history", fields: [designAssetId], references: [id], onDelete: Cascade)
+
+  @@index([designAssetId])
+  @@index([createdAt])
+  @@map("design_status_history")
+}

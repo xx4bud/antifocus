@@ -1,0 +1,1233 @@
+// ==============================
+// NOTIFICATION ENUMS
+// ==============================
+
+enum NotificationType {
+  system
+  sale
+  purchase
+  inventory
+  payment
+  message
+}
+
+enum NotificationStatus {
+  unread
+  read
+  archived
+}
+
+enum ActivityType {
+  todo
+  email
+  call
+  meeting
+  reminder
+}
+
+// ==============================
+// DISCUSSION ENUMS
+// ==============================
+
+enum ChannelType {
+  public
+  private
+  direct_message
+}
+
+// ==============================
+// MESSAGING ENUMS
+// ==============================
+
+enum MessageChannelType {
+  whatsapp
+  sms
+  email
+  telegram
+  internal
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+  bounced
+}
+
+// ==============================
+// DOCUMENT ENUMS
+// ==============================
+
+enum DocumentRecordStatus {
+  active
+  archived
+  deleted
+}
+
+// ==============================
+// PROJECT ENUMS
+// ==============================
+
+enum ProjectPrivacy {
+  public
+  internal
+  private
+}
+
+enum TaskPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+// ==============================
+// REPORT ENUMS
+// ==============================
+
+enum ReportFormat {
+  pdf
+  excel
+  csv
+  html
+}
+
+enum ReportDeliveryMethod {
+  download
+  email
+  webhook
+}
+
+// ==============================
+// DATA MANAGEMENT ENUMS
+// ==============================
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+  canceled
+}
+
+enum ExportFormat {
+  csv
+  excel
+  pdf
+  json
+}
+
+enum ImportAction {
+  create_only
+  update_only
+  create_or_update
+}
+
+// ==============================
+// AUTOMATION ENUMS
+// ==============================
+
+enum AutomationTrigger {
+  on_create
+  on_update
+  on_delete
+  time_based
+  webhook_received
+}
+
+enum AutomationActionType {
+  send_email
+  send_whatsapp
+  create_record
+  update_record
+  call_webhook
+  execute_code
+}
+
+// ==============================
+// INTEGRATION ENUMS
+// ==============================
+
+enum IntegrationProvider {
+  shopify
+  woocommerce
+  tiktok_shop
+  shopee
+  tokopedia
+  lazada
+  xero
+  quickbooks
+  stripe
+  midtrans
+  xendit
+  custom
+}
+
+enum WebhookMethod {
+  POST
+  PUT
+  PATCH
+  DELETE
+}
+
+// ===================================================================
+// NOTIFICATIONS
+// ===================================================================
+
+model Notification {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String
+  senderId       String?
+
+  type    NotificationType @default(system)
+  title   String
+  message String
+  url     String?
+
+  status NotificationStatus @default(unread)
+  readAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  sender       User?        @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@map("notifications")
+}
+
+// ===================================================================
+// ACTIVITIES (TO-DOs)
+// ===================================================================
+
+model Activity {
+  id             String @id @default(cuid())
+  organizationId String
+  assigneeId     String
+
+  resModel String?
+  resId    String?
+
+  type    ActivityType @default(todo)
+  summary String
+  note    String?
+
+  dueDate DateTime
+  done    Boolean   @default(false)
+  doneAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignee     User         @relation("ActivityAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([assigneeId])
+  @@index([resModel, resId])
+  @@index([dueDate])
+  @@index([done])
+  @@map("activities")
+}
+
+// ===================================================================
+// CHANNELS (Chat Rooms)
+// ===================================================================
+
+model Channel {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String?
+  description String?
+  type        ChannelType @default(public)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      ChannelMember[]
+  messages     DiscussionMessage[]
+
+  @@index([organizationId])
+  @@index([type])
+  @@map("channels")
+}
+
+model ChannelMember {
+  id        String @id @default(cuid())
+  channelId String
+  userId    String
+
+  role     String   @default("member")
+  lastRead DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation("ChannelMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@map("channel_members")
+}
+
+model DiscussionMessage {
+  id        String @id @default(cuid())
+  channelId String
+  authorId  String
+
+  body        String
+  attachments String[]
+
+  isSystem Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author  User    @relation("DiscussionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("discussion_messages")
+}
+
+// ===================================================================
+// RECORD FOLLOWERS (Chatter)
+// ===================================================================
+
+model Follower {
+  id             String @id @default(cuid())
+  organizationId String
+  userId         String
+
+  resModel String
+  resId    String
+
+  notifyEvents String[]
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("RecordFollower", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resModel, resId])
+  @@index([organizationId])
+  @@index([resModel, resId])
+  @@map("followers")
+}
+
+model RecordNote {
+  id             String @id @default(cuid())
+  organizationId String
+  authorId       String
+
+  resModel String
+  resId    String
+
+  body        String
+  attachments String[]
+  isInternal  Boolean  @default(true)
+
+  messageId String? @unique
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User         @relation("RecordNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([resModel, resId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("record_notes")
+}
+
+// ===================================================================
+// MESSAGE CHANNELS (WhatsApp, SMS, Email accounts)
+// ===================================================================
+
+model MessageChannel {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name   String
+  type   MessageChannelType
+  active Boolean            @default(true)
+
+  provider   String?
+  apiUrl     String?
+  apiKey     String?
+  apiSecret  String?
+  senderId   String?
+  webhookUrl String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templates    MessageTemplate[]
+  logs         MessageLog[]
+
+  @@unique([organizationId, type, senderId])
+  @@index([organizationId])
+  @@index([type])
+  @@index([active])
+  @@map("message_channels")
+}
+
+model MessageTemplate {
+  id        String @id @default(cuid())
+  channelId String
+
+  name     String
+  slug     String
+  subject  String?
+  body     String
+  language String  @default("id")
+
+  externalTemplateId String?
+  approved           Boolean @default(false)
+  category           String?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channel MessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, slug])
+  @@index([channelId])
+  @@index([active])
+  @@map("message_templates")
+}
+
+model MessageLog {
+  id             String  @id @default(cuid())
+  organizationId String
+  channelId      String
+  userId         String?
+
+  direction MessageDirection
+  status    MessageStatus    @default(queued)
+
+  fromNumber String?
+  toNumber   String?
+  fromEmail  String?
+  toEmail    String?
+
+  subject     String?
+  body        String
+  attachments String[]
+
+  resModel String?
+  resId    String?
+
+  externalId   String?
+  cost         Decimal?
+  errorMessage String?
+
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  channel      MessageChannel @relation(fields: [channelId], references: [id])
+  user         User?          @relation("MessageSender", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([channelId])
+  @@index([userId])
+  @@index([direction])
+  @@index([status])
+  @@index([resModel, resId])
+  @@index([toNumber])
+  @@index([toEmail])
+  @@map("message_logs")
+}
+
+// ===================================================================
+// DOCUMENT MANAGEMENT
+// ===================================================================
+
+model DocumentFolder {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+
+  name        String
+  description String?
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       DocumentFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children     DocumentFolder[] @relation("FolderHierarchy")
+
+  documents DocumentRecord[]
+
+  @@unique([organizationId, parentId, name])
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("document_folders")
+}
+
+model DocumentRecord {
+  id             String  @id @default(cuid())
+  organizationId String
+  folderId       String?
+  ownerId        String?
+
+  name        String
+  description String?
+  fileUrl     String
+  fileType    String?
+  fileSize    Int?
+
+  status DocumentRecordStatus @default(active)
+
+  resModel String?
+  resId    String?
+
+  isPublic Boolean @default(false)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  folder       DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  owner        User?           @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  tags DocumentRecordToTag[]
+
+  @@index([organizationId])
+  @@index([folderId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([resModel, resId])
+  @@map("document_records")
+}
+
+model DocumentTag {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String
+  color String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents    DocumentRecordToTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("document_tags")
+}
+
+model DocumentRecordToTag {
+  id         String @id @default(cuid())
+  documentId String
+  tagId      String
+
+  document DocumentRecord @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag      DocumentTag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, tagId])
+  @@map("document_record_to_tags")
+}
+
+// ===================================================================
+// PROJECTS
+// ===================================================================
+
+model ProjectStage {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String
+  isClosed Boolean @default(false)
+  color    String?
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        ProjectTask[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([position])
+  @@map("project_stages")
+}
+
+model Project {
+  id             String  @id @default(cuid())
+  organizationId String
+  managerId      String?
+
+  name        String
+  description String?
+  color       String?
+  privacy     ProjectPrivacy @default(internal)
+  active      Boolean        @default(true)
+
+  customerId      String?
+  saleOrderId     String?
+  allowTimesheets Boolean @default(false)
+
+  startDate DateTime?
+  endDate   DateTime?
+  deadline  DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  manager      User?        @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  tasks      ProjectTask[]
+  timesheets Timesheet[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([managerId])
+  @@index([customerId])
+  @@index([active])
+  @@map("projects")
+}
+
+model ProjectTaskTag {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name  String
+  color String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        TaskToTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("project_task_tags")
+}
+
+model TaskToTag {
+  id     String @id @default(cuid())
+  taskId String
+  tagId  String
+
+  task ProjectTask    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  ProjectTaskTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, tagId])
+  @@map("task_to_tags")
+}
+
+model ProjectTask {
+  id             String  @id @default(cuid())
+  organizationId String
+  projectId      String
+  stageId        String
+  parentId       String?
+  assigneeId     String?
+
+  name        String
+  description String?
+  priority    TaskPriority @default(normal)
+  sequence    Int          @default(0)
+
+  progress       Decimal @default(0)
+  plannedHours   Decimal @default(0)
+  effectiveHours Decimal @default(0)
+
+  startDate DateTime?
+  deadline  DateTime?
+  doneDate  DateTime?
+
+  kanbanState String?
+  color       String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage        ProjectStage @relation(fields: [stageId], references: [id])
+  parent       ProjectTask? @relation("TaskHierarchy", fields: [parentId], references: [id])
+  assignee     User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  children   ProjectTask[] @relation("TaskHierarchy")
+  tags       TaskToTag[]
+  timesheets Timesheet[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([stageId])
+  @@index([assigneeId])
+  @@index([parentId])
+  @@index([priority])
+  @@index([deadline])
+  @@map("project_tasks")
+}
+
+model Timesheet {
+  id             String  @id @default(cuid())
+  organizationId String
+  employeeId     String
+  projectId      String
+  taskId         String?
+
+  date        DateTime
+  hours       Decimal  @default(0)
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task         ProjectTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([projectId])
+  @@index([taskId])
+  @@index([date])
+  @@map("timesheets")
+}
+
+// ===================================================================
+// REPORTS
+// ===================================================================
+
+model ReportTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  code        String
+  description String?
+  category    String
+
+  modelName  String
+  queryLogic Json?
+  sqlQuery   String?
+
+  defaultFormat ReportFormat @default(pdf)
+  layout        Json?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  savedReports    SavedReport[]
+  reportSchedules ReportSchedule[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([category])
+  @@index([active])
+  @@map("report_templates")
+}
+
+model SavedReport {
+  id             String @id @default(cuid())
+  organizationId String
+  templateId     String
+  authorId       String
+
+  name        String
+  description String?
+
+  filters Json?
+  columns String[]
+  sortBy  String?
+  sortDir String?  @default("desc")
+
+  isPublic Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  author       User           @relation("SavedReportAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([authorId])
+  @@index([isPublic])
+  @@map("saved_reports")
+}
+
+model ReportSchedule {
+  id             String @id @default(cuid())
+  organizationId String
+  templateId     String
+
+  name     String
+  cronExpr String
+
+  format         ReportFormat         @default(pdf)
+  deliveryMethod ReportDeliveryMethod @default(email)
+  recipients     String[]
+
+  filters Json?
+
+  nextRunAt DateTime?
+  lastRunAt DateTime?
+  active    Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([active])
+  @@map("report_schedules")
+}
+
+// ===================================================================
+// DATA MANAGEMENT
+// ===================================================================
+
+model DataExportJob {
+  id             String @id @default(cuid())
+  organizationId String
+  requestedById  String
+
+  name      String
+  modelName String
+  format    ExportFormat @default(excel)
+
+  filters Json?
+  columns String[]
+
+  status    JobStatus @default(pending)
+  fileUrl   String?
+  fileSize  Int?
+  expiresAt DateTime?
+
+  recordsCount Int?
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("DataExportRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("data_export_jobs")
+}
+
+model DataImportJob {
+  id             String @id @default(cuid())
+  organizationId String
+  requestedById  String
+
+  name      String
+  modelName String
+
+  fileUrl  String
+  fileType String?
+
+  action  ImportAction @default(create_or_update)
+  mapping Json?
+
+  status JobStatus @default(pending)
+
+  totalRows   Int @default(0)
+  successRows Int @default(0)
+  errorRows   Int @default(0)
+
+  errorFileUrl String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("DataImportRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("data_import_jobs")
+}
+
+model DatabaseBackup {
+  id             String  @id @default(cuid())
+  organizationId String?
+
+  name   String
+  type   String
+  status JobStatus @default(pending)
+
+  fileUrl  String?
+  fileSize Int?
+
+  expiresAt DateTime?
+
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@map("database_backups")
+}
+
+// ===================================================================
+// AUTOMATIONS
+// ===================================================================
+
+model AutomationRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+  targetModel String?
+
+  trigger   AutomationTrigger
+  cronExpr  String?
+  condition Json?
+
+  actionType AutomationActionType
+  actionData Json
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         ActionLog[]
+
+  @@index([organizationId])
+  @@index([trigger])
+  @@index([targetModel])
+  @@map("automation_rules")
+}
+
+model ScheduledAction {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String
+  cronExpr String
+  jobName  String
+  payload  Json?
+
+  nextRunAt DateTime?
+  lastRunAt DateTime?
+  active    Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([active])
+  @@index([nextRunAt])
+  @@map("scheduled_actions")
+}
+
+model ActionLog {
+  id             String  @id @default(cuid())
+  ruleId         String?
+  organizationId String?
+
+  actionName String
+  status     String
+  errorMsg   String?
+  durationMs Int?
+
+  payload Json?
+  result  Json?
+
+  createdAt DateTime @default(now())
+
+  rule         AutomationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("action_logs")
+}
+
+// ===================================================================
+// INTEGRATIONS & WEBHOOKS
+// ===================================================================
+
+model Integration {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  provider    IntegrationProvider
+  description String?
+
+  apiKey       String?
+  apiSecret    String?
+  accessToken  String?
+  refreshToken String?
+  shopUrl      String?
+
+  settings Json?
+  active   Boolean @default(true)
+
+  lastSyncAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         IntegrationLog[]
+
+  @@index([organizationId])
+  @@index([provider])
+  @@index([active])
+  @@map("integrations")
+}
+
+model IntegrationLog {
+  id            String @id @default(cuid())
+  integrationId String
+
+  action   String
+  status   String
+  errorMsg String?
+  recordsP Int     @default(0)
+
+  requestData  Json?
+  responseData Json?
+
+  createdAt DateTime @default(now())
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("integration_logs")
+}
+
+model Webhook {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name    String
+  url     String
+  method  WebhookMethod @default(POST)
+  events  String[]
+  headers Json?
+  secret  String?
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         WebhookLog[]
+
+  @@index([organizationId])
+  @@index([active])
+  @@map("webhooks")
+}
+
+model WebhookLog {
+  id        String @id @default(cuid())
+  webhookId String
+
+  event        String
+  url          String
+  status       Int
+  errorMessage String?
+
+  requestPayload  Json?
+  responseHeaders Json?
+  responseBody    String?
+  durationMs      Int?
+
+  createdAt DateTime @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
+
+// ===================================================================
+// WORKFLOWS / STATE MACHINE
+// ===================================================================
+
+model WorkflowTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  targetModel String
+  description String?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  states      WorkflowState[]
+  transitions WorkflowTransition[]
+  instances   WorkflowInstance[]
+
+  @@index([organizationId])
+  @@index([targetModel])
+  @@map("workflow_templates")
+}
+
+model WorkflowState {
+  id         String @id @default(cuid())
+  templateId String
+
+  name      String
+  code      String
+  isInitial Boolean @default(false)
+  isFinal   Boolean @default(false)
+  color     String?
+  position  Int     @default(0)
+
+  template WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  outgoingTransitions WorkflowTransition[] @relation("TransitionFrom")
+  incomingTransitions WorkflowTransition[] @relation("TransitionTo")
+  activeInstances     WorkflowInstance[]
+
+  @@unique([templateId, code])
+  @@map("workflow_states")
+}
+
+model WorkflowTransition {
+  id         String @id @default(cuid())
+  templateId String
+
+  name        String
+  fromStateId String
+  toStateId   String
+
+  requireApproval Boolean  @default(false)
+  allowedRoleIds  String[]
+  conditions      Json?
+  actionToRun     String?
+
+  template  WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fromState WorkflowState    @relation("TransitionFrom", fields: [fromStateId], references: [id])
+  toState   WorkflowState    @relation("TransitionTo", fields: [toStateId], references: [id])
+
+  history WorkflowHistory[]
+
+  @@index([fromStateId])
+  @@index([toStateId])
+  @@map("workflow_transitions")
+}
+
+model WorkflowInstance {
+  id         String @id @default(cuid())
+  templateId String
+  recordId   String
+
+  currentStateId String
+  status         String @default("active")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  template     WorkflowTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  currentState WorkflowState     @relation(fields: [currentStateId], references: [id])
+  history      WorkflowHistory[]
+
+  @@unique([templateId, recordId])
+  @@index([currentStateId])
+  @@map("workflow_instances")
+}
+
+model WorkflowHistory {
+  id           String  @id @default(cuid())
+  instanceId   String
+  transitionId String?
+
+  actorId String?
+  note    String?
+
+  createdAt DateTime @default(now())
+
+  instance   WorkflowInstance    @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  transition WorkflowTransition? @relation(fields: [transitionId], references: [id])
+  actor      User?               @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([instanceId])
+  @@index([actorId])
+  @@map("workflow_history")
+}

@@ -1,0 +1,197 @@
+// ==============================
+// DESIGN ASSET ENUMS
+// ==============================
+
+enum DesignStatus {
+  draft
+  review
+  approved
+  rejected
+  production
+  archived
+}
+
+enum DesignFileType {
+  source
+  preview
+  mockup
+  print_ready
+  cut_file
+}
+
+enum DesignApprovalStatus {
+  pending
+  approved
+  rejected
+  revision_requested
+}
+
+// ==============================
+// DESIGN TEMPLATES
+// ==============================
+
+model DesignTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  slug        String
+  description String?
+  thumbnail   String?
+  category    String? // t-shirt, mug, poster, sticker, etc.
+
+  // Template specs
+  width      Int?
+  height     Int?
+  dpi        Int?    @default(300)
+  fileFormat String? // PSD, AI, SVG, PNG
+  fileUrl    String?
+
+  // Customization zones
+  printAreas Json? // [{ name, x, y, width, height }]
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assets       DesignAsset[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([category])
+  @@index([enabled])
+  @@map("design_templates")
+}
+
+// ==============================
+// DESIGN ASSETS
+// ==============================
+
+model DesignAsset {
+  id             String  @id @default(cuid())
+  organizationId String
+  templateId     String?
+  productId      String?
+  variantId      String?
+  customerId     String?
+  saleOrderId    String?
+
+  name        String
+  description String?
+  status      DesignStatus @default(draft)
+
+  // Files
+  sourceFile  String?
+  previewFile String?
+  printFile   String?
+
+  // Design specs
+  width  Int?
+  height Int?
+  dpi    Int?
+  colors Json? // [{ name, hex, pantone }]
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     DesignTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  product      Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant      Variant?        @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  customer     Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  saleOrder    SaleOrder?      @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+
+  revisions DesignRevision[]
+  approvals DesignApproval[]
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([productId])
+  @@index([customerId])
+  @@index([saleOrderId])
+  @@index([status])
+  @@map("design_assets")
+}
+
+// ==============================
+// DESIGN REVISIONS
+// ==============================
+
+model DesignRevision {
+  id      String @id @default(cuid())
+  assetId String
+
+  version    Int            @default(1)
+  fileUrl    String
+  fileType   DesignFileType @default(source)
+  changeNote String?
+
+  createdAt DateTime @default(now())
+
+  asset DesignAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, version])
+  @@index([assetId])
+  @@map("design_revisions")
+}
+
+// ==============================
+// DESIGN APPROVALS
+// ==============================
+
+model DesignApproval {
+  id      String @id @default(cuid())
+  assetId String
+
+  status  DesignApprovalStatus @default(pending)
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  asset DesignAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([status])
+  @@map("design_approvals")
+}
+
+// ==============================
+// MOCKUP PRESETS
+// ==============================
+
+model MockupPreset {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name     String
+  slug     String
+  category String? // t-shirt, hoodie, mug, etc.
+
+  // Mockup specs
+  backgroundUrl String?
+  overlayUrl    String?
+  printArea     Json? // { x, y, width, height, rotation }
+  settings      Json? // { perspective, shadow, brightness }
+
+  enabled  Boolean @default(true)
+  position Int     @default(0)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([category])
+  @@map("mockup_presets")
+}

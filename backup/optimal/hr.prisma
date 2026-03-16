@@ -1,0 +1,307 @@
+// ==============================
+// HR ENUMS
+// ==============================
+
+enum EmploymentType {
+  full_time
+  part_time
+  contract
+  intern
+  freelance
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+  early_leave
+  sick
+  leave
+}
+
+// ==============================
+// MAINTENANCE ENUMS
+// ==============================
+
+enum MaintenanceType {
+  preventive
+  corrective
+  predictive
+}
+
+enum MaintenancePriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum MaintenanceStatus {
+  draft
+  requested
+  in_progress
+  done
+  canceled
+}
+
+// ==============================
+// DEPARTMENTS
+// ==============================
+
+model Department {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+  managerId      String?
+
+  name        String
+  description String?
+  color       String?
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children     Department[] @relation("DeptHierarchy")
+  manager      Employee?    @relation("DeptManager", fields: [managerId], references: [id])
+
+  employees Employee[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("departments")
+}
+
+// ==============================
+// EMPLOYEES
+// ==============================
+
+model Employee {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String? @unique
+  departmentId   String?
+  managerId      String?
+
+  name     String
+  email    String?
+  phone    String?
+  jobTitle String?
+
+  employmentType EmploymentType @default(full_time)
+
+  hireDate DateTime  @default(now())
+  endDate  DateTime?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("UserEmployee", fields: [userId], references: [id], onDelete: SetNull)
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  manager      Employee?    @relation("EmployeeManager", fields: [managerId], references: [id])
+  subordinates Employee[]   @relation("EmployeeManager")
+
+  managedDepartments Department[] @relation("DeptManager")
+  attendances        Attendance[]
+  posSessions        PosSession[]
+  timesheets         Timesheet[]
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([active])
+  @@map("employees")
+}
+
+// ==============================
+// ATTENDANCE
+// ==============================
+
+model Attendance {
+  id         String @id @default(cuid())
+  employeeId String
+
+  date     DateTime
+  checkIn  DateTime
+  checkOut DateTime?
+
+  status AttendanceStatus @default(present)
+
+  hoursWorked Decimal?
+  overtime    Decimal?
+  note        String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@index([status])
+  @@map("attendances")
+}
+
+// ==============================
+// EQUIPMENT CATEGORIES
+// ==============================
+
+model EquipmentCategory {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name        String
+  description String?
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment    Equipment[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("equipment_categories")
+}
+
+// ==============================
+// EQUIPMENT (Machines & Tools)
+// ==============================
+
+model Equipment {
+  id             String  @id @default(cuid())
+  organizationId String
+  categoryId     String?
+  storeId        String?
+
+  name         String
+  serialNumber String?
+  model        String?
+  manufacturer String?
+
+  active    Boolean @default(true)
+  condition String?
+
+  purchaseDate  DateTime?
+  purchasePrice Decimal?
+  warrantyEnd   DateTime?
+
+  printCount     Int?
+  operatingHours Decimal?
+
+  specs    Json?
+  image    String?
+  location String?
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     EquipmentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  store        Store?             @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  maintenanceRequests  MaintenanceRequest[]
+  maintenanceSchedules MaintenanceSchedule[]
+
+  @@unique([organizationId, serialNumber])
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([storeId])
+  @@index([active])
+  @@map("equipment")
+}
+
+// ==============================
+// MAINTENANCE REQUESTS
+// ==============================
+
+model MaintenanceRequest {
+  id             String  @id @default(cuid())
+  organizationId String
+  equipmentId    String
+  requestedById  String?
+  assignedToId   String?
+
+  name        String
+  type        MaintenanceType     @default(corrective)
+  priority    MaintenancePriority @default(medium)
+  status      MaintenanceStatus   @default(draft)
+  description String?
+
+  requestDate   DateTime  @default(now())
+  scheduledDate DateTime?
+  startDate     DateTime?
+  endDate       DateTime?
+
+  laborCost Decimal @default(0)
+  partsCost Decimal @default(0)
+  totalCost Decimal @default(0)
+
+  downtimeHours Decimal?
+  partsUsed     Json?
+
+  resolution String?
+  note       String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment    Equipment    @relation(fields: [equipmentId], references: [id])
+  requestedBy  User?        @relation("MaintenanceRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  assignedTo   User?        @relation("MaintenanceTechnician", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([equipmentId])
+  @@index([status])
+  @@index([priority])
+  @@map("maintenance_requests")
+}
+
+// ==============================
+// MAINTENANCE SCHEDULES (Preventive)
+// ==============================
+
+model MaintenanceSchedule {
+  id             String @id @default(cuid())
+  organizationId String
+  equipmentId    String
+
+  name        String
+  type        MaintenanceType @default(preventive)
+  description String?
+
+  intervalDays Int
+  lastDoneDate DateTime?
+  nextDueDate  DateTime?
+
+  assignedToId String?
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment    Equipment    @relation(fields: [equipmentId], references: [id])
+
+  @@index([organizationId])
+  @@index([equipmentId])
+  @@index([active])
+  @@index([nextDueDate])
+  @@map("maintenance_schedules")
+}

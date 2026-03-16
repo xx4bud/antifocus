@@ -1,0 +1,938 @@
+// ============================================================
+// SUPPLY CHAIN MODULE
+// Covers: Stock, StockPicking, StockMove,
+//         BillOfMaterial, BomItem,
+//         JobOrder, WorkOrder, QualityCheck,
+//         PurchaseOrder, PurchaseOrderItem
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum StockCategory {
+  finished_good // produk jadi siap jual
+  raw_material // bahan baku (kain, tinta, dll)
+  consumable // bahan habis pakai (plastik packaging)
+  packaging // bahan kemasan
+  wip // Work In Progress
+}
+
+enum PickingType {
+  incoming // penerimaan dari supplier
+  outgoing // pengiriman ke customer
+  internal // transfer antar gudang / workshop
+  return // pengembalian dari customer / ke supplier
+}
+
+enum PickingStatus {
+  draft
+  waiting // menunggu konfirmasi stok
+  confirmed
+  assigned // stok sudah disiapkan
+  done
+  canceled
+}
+
+enum StockMoveStatus {
+  draft
+  confirmed
+  done
+  canceled
+}
+
+enum BomType {
+  normal // produksi standar
+  kit // bundle / paket
+  subcontracting // outsource ke vendor
+}
+
+enum JobOrderStatus {
+  draft
+  pending
+  in_progress
+  // PoD granular states
+  print_queue // antrian cetak
+  printing // sedang dicetak
+  qc_pending // menunggu QC
+  qc_pass // lolos QC
+  qc_fail // gagal QC
+  rework // dikerjakan ulang
+  completed
+  canceled
+}
+
+enum WorkOrderStatus {
+  pending
+  in_progress
+  done
+  canceled
+}
+
+enum QualityCheckType {
+  before_production
+  during_production
+  after_production
+  before_shipping
+}
+
+enum QualityCheckStatus {
+  pass
+  fail
+  warning
+}
+
+// Phase 5 Additions
+enum QualityAlertStatus {
+  new
+  investigation
+  action_plan
+  closed
+}
+
+enum QualityAlertPriority {
+  low
+  normal
+  high
+}
+
+// Phase 6 Additions
+enum TelemetryType {
+  temperature
+  ink_level
+  humidity
+  speed
+  error_code
+}
+
+enum PurchaseOrderStatus {
+  draft
+  sent // dikirim ke supplier
+  confirmed // supplier konfirmasi
+  partial // sebagian diterima
+  received // semua diterima
+  billed // sudah dibuatkan invoice
+  completed // invoice lunas
+  canceled
+}
+
+enum RequisitionStatus {
+  draft
+  waiting_approval
+  approved
+  rejected
+  po_created
+  done
+  canceled
+}
+
+enum MaintenanceCategory {
+  preventive
+  corrective
+}
+
+enum MaintenanceStatus {
+  new
+  in_progress
+  repaired
+  scrapped
+}
+
+enum EquipmentStatus {
+  operational
+  maintenance
+  broken
+  scrapped
+}
+
+// ─────────────────────────────────────────────
+// STOCK (Saldo stok per lokasi & produk)
+// ─────────────────────────────────────────────
+
+model Stock {
+  id         String  @id @default(cuid())
+  branchId   String?
+  locationId String? // ref: WarehouseLocation (ditambahkan di direktori)
+  productId  String
+  variantId  String?
+  unitId     String?
+
+  category StockCategory @default(finished_good)
+
+  // Kuantitas
+  quantity  Decimal @default(0) @db.Decimal(10, 4) // on hand
+  reserved  Decimal @default(0) @db.Decimal(10, 4) // untuk order confirmed
+  incoming  Decimal @default(0) @db.Decimal(10, 4) // dari PO yang belum tiba
+  outgoing  Decimal @default(0) @db.Decimal(10, 4) // dari SO yang belum dikirim
+  available Decimal @default(0) @db.Decimal(10, 4) // quantity - reserved
+
+  // Alert reorder
+  minQuantity Decimal @default(0) @db.Decimal(10, 4)
+  maxQuantity Decimal @default(0) @db.Decimal(10, 4)
+  reorderQty  Decimal @default(0) @db.Decimal(10, 4)
+
+  // Nilai stok (FIFO / Average Cost)
+  avgCost    Decimal @default(0) @db.Decimal(19, 4)
+  totalValue Decimal @default(0) @db.Decimal(19, 4)
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  branch   Branch?            @relation("branch_stocks", fields: [branchId], references: [id], onDelete: SetNull)
+  location WarehouseLocation? @relation("location_stocks", fields: [locationId], references: [id], onDelete: SetNull)
+  product  Product            @relation("product_stocks", fields: [productId], references: [id], onDelete: Cascade)
+  variant  Variant?           @relation("variant_stocks", fields: [variantId], references: [id], onDelete: Cascade)
+  unit     Unit?              @relation("unit_stocks", fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@unique([branchId, locationId, productId, variantId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([locationId])
+  @@index([category])
+  @@index([available])
+  @@index([deletedAt])
+  @@map("stocks")
+}
+
+// ─────────────────────────────────────────────
+// STOCK PICKING (Dokumen Pergerakan Stok)
+// ─────────────────────────────────────────────
+
+model StockPicking {
+  id             String  @id @default(cuid())
+  organizationId String
+  sequenceId     String? @unique @db.VarChar(100)
+  profileId      String?
+  orderId        String?
+
+  type   PickingType   @default(outgoing)
+  status PickingStatus @default(draft)
+
+  scheduledAt DateTime?
+  doneAt      DateTime?
+
+  origin   String? @db.VarChar(100) // referensi dokumen asal (SO/PO number)
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_stock_pickings", fields: [organizationId], references: [id], onDelete: Cascade)
+  sequence     Sequence?    @relation("sequence_stock_pickings", fields: [sequenceId], references: [id])
+  profile      Profile?     @relation("profile_stock_pickings", fields: [profileId], references: [id], onDelete: SetNull)
+  order        Order?       @relation("order_stock_pickings", fields: [orderId], references: [id], onDelete: SetNull)
+
+  stockMoves    StockMove[]    @relation("picking_stock_moves")
+  qualityChecks QualityCheck[] @relation("stock_picking_quality_checks")
+
+  @@index([organizationId])
+  @@index([orderId])
+  @@index([status])
+  @@index([type, status])
+  @@index([scheduledAt])
+  @@index([deletedAt])
+  @@map("stock_pickings")
+}
+
+// ─────────────────────────────────────────────
+// STOCK MOVE (Baris Pergerakan Stok)
+// ─────────────────────────────────────────────
+
+model StockMove {
+  id             String  @id @default(cuid())
+  pickingId      String
+  fromBranchId   String?
+  toBranchId     String?
+  fromLocationId String?
+  toLocationId   String?
+  productId      String
+  variantId      String?
+  unitId         String?
+
+  quantity     Decimal @default(0) @db.Decimal(10, 4)
+  quantityDone Decimal @default(0) @db.Decimal(10, 4)
+
+  status StockMoveStatus @default(draft)
+
+  // Nilai untuk perhitungan COGS
+  unitCost  Decimal @default(0) @db.Decimal(19, 4)
+  totalCost Decimal @default(0) @db.Decimal(19, 4)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  picking      StockPicking       @relation("picking_stock_moves", fields: [pickingId], references: [id], onDelete: Cascade)
+  fromBranch   Branch?            @relation("from_branch_stock_moves", fields: [fromBranchId], references: [id], onDelete: SetNull)
+  toBranch     Branch?            @relation("to_branch_stock_moves", fields: [toBranchId], references: [id], onDelete: SetNull)
+  fromLocation WarehouseLocation? @relation("from_location_stock_moves", fields: [fromLocationId], references: [id], onDelete: SetNull)
+  toLocation   WarehouseLocation? @relation("to_location_stock_moves", fields: [toLocationId], references: [id], onDelete: SetNull)
+  product      Product            @relation("product_stock_moves", fields: [productId], references: [id], onDelete: Cascade)
+  variant      Variant?           @relation("variant_stock_moves", fields: [variantId], references: [id], onDelete: Cascade)
+  unit         Unit?              @relation("unit_stock_moves", fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([pickingId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([fromBranchId])
+  @@index([toBranchId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("stock_moves")
+}
+
+// ─────────────────────────────────────────────
+// BILL OF MATERIALS (Resep / Formula Produksi)
+// ─────────────────────────────────────────────
+
+model BillOfMaterial {
+  id             String  @id @default(cuid())
+  organizationId String
+  productId      String
+  routingId      String?
+
+  name     String  @db.VarChar(255)
+  type     BomType @default(normal)
+  quantity Decimal @default(1) @db.Decimal(10, 4) // output quantity
+
+  // Biaya
+  operationCost Decimal @default(0) @db.Decimal(19, 4)
+  totalCost     Decimal @default(0) @db.Decimal(19, 4)
+
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_boms", fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation("product_boms", fields: [productId], references: [id], onDelete: Cascade)
+  routing      Routing?     @relation("routing_boms", fields: [routingId], references: [id], onDelete: SetNull)
+
+  items     BomItem[]  @relation("bom_items")
+  jobOrders JobOrder[] @relation("bom_job_orders")
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([type])
+  @@map("bill_of_materials")
+}
+
+// ─────────────────────────────────────────────
+// BOM ITEM (Komponen / Bahan)
+// ─────────────────────────────────────────────
+
+model BomItem {
+  id         String  @id @default(cuid())
+  bomId      String
+  productId  String
+  variantId  String?
+  supplierId String? // supplier default untuk komponen ini
+
+  quantity Decimal @default(1) @db.Decimal(10, 4)
+  position Int     @default(0)
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bom      BillOfMaterial @relation("bom_items", fields: [bomId], references: [id], onDelete: Cascade)
+  product  Product        @relation("product_bom_items", fields: [productId], references: [id], onDelete: Restrict)
+  variant  Variant?       @relation("variant_bom_items", fields: [variantId], references: [id], onDelete: SetNull)
+  supplier Supplier?      @relation("bom_item_suppliers", fields: [supplierId], references: [id], onDelete: SetNull)
+
+  @@index([bomId])
+  @@index([productId])
+  @@map("bom_items")
+}
+
+// ─────────────────────────────────────────────
+// WORK CENTER (Mesin / Stasiun Kerja)
+// ─────────────────────────────────────────────
+
+model WorkCenter {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+
+  name           String  @db.VarChar(255)
+  code           String  @db.VarChar(100)
+  capacity       Decimal @default(1) @db.Decimal(10, 2) // Kapasitas produksi per jam
+  operationCost  Decimal @default(0) @db.Decimal(19, 4) // Cost/jam (listrik, penyusutan)
+  timeEfficiency Decimal @default(100) @db.Decimal(5, 2) // OEE persentase
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_work_centers", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation("branch_work_centers", fields: [branchId], references: [id], onDelete: SetNull)
+
+  workOrders    WorkOrder[]            @relation("work_center_orders")
+  jobOrders     JobOrder[]             @relation("job_order_work_centers")
+  operations    Operation[]            @relation("work_center_operations")
+  equipment     MaintenanceEquipment[] @relation("work_center_equipment")
+  qualityAlerts QualityAlert[]         @relation("work_center_quality_alerts")
+  iotDevices    IotDevice[]            @relation("work_center_iot")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([active])
+  @@map("work_centers")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCTION BATCH (Kumpulan Job Order / Work Order)
+// ─────────────────────────────────────────────
+
+model ProductionBatch {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name   String         @db.VarChar(255)
+  status JobOrderStatus @default(draft)
+
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  actualStart    DateTime?
+  actualEnd      DateTime?
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_production_batches", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  jobOrders  JobOrder[]  @relation("batch_job_orders")
+  workOrders WorkOrder[] @relation("batch_work_orders")
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("production_batches")
+}
+
+// ─────────────────────────────────────────────
+// JOB ORDER (Work Order Produksi Induk)
+// ─────────────────────────────────────────────
+
+model JobOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  bomId          String?
+  orderId        String?
+  orderItemId    String?
+  batchId        String?
+
+  name     String         @db.VarChar(255)
+  status   JobOrderStatus @default(draft)
+  quantity Decimal        @default(1) @db.Decimal(10, 4)
+  priority Int            @default(0) // 0=normal, 1=rush, 2=urgent
+
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  actualStart    DateTime?
+  actualEnd      DateTime?
+
+  // PoD spesifik
+  workCenterId  String? // Mesin utama / Print Station
+  printOperator String? @db.VarChar(255) // nama operator
+  printFilePath String? @db.VarChar(255) // path file siap cetak (setelah prepress)
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation("org_job_orders", fields: [organizationId], references: [id], onDelete: Cascade)
+  bom          BillOfMaterial?  @relation("bom_job_orders", fields: [bomId], references: [id], onDelete: SetNull)
+  order        Order?           @relation("order_job_orders", fields: [orderId], references: [id], onDelete: SetNull)
+  orderItem    OrderItem?       @relation("order_item_job_orders", fields: [orderItemId], references: [id], onDelete: SetNull)
+  batch        ProductionBatch? @relation("batch_job_orders", fields: [batchId], references: [id], onDelete: SetNull)
+  workCenter   WorkCenter?      @relation("job_order_work_centers", fields: [workCenterId], references: [id], onDelete: SetNull)
+
+  workOrders    WorkOrder[]    @relation("job_order_work_orders")
+  qualityChecks QualityCheck[] @relation("job_order_quality_checks")
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([bomId])
+  @@index([orderId])
+  @@index([orderItemId])
+  @@index([batchId])
+  @@index([workCenterId])
+  @@index([status])
+  @@index([priority])
+  @@map("job_orders")
+}
+
+// ─────────────────────────────────────────────
+// WORK ORDER (Langkah-langkah Produksi)
+// ─────────────────────────────────────────────
+
+model WorkOrder {
+  id           String  @id @default(cuid())
+  jobOrderId   String
+  workCenterId String?
+  batchId      String?
+
+  name     String          @db.VarChar(255)
+  sequence Int             @default(0)
+  status   WorkOrderStatus @default(pending)
+
+  durationEstimate Decimal @default(0) @db.Decimal(10, 2) // jam
+  durationActual   Decimal @default(0) @db.Decimal(10, 2)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobOrder   JobOrder         @relation("job_order_work_orders", fields: [jobOrderId], references: [id], onDelete: Cascade)
+  workCenter WorkCenter?      @relation("work_center_orders", fields: [workCenterId], references: [id], onDelete: SetNull)
+  batch      ProductionBatch? @relation("batch_work_orders", fields: [batchId], references: [id], onDelete: SetNull)
+
+  consumedMaterials ConsumedMaterial[] @relation("work_order_consumed")
+
+  @@index([jobOrderId])
+  @@index([workCenterId])
+  @@index([batchId])
+  @@index([status])
+  @@map("work_orders")
+}
+
+// ─────────────────────────────────────────────
+// CONSUMED MATERIAL (Catatan aktual pemakaian bahan)
+// ─────────────────────────────────────────────
+
+model ConsumedMaterial {
+  id          String  @id @default(cuid())
+  workOrderId String
+  productId   String
+  variantId   String?
+
+  quantity  Decimal @default(0) @db.Decimal(10, 4)
+  unitCost  Decimal @default(0) @db.Decimal(19, 4)
+  totalCost Decimal @default(0) @db.Decimal(19, 4)
+
+  note     String? @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workOrder WorkOrder @relation("work_order_consumed", fields: [workOrderId], references: [id], onDelete: Cascade)
+  product   Product   @relation("product_consumed", fields: [productId], references: [id], onDelete: Restrict)
+  variant   Variant?  @relation("variant_consumed", fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([workOrderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("consumed_materials")
+}
+
+// ─────────────────────────────────────────────
+// QUALITY CHECK
+// ─────────────────────────────────────────────
+
+model QualityCheck {
+  id             String  @id @default(cuid())
+  organizationId String
+  jobOrderId     String?
+  stockPickingId String?
+  inspectorId    String? // Member
+
+  type      QualityCheckType   @default(after_production)
+  status    QualityCheckStatus @default(pass)
+  checkedAt DateTime           @default(now())
+
+  // Kriteria dan pengukuran
+  criteria Json? // list kriteria yang dicek
+  measure  Decimal? @db.Decimal(10, 4)
+  images   String[] // URL foto bukti
+  note     String?  @db.Text
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation("org_quality_checks", fields: [organizationId], references: [id], onDelete: Cascade)
+  jobOrder     JobOrder?     @relation("job_order_quality_checks", fields: [jobOrderId], references: [id], onDelete: SetNull)
+  stockPicking StockPicking? @relation("stock_picking_quality_checks", fields: [stockPickingId], references: [id], onDelete: SetNull)
+  inspector    Member?       @relation("quality_inspector", fields: [inspectorId], references: [id], onDelete: SetNull)
+
+  qualityAlerts QualityAlert[] @relation("check_quality_alerts")
+
+  @@index([organizationId])
+  @@index([jobOrderId])
+  @@index([stockPickingId])
+  @@index([status])
+  @@map("quality_checks")
+}
+
+// ─────────────────────────────────────────────
+// PURCHASE ORDER
+// ─────────────────────────────────────────────
+
+model PurchaseOrder {
+  id                    String  @id @default(cuid())
+  organizationId        String
+  supplierId            String
+  branchId              String?
+  sequenceId            String? @unique
+  purchaseRequisitionId String?
+  currencyId            String?
+  taxRateId             String?
+
+  status PurchaseOrderStatus @default(draft)
+
+  subTotal Decimal @default(0) @db.Decimal(19, 4)
+  taxTotal Decimal @default(0) @db.Decimal(19, 4)
+  total    Decimal @default(0) @db.Decimal(19, 4)
+
+  expectedDate DateTime?
+  vendorRef    String?   @db.VarChar(100) // Nomor faktur / penawaran dari supplier
+  note         String?   @db.Text
+  metadata     Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization         @relation("org_purchase_orders", fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier     Supplier             @relation("supplier_purchase_orders", fields: [supplierId], references: [id], onDelete: Restrict)
+  branch       Branch?              @relation("branch_purchase_orders", fields: [branchId], references: [id], onDelete: SetNull)
+  sequence     Sequence?            @relation("sequence_purchase_orders", fields: [sequenceId], references: [id])
+  requisition  PurchaseRequisition? @relation("requisition_purchase_orders", fields: [purchaseRequisitionId], references: [id], onDelete: SetNull)
+  currency     Currency?            @relation("currency_purchase_orders", fields: [currencyId], references: [id], onDelete: SetNull)
+  taxRate      TaxRate?             @relation("tax_rate_purchase_orders", fields: [taxRateId], references: [id], onDelete: SetNull)
+
+  items PurchaseOrderItem[] @relation("purchase_order_items")
+
+  @@index([organizationId])
+  @@index([supplierId])
+  @@index([branchId])
+  @@index([status])
+  @@index([expectedDate])
+  @@index([deletedAt])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  variantId       String?
+  currencyId      String?
+  taxRateId       String?
+
+  quantity  Decimal @default(1) @db.Decimal(10, 4)
+  received  Decimal @default(0) @db.Decimal(10, 4)
+  unitPrice Decimal @default(0) @db.Decimal(19, 4)
+  taxAmount Decimal @default(0) @db.Decimal(19, 4)
+  lineTotal Decimal @default(0) @db.Decimal(19, 4)
+
+  expectedDate DateTime?
+  note         String?   @db.Text
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation("purchase_order_items", fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation("product_purchase_items", fields: [productId], references: [id], onDelete: Restrict)
+  variant       Variant?      @relation("variant_purchase_items", fields: [variantId], references: [id], onDelete: SetNull)
+  currency      Currency?     @relation("currency_purchase_items", fields: [currencyId], references: [id], onDelete: SetNull)
+  taxRate       TaxRate?      @relation("tax_rate_purchase_items", fields: [taxRateId], references: [id], onDelete: SetNull)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+  @@map("purchase_order_items")
+}
+
+// ─────────────────────────────────────────────
+// ROUTING & OPERATIONS (Jalur Produksi MRP)
+// ─────────────────────────────────────────────
+
+model Routing {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name   String  @db.VarChar(255)
+  active Boolean @default(true)
+  note   String? @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_routings", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  operations Operation[]      @relation("routing_operations")
+  boms       BillOfMaterial[] @relation("routing_boms")
+
+  @@index([organizationId])
+  @@index([active])
+  @@index([deletedAt])
+  @@map("routings")
+}
+
+model Operation {
+  id             String @id @default(cuid())
+  organizationId String
+  routingId      String
+  workCenterId   String
+
+  name     String @db.VarChar(255)
+  sequence Int    @default(0)
+
+  durationComputation String  @default("manual") @db.VarChar(50) // manual | real_time
+  durationManual      Decimal @default(0) @db.Decimal(10, 2) // waktu estimasi dalam menit
+
+  note String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_operations", fields: [organizationId], references: [id], onDelete: Cascade)
+  routing      Routing      @relation("routing_operations", fields: [routingId], references: [id], onDelete: Cascade)
+  workCenter   WorkCenter   @relation("work_center_operations", fields: [workCenterId], references: [id], onDelete: Restrict)
+
+  @@index([routingId])
+  @@index([workCenterId])
+  @@map("operations")
+}
+
+// ─────────────────────────────────────────────
+// MAINTENANCE
+// ─────────────────────────────────────────────
+
+model MaintenanceEquipment {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+  workCenterId   String? // Mesin di-link ke Work Center MRP
+
+  name     String          @db.VarChar(255)
+  code     String          @db.VarChar(100)
+  serialNo String?         @db.VarChar(100)
+  status   EquipmentStatus @default(operational)
+
+  preventiveMaintFreq Int? // Frekuensi preventif (hari)
+  nextPreventiveMaint DateTime?
+
+  cost Decimal @default(0) @db.Decimal(19, 4)
+  note String? @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_maintenance_equip", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation("branch_maintenance_equip", fields: [branchId], references: [id], onDelete: SetNull)
+  workCenter   WorkCenter?  @relation("work_center_equipment", fields: [workCenterId], references: [id], onDelete: SetNull)
+
+  requests   MaintenanceRequest[] @relation("equipment_maintenance_req")
+  iotDevices IotDevice[]          @relation("equipment_iot")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("maintenance_equipments")
+}
+
+model MaintenanceRequest {
+  id             String @id @default(cuid())
+  organizationId String
+  equipmentId    String
+  requesterId    String // Member
+
+  name     String              @db.VarChar(255)
+  category MaintenanceCategory @default(corrective)
+  status   MaintenanceStatus   @default(new)
+  priority Int                 @default(0) // 0=Low, 1=Normal, 2=High, 3=Urgent
+
+  scheduleDate DateTime?
+  duration     Decimal   @default(0) @db.Decimal(10, 2) // jam
+
+  cost        Decimal @default(0) @db.Decimal(19, 4)
+  description String? @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization         @relation("org_maintenance_req", fields: [organizationId], references: [id], onDelete: Cascade)
+  equipment    MaintenanceEquipment @relation("equipment_maintenance_req", fields: [equipmentId], references: [id], onDelete: Cascade)
+  requester    Member               @relation("member_maintenance_req", fields: [requesterId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([equipmentId])
+  @@index([requesterId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("maintenance_requests")
+}
+
+// ─────────────────────────────────────────────
+// PROCUREMENT WORKFLOW (Purchase Requisition)
+// ─────────────────────────────────────────────
+
+model PurchaseRequisition {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+  requesterId    String // Member
+
+  code   String            @unique @db.VarChar(100)
+  name   String            @db.VarChar(255) // "Request Tinta DTG"
+  status RequisitionStatus @default(draft)
+
+  expectedDate DateTime?
+  note         String?   @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_purchase_reqs", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation("branch_purchase_reqs", fields: [branchId], references: [id], onDelete: SetNull)
+  requester    Member       @relation("requester_purchase_reqs", fields: [requesterId], references: [id], onDelete: Restrict)
+
+  purchaseOrders PurchaseOrder[] @relation("requisition_purchase_orders")
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([requesterId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("purchase_requisitions")
+}
+
+// ─────────────────────────────────────────────
+// QUALITY ALERT / CAPA (Phase 5)
+// ─────────────────────────────────────────────
+
+model QualityAlert {
+  id             String  @id @default(cuid())
+  organizationId String
+  workCenterId   String?
+  productId      String?
+  qualityCheckId String?
+
+  name        String  @db.VarChar(255) // "Masalah tinta pudar di Kornit 1"
+  description String? @db.Text
+
+  status   QualityAlertStatus   @default(new)
+  priority QualityAlertPriority @default(normal)
+
+  rootCause  String? @db.Text
+  actionPlan String? @db.Text
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation("org_quality_alerts", fields: [organizationId], references: [id], onDelete: Cascade)
+  workCenter   WorkCenter?   @relation("work_center_quality_alerts", fields: [workCenterId], references: [id], onDelete: SetNull)
+  product      Product?      @relation("product_quality_alerts", fields: [productId], references: [id], onDelete: SetNull)
+  qualityCheck QualityCheck? @relation("check_quality_alerts", fields: [qualityCheckId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([workCenterId])
+  @@index([productId])
+  @@index([status])
+  @@map("quality_alerts")
+}
+
+// ─────────────────────────────────────────────
+// LANDED COST (Alokasi Biaya Pengiriman ke HPP)
+// ─────────────────────────────────────────────
+
+model LandedCost {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name   String  @db.VarChar(255)
+  amount Decimal @default(0) @db.Decimal(19, 4)
+  note   String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_landed_costs", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("landed_costs")
+}
+
+// ─────────────────────────────────────────────
+// IOT & MACHINE TELEMETRY (Phase 6)
+// ─────────────────────────────────────────────
+
+model IotDevice {
+  id             String  @id @default(cuid())
+  organizationId String
+  workCenterId   String?
+  equipmentId    String?
+
+  name       String  @db.VarChar(255) // "Sensor Suhu Kornit 1"
+  macAddress String  @unique @db.VarChar(50)
+  ipAddress  String? @db.VarChar(50)
+
+  status   String    @default("offline") @db.VarChar(50) // online | offline | error
+  lastPing DateTime?
+  firmware String?   @db.VarChar(100)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization          @relation("org_iot_devices", fields: [organizationId], references: [id], onDelete: Cascade)
+  workCenter   WorkCenter?           @relation("work_center_iot", fields: [workCenterId], references: [id], onDelete: SetNull)
+  equipment    MaintenanceEquipment? @relation("equipment_iot", fields: [equipmentId], references: [id], onDelete: SetNull)
+
+  telemetryLogs MachineTelemetry[] @relation("device_telemetry")
+
+  @@index([organizationId])
+  @@index([workCenterId])
+  @@index([equipmentId])
+  @@index([status])
+  @@map("iot_devices")
+}
+
+model MachineTelemetry {
+  id       String @id @default(cuid())
+  deviceId String
+
+  type  TelemetryType @default(temperature)
+  value Decimal       @db.Decimal(19, 4)
+  unit  String?       @db.VarChar(50) // Celcius, %, RPM
+
+  recordedAt DateTime @default(now())
+  metadata   Json? // misal raw UDP payload
+
+  device IotDevice @relation("device_telemetry", fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, recordedAt(sort: Desc)])
+  @@index([type])
+  @@map("machine_telemetry")
+}

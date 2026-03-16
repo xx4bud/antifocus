@@ -1,0 +1,471 @@
+// ============================================================
+// HRIS & PAYROLL MODULE
+// Covers: Department, Employee, Contract,
+//         Attendance, Leave, Payroll
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum EmploymentType {
+  full_time
+  part_time
+  contract
+  freelance
+  intern
+}
+
+enum EmployeeStatus {
+  active
+  inactive
+  terminated
+  suspended
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+  half_day
+  leave
+}
+
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+  canceled
+}
+
+enum PayrollStatus {
+  draft
+  processing
+  paid
+  failed
+}
+
+// Phase 5 Additions
+enum JobPositionStatus {
+  open
+  closed
+}
+
+enum ApplicantStatus {
+  new
+  screening
+  interview
+  offered
+  hired
+  rejected
+}
+
+// Phase 6 Additions
+enum AppraisalStatus {
+  draft
+  pending_manager
+  pending_employee
+  done
+}
+
+enum AppraisalRating {
+  poor
+  needs_improvement
+  meets_expectations
+  exceeds_expectations
+  outstanding
+}
+
+// ─────────────────────────────────────────────
+// DEPARTMENT (Struktur Organisasi)
+// ─────────────────────────────────────────────
+
+model Department {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String?
+  managerId      String? // Employee ID
+
+  name        String  @db.VarChar(255)
+  code        String? @db.VarChar(100)
+  description String? @db.Text
+  active      Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_departments", fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       Department?  @relation("department_tree", fields: [parentId], references: [id], onDelete: SetNull)
+  manager      Employee?    @relation("department_manager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  children     Department[]  @relation("department_tree")
+  employees    Employee[]    @relation("employee_departments")
+  jobPositions JobPosition[] @relation("department_job_positions")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([deletedAt])
+  @@map("departments")
+}
+
+// ─────────────────────────────────────────────
+// EMPLOYEE (Data Karyawan)
+// ─────────────────────────────────────────────
+
+model Employee {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String? @unique // Linked to sistem User account
+  branchId       String?
+  departmentId   String?
+  managerId      String?
+
+  employeeNumber String  @db.VarChar(100)
+  firstName      String  @db.VarChar(100)
+  lastName       String  @db.VarChar(100)
+  email          String? @db.VarChar(255)
+  phone          String? @db.VarChar(50)
+
+  designation String?        @db.VarChar(255) // Jabatan e.g "Senior Print Operator"
+  type        EmploymentType @default(full_time)
+  status      EmployeeStatus @default(active)
+
+  joinDate   DateTime
+  resignDate DateTime?
+
+  metadata Json? // For extra fields like emergency contacts, bank details
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_employees", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("user_employee", fields: [userId], references: [id], onDelete: SetNull)
+  branch       Branch?      @relation("branch_employees", fields: [branchId], references: [id], onDelete: SetNull)
+  department   Department?  @relation("employee_departments", fields: [departmentId], references: [id], onDelete: SetNull)
+  manager      Employee?    @relation("employee_manager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  subordinates Employee[]   @relation("employee_manager")
+  managedDepts Department[] @relation("department_manager")
+  contracts    Contract[]   @relation("employee_contracts")
+  attendances  Attendance[] @relation("employee_attendances")
+  leaves       Leave[]      @relation("employee_leaves")
+  payrolls     Payroll[]    @relation("employee_payrolls")
+
+  // Phase 4 CRM
+  leads         Lead[]        @relation("employee_leads")
+  opportunities Opportunity[] @relation("employee_opportunities")
+  activities    Activity[]    @relation("employee_activities")
+
+  // Phase 5 Expenses
+  expenseSheets         ExpenseSheet[] @relation("employee_expense_sheets")
+  approvedExpenseSheets ExpenseSheet[] @relation("approver_expense_sheets")
+
+  // Phase 5 Fleet
+  vehicles Vehicle[] @relation("employee_vehicles")
+
+  // Phase 6 Appraisals
+  appraisals        Appraisal[] @relation("employee_appraisals")
+  managerAppraisals Appraisal[] @relation("manager_appraisals")
+
+  @@unique([organizationId, employeeNumber])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("employees")
+}
+
+// ─────────────────────────────────────────────
+// CONTRACT (Kontrak Kerja & Gaji Pokok)
+// ─────────────────────────────────────────────
+
+model Contract {
+  id         String @id @default(cuid())
+  employeeId String
+
+  title     String    @db.VarChar(255) // "Kontrak PKWT 2026"
+  startDate DateTime
+  endDate   DateTime?
+
+  basicSalary Decimal @default(0) @db.Decimal(19, 4)
+  currencyId  String?
+
+  workingSchedule Json? // Definisi hari/jam kerja
+  notes           String? @db.Text
+  active          Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee  @relation("employee_contracts", fields: [employeeId], references: [id], onDelete: Cascade)
+  currency Currency? @relation("currency_contracts", fields: [currencyId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([active])
+  @@map("contracts")
+}
+
+// ─────────────────────────────────────────────
+// ATTENDANCE (Presensi)
+// ─────────────────────────────────────────────
+
+model Attendance {
+  id         String @id @default(cuid())
+  employeeId String
+
+  date     DateTime  @db.Date // Tanggal presensi
+  checkIn  DateTime?
+  checkOut DateTime?
+
+  status AttendanceStatus @default(present)
+  note   String?          @db.Text
+
+  // Geolocation or Device info for verification
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation("employee_attendances", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@index([status])
+  @@map("attendances")
+}
+
+// ─────────────────────────────────────────────
+// LEAVES (Manajemen Cuti)
+// ─────────────────────────────────────────────
+
+model LeaveType {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name    String  @db.VarChar(255) // Cuti Tahunan, Sakit, Menikah
+  code    String  @db.VarChar(100)
+  maxDays Int     @default(0) // Kuota setahun
+  paid    Boolean @default(true) // Apakah dibayar atau unpaid leave
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_leave_types", fields: [organizationId], references: [id], onDelete: Cascade)
+  leaves       Leave[]      @relation("type_leaves")
+
+  @@unique([organizationId, code])
+  @@map("leave_types")
+}
+
+model Leave {
+  id          String @id @default(cuid())
+  employeeId  String
+  leaveTypeId String
+
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  days      Decimal  @db.Decimal(5, 2)
+
+  status     LeaveStatus @default(pending)
+  reason     String?     @db.Text
+  attachment String?     @db.VarChar(255) // URL surat dokter dll
+
+  approvedBy String? // Nullable until approved. Could reference Employee or User
+  approvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee  Employee  @relation("employee_leaves", fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation("type_leaves", fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("leaves")
+}
+
+// ─────────────────────────────────────────────
+// PAYROLL (Penggajian)
+// ─────────────────────────────────────────────
+
+model Payroll {
+  id             String @id @default(cuid())
+  organizationId String
+  employeeId     String
+
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+
+  reference String        @db.VarChar(100) // SLIP/2026/03/001
+  status    PayrollStatus @default(draft)
+
+  basicPay       Decimal @default(0) @db.Decimal(19, 4)
+  totalAllowance Decimal @default(0) @db.Decimal(19, 4)
+  totalDeduction Decimal @default(0) @db.Decimal(19, 4)
+  netPay         Decimal @default(0) @db.Decimal(19, 4)
+
+  paymentDate DateTime?
+  note        String?   @db.Text
+
+  // Link to Finance Module
+  accountMoveId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_payrolls", fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation("employee_payrolls", fields: [employeeId], references: [id], onDelete: Cascade)
+  accountMove  AccountMove? @relation("payroll_account_moves", fields: [accountMoveId], references: [id], onDelete: SetNull)
+
+  lines PayrollLine[] @relation("payroll_lines")
+
+  @@unique([organizationId, reference])
+  @@index([employeeId])
+  @@index([periodStart, periodEnd])
+  @@index([status])
+  @@map("payrolls")
+}
+
+model PayrollLine {
+  id        String @id @default(cuid())
+  payrollId String
+
+  name     String  @db.VarChar(255) // "Tunjangan Makan", "Potongan BPJS"
+  category String  @db.VarChar(50) // allowance | deduction
+  amount   Decimal @default(0) @db.Decimal(19, 4)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payroll Payroll @relation("payroll_lines", fields: [payrollId], references: [id], onDelete: Cascade)
+
+  @@index([payrollId])
+  @@index([category])
+  @@map("payroll_lines")
+}
+
+// ─────────────────────────────────────────────
+// RECRUITMENT / ATS (Phase 5)
+// ─────────────────────────────────────────────
+
+model JobPosition {
+  id             String  @id @default(cuid())
+  organizationId String
+  departmentId   String?
+
+  name        String            @db.VarChar(255)
+  description String?           @db.Text
+  status      JobPositionStatus @default(open)
+
+  targetHires Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_job_positions", fields: [organizationId], references: [id], onDelete: Cascade)
+  department   Department?  @relation("department_job_positions", fields: [departmentId], references: [id], onDelete: SetNull)
+
+  applicants JobApplicant[] @relation("position_applicants")
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([status])
+  @@map("job_positions")
+}
+
+model JobApplicant {
+  id             String  @id @default(cuid())
+  organizationId String
+  jobPositionId  String
+  userId         String? // Apabila apply melalui portal
+
+  name  String  @db.VarChar(255)
+  email String  @db.VarChar(255)
+  phone String? @db.VarChar(50)
+
+  status ApplicantStatus @default(new)
+
+  expectedSalary Decimal? @db.Decimal(19, 4)
+  resumeUrl      String?  @db.VarChar(255)
+  note           String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_job_applicants", fields: [organizationId], references: [id], onDelete: Cascade)
+  jobPosition  JobPosition  @relation("position_applicants", fields: [jobPositionId], references: [id], onDelete: Cascade)
+  user         User?        @relation("user_job_applicants", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([jobPositionId])
+  @@index([status])
+  @@index([userId])
+  @@map("job_applicants")
+}
+
+// ─────────────────────────────────────────────
+// HR APPRAISALS & PERFORMANCE REVIEW (Phase 6)
+// ─────────────────────────────────────────────
+
+model Appraisal {
+  id             String  @id @default(cuid())
+  organizationId String
+  employeeId     String
+  managerId      String? // Evaluator
+
+  period      String           @db.VarChar(50) // e.g. "Q1 2026", "2026 Annual"
+  status      AppraisalStatus  @default(draft)
+  finalRating AppraisalRating?
+
+  employeeFeedback String? @db.Text
+  managerFeedback  String? @db.Text
+
+  startDate   DateTime?
+  deadline    DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_appraisals", fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation("employee_appraisals", fields: [employeeId], references: [id], onDelete: Cascade)
+  manager      Employee?    @relation("manager_appraisals", fields: [managerId], references: [id], onDelete: SetNull)
+
+  goals AppraisalGoal[] @relation("appraisal_goals")
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([managerId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("appraisals")
+}
+
+model AppraisalGoal {
+  id          String @id @default(cuid())
+  appraisalId String
+
+  description String @db.Text
+  weight      Int    @default(100) // Bobot % dari total KPI
+
+  managerRating  AppraisalRating?
+  employeeRating AppraisalRating?
+
+  managerComment  String? @db.Text
+  employeeComment String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appraisal Appraisal @relation("appraisal_goals", fields: [appraisalId], references: [id], onDelete: Cascade)
+
+  @@index([appraisalId])
+  @@map("appraisal_goals")
+}

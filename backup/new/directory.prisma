@@ -1,0 +1,639 @@
+// ============================================================
+// DIRECTORY MODULE
+// Covers: Profile, Address, BankAccount, Branch, Customer,
+//         Supplier, Locale (Country → Province → City → District → Village)
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum AddressType {
+  shipping
+  billing
+  mixed
+}
+
+enum BranchType {
+  office
+  store
+  warehouse
+  workshop
+}
+
+enum BranchStatus {
+  open
+  closed
+  vacation
+  maintenance
+  deleted
+}
+
+enum CustomerStatus {
+  active
+  inactive
+  deleted
+}
+
+enum SupplierStatus {
+  active
+  inactive
+  deleted
+}
+
+// Phase 6 Additions
+enum DocumentType {
+  contract
+  legal
+  handbook
+  other
+}
+
+enum DocumentStatus {
+  draft
+  active
+  archived
+}
+
+// ─────────────────────────────────────────────
+// BRANCH
+// ─────────────────────────────────────────────
+// Cabang = unit operasional (toko, gudang, workshop cetak)
+// ─────────────────────────────────────────────
+
+model Branch {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           BranchType   @default(store)
+  status         BranchStatus @default(open)
+
+  name     String  @db.VarChar(255)
+  slug     String  @db.VarChar(255)
+  image    String?
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_branches", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  profile              Profile?               @relation("branch_profile")
+  members              Member[]               @relation("member_branch")
+  shippingZones        ShippingZone[]         @relation("branch_shipping_zones")
+  locations            WarehouseLocation[]    @relation("branch_locations")
+  orders               Order[]                @relation("branch_orders")
+  stockMoveFrom        StockMove[]            @relation("from_branch_stock_moves")
+  stockMoveTo          StockMove[]            @relation("to_branch_stock_moves")
+  stocks               Stock[]                @relation("branch_stocks")
+  chartOfAccounts      ChartOfAccount[]       @relation("branch_chart_of_accounts")
+  shipments            Shipment[]             @relation("branch_shipments")
+  followers            Follower[]             @relation("branch_followers")
+  projects             Project[]              @relation("branch_projects")
+  purchaseOrders       PurchaseOrder[]        @relation("branch_purchase_orders")
+  workCenters          WorkCenter[]           @relation("branch_work_centers")
+  posSessions          PosSession[]           @relation("branch_pos_sessions")
+  maintenanceEquipment MaintenanceEquipment[] @relation("branch_maintenance_equip")
+  purchaseRequisitions PurchaseRequisition[]  @relation("branch_purchase_reqs")
+  employees            Employee[]             @relation("branch_employees")
+
+  // Phase 5 Relations
+  vehicles Vehicle[] @relation("branch_vehicles")
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("branches")
+}
+
+// ─────────────────────────────────────────────
+// WAREHOUSE LOCATION (Lokasi Fisik: Lorong / Rak / Bin)
+// ─────────────────────────────────────────────
+
+model WarehouseLocation {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String
+  parentId       String?
+  level          Int     @default(0) // 0=Zone, 1=Aisle, 2=Rack, 3=Shelf, 4=Bin
+
+  name     String  @db.VarChar(255) // "Aisle A", "Rack 3"
+  code     String  @db.VarChar(100) // WH-A-03
+  barcode  String? @unique @db.VarChar(100)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization       @relation("org_locations", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch             @relation("branch_locations", fields: [branchId], references: [id], onDelete: Cascade)
+  parent       WarehouseLocation? @relation("location_tree", fields: [parentId], references: [id], onDelete: SetNull)
+
+  children      WarehouseLocation[] @relation("location_tree")
+  stocks        Stock[]             @relation("location_stocks")
+  stockMoveFrom StockMove[]         @relation("from_location_stock_moves")
+  stockMoveTo   StockMove[]         @relation("to_location_stock_moves")
+
+  @@unique([branchId, code])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([parentId])
+  @@map("warehouse_locations")
+}
+
+// ─────────────────────────────────────────────
+// PROFILE (Polymorphic Contact Card)
+// Digunakan oleh: User, Organization, Branch, Customer, Supplier
+// ─────────────────────────────────────────────
+
+model Profile {
+  id             String  @id @default(cuid())
+  userId         String? @unique
+  organizationId String? @unique
+  branchId       String? @unique
+  customerId     String? @unique
+  supplierId     String? @unique
+
+  name        String  @db.VarChar(255)
+  phoneNumber String  @db.VarChar(50)
+  email       String? @db.VarChar(255)
+
+  // Profil Detail
+  banner      String?
+  description String?   @db.Text
+  gender      String?   @db.VarChar(50)
+  birthDate   DateTime?
+  website     String?   @db.VarChar(255)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User?         @relation("user_profile", fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation("org_profile", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation("branch_profile", fields: [branchId], references: [id], onDelete: Cascade)
+  customer     Customer?     @relation("customer_profile", fields: [customerId], references: [id], onDelete: Cascade)
+  supplier     Supplier?     @relation("supplier_profile", fields: [supplierId], references: [id], onDelete: Cascade)
+
+  addresses      Address[]       @relation("profile_addresses")
+  bankAccounts   BankAccount[]   @relation("profile_bank_accounts")
+  stockPickings  StockPicking[]  @relation("profile_stock_pickings")
+  accountMoves   AccountMove[]   @relation("profile_account_moves")
+  payments       Payment[]       @relation("profile_payments")
+  returnOrders   ReturnOrder[]   @relation("profile_return_orders")
+  orders         Order[]         @relation("profile_orders")
+  projects       Project[]       @relation("project_customer")
+  resellerConfig ResellerConfig? @relation("profile_reseller_config")
+
+  @@index([name])
+  @@index([phoneNumber])
+  @@index([email])
+  @@map("profiles")
+}
+
+// ─────────────────────────────────────────────
+// ADDRESS
+// ─────────────────────────────────────────────
+
+model Address {
+  id        String @id @default(cuid())
+  profileId String
+
+  type        AddressType @default(mixed)
+  label       String      @default("home")
+  name        String
+  phoneNumber String
+  email       String?
+
+  street1    String  @db.VarChar(255)
+  street2    String? @db.VarChar(255)
+  villageId  String?
+  districtId String?
+  cityId     String?
+  provinceId String?
+  countryId  String?
+  zipCode    String? @db.VarChar(20)
+
+  longitude Decimal? @db.Decimal(11, 8)
+  latitude  Decimal? @db.Decimal(10, 8)
+
+  isDefault Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile  Profile   @relation("profile_addresses", fields: [profileId], references: [id], onDelete: Cascade)
+  village  Village?  @relation("village_addresses", fields: [villageId], references: [id], onDelete: SetNull)
+  district District? @relation("district_addresses", fields: [districtId], references: [id], onDelete: SetNull)
+  city     City?     @relation("city_addresses", fields: [cityId], references: [id], onDelete: SetNull)
+  province Province? @relation("province_addresses", fields: [provinceId], references: [id], onDelete: SetNull)
+  country  Country?  @relation("country_addresses", fields: [countryId], references: [id], onDelete: SetNull)
+
+  shippingOrders     Order[]    @relation("shipping_order_addresses")
+  billingOrders      Order[]    @relation("billing_order_addresses")
+  senderShipments    Shipment[] @relation("sender_address_shipments")
+  recipientShipments Shipment[] @relation("recipient_address_shipments")
+
+  @@index([profileId])
+  @@index([type])
+  @@index([isDefault])
+  @@index([villageId, districtId, cityId, countryId])
+  @@map("addresses")
+}
+
+// ─────────────────────────────────────────────
+// BANK ACCOUNT
+// ─────────────────────────────────────────────
+
+model BankAccount {
+  id        String @id @default(cuid())
+  profileId String
+
+  bankName      String  @db.VarChar(100)
+  accountName   String  @db.VarChar(255)
+  accountNumber String  @db.VarChar(100)
+  branchCode    String? @db.VarChar(50)
+  swiftCode     String? @db.VarChar(50)
+
+  isDefault Boolean @default(false)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile        Profile         @relation("profile_bank_accounts", fields: [profileId], references: [id], onDelete: Cascade)
+  payments       Payment[]       @relation("payment_bank_accounts")
+  bankStatements BankStatement[] @relation("bank_account_statements")
+
+  @@index([profileId])
+  @@map("bank_accounts")
+}
+
+// ─────────────────────────────────────────────
+// CUSTOMER
+// ─────────────────────────────────────────────
+
+model Customer {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String? // null = walk-in / offline customer
+
+  status   CustomerStatus @default(active)
+  metadata Json?
+
+  // CRM tambahan
+  customerGroupId String? // untuk segmentasi pricing / promo
+  loyaltyPoints   Int     @default(0)
+  totalSpend      Decimal @default(0) @db.Decimal(19, 4)
+  totalOrders     Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_customers", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("user_customers", fields: [userId], references: [id], onDelete: SetNull)
+
+  profile         Profile?         @relation("customer_profile")
+  promotionUsages PromotionUsage[] @relation("customer_promotion_usages")
+  designAssets    DesignAsset[]    @relation("customer_design_assets")
+  ticketMessages  TicketMessage[]  @relation("customer_ticket_messages")
+  reviews         Review[]         @relation("customer_reviews")
+  orders          Order[]          @relation("customer_orders")
+  opportunities   Opportunity[]    @relation("customer_opportunities")
+  resellerConfig  ResellerConfig?  @relation("customer_reseller_config")
+
+  // Phase 5 Relations
+  subscriptions Subscription[] @relation("customer_subscriptions")
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([customerGroupId])
+  @@index([deletedAt])
+  @@map("customers")
+}
+
+// ─────────────────────────────────────────────
+// RESELLER CONFIG (Dropship / White-label settings)
+// ─────────────────────────────────────────────
+
+model ResellerConfig {
+  id             String @id @default(cuid())
+  organizationId String
+  profileId      String @unique // relasi ke Profile
+  customerId     String @unique // relasi ke Customer
+
+  storeName     String  @db.VarChar(255)
+  senderName    String  @db.VarChar(255)
+  phoneNumber   String  @db.VarChar(50)
+  email         String? @db.VarChar(255)
+  logoUrl       String?
+  customMessage String? @db.Text // Pesan default di packing slip
+
+  brandingEnabled Boolean @default(true)
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_reseller_configs", fields: [organizationId], references: [id], onDelete: Cascade)
+  profile      Profile      @relation("profile_reseller_config", fields: [profileId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation("customer_reseller_config", fields: [customerId], references: [id], onDelete: Cascade)
+
+  orders Order[] @relation("reseller_orders")
+
+  @@map("reseller_configs")
+}
+
+// ─────────────────────────────────────────────
+// SUPPLIER
+// ─────────────────────────────────────────────
+
+model Supplier {
+  id             String         @id @default(cuid())
+  organizationId String
+  status         SupplierStatus @default(active)
+
+  // Vendor terms
+  leadTimeDays  Int?
+  rating        Decimal? @db.Decimal(3, 2)
+  paymentTerms  String? // NET30 | COD | etc
+  minOrderValue Decimal? @db.Decimal(19, 4)
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation("org_suppliers", fields: [organizationId], references: [id], onDelete: Cascade)
+  profile      Profile?     @relation("supplier_profile")
+
+  purchaseOrders   PurchaseOrder[] @relation("supplier_purchase_orders")
+  // Supaya bisa menjadi pemasok bahan baku untuk BoM
+  bomSupplierItems BomItem[]       @relation("bom_item_suppliers")
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("suppliers")
+}
+
+// ─────────────────────────────────────────────
+// LOCALE: COUNTRY → PROVINCE → CITY → DISTRICT → VILLAGE
+// ─────────────────────────────────────────────
+
+model Country {
+  id        String  @id @default(cuid())
+  name      String  @db.VarChar(255)
+  code      String  @unique @db.VarChar(10) // ISO 3166-1 alpha-2 (ID, US, …)
+  phoneCode String? @db.VarChar(20) // 62
+  flag      String? @db.VarChar(20) // 🇮🇩
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  provinces Province[]         @relation("country_provinces")
+  timeZones TimeZone[]         @relation("country_time_zones")
+  addresses Address[]          @relation("country_addresses")
+  fiscalPos FiscalPos[]        @relation("country_fiscal_pos")
+  taxRates  TaxRate[]          @relation("country_tax_rates")
+  areas     ShippingZoneArea[] @relation("country_areas")
+
+  @@index([name])
+  @@index([deletedAt])
+  @@map("countries")
+}
+
+model Province {
+  id        String @id @default(cuid())
+  countryId String
+  name      String @db.VarChar(255)
+  code      String @unique @db.VarChar(100)
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  country Country @relation("country_provinces", fields: [countryId], references: [id], onDelete: Cascade)
+
+  cities    City[]             @relation("province_cities")
+  addresses Address[]          @relation("province_addresses")
+  areas     ShippingZoneArea[] @relation("province_areas")
+  fiscalPos FiscalPos[]        @relation("province_fiscal_pos")
+  taxRates  TaxRate[]          @relation("province_tax_rates")
+
+  @@index([countryId])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("provinces")
+}
+
+model City {
+  id         String @id @default(cuid())
+  provinceId String
+  name       String @db.VarChar(255)
+  code       String @unique @db.VarChar(100)
+  metadata   Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  province Province @relation("province_cities", fields: [provinceId], references: [id], onDelete: Cascade)
+
+  districts District[]         @relation("city_districts")
+  addresses Address[]          @relation("city_addresses")
+  areas     ShippingZoneArea[] @relation("city_areas")
+  fiscalPos FiscalPos[]        @relation("city_fiscal_pos")
+  taxRates  TaxRate[]          @relation("city_tax_rates")
+
+  @@index([provinceId])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("cities")
+}
+
+model District {
+  id       String @id @default(cuid())
+  cityId   String
+  name     String @db.VarChar(255)
+  code     String @unique @db.VarChar(100)
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  city City @relation("city_districts", fields: [cityId], references: [id], onDelete: Cascade)
+
+  villages  Village[]          @relation("district_villages")
+  addresses Address[]          @relation("district_addresses")
+  areas     ShippingZoneArea[] @relation("district_areas")
+
+  @@index([cityId])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("districts")
+}
+
+model Village {
+  id         String  @id @default(cuid())
+  districtId String
+  name       String  @db.VarChar(255)
+  code       String  @unique @db.VarChar(100)
+  zipCode    String? @db.VarChar(20)
+  metadata   Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  district  District  @relation("district_villages", fields: [districtId], references: [id], onDelete: Cascade)
+  addresses Address[] @relation("village_addresses")
+
+  @@index([districtId])
+  @@index([name])
+  @@index([deletedAt])
+  @@map("villages")
+}
+
+model TimeZone {
+  id        String  @id @default(cuid())
+  countryId String?
+  name      String  @db.VarChar(255) // Asia/Jakarta
+  code      String  @unique @db.VarChar(100) // asia/jakarta (IANA)
+  offset    Int? // seconds: 25200 = UTC+7
+  abbr      String? @db.VarChar(20) // WIB
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  country Country? @relation("country_time_zones", fields: [countryId], references: [id], onDelete: SetNull)
+
+  @@index([countryId])
+  @@index([deletedAt])
+  @@map("time_zones")
+}
+
+model Language {
+  id        String  @id @default(cuid())
+  name      String  @db.VarChar(255) // Indonesian
+  code      String  @unique @db.VarChar(20) // id-ID (IETF BCP 47)
+  flag      String? @db.VarChar(20)
+  direction String? @default("ltr") @db.VarChar(10)
+
+  dateFormat     String? @default("DD/MM/YYYY") @db.VarChar(50)
+  timeFormat     String? @default("HH:mm") @db.VarChar(50)
+  firstDayOfWeek Int?    @default(1)
+
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([name])
+  @@index([deletedAt])
+  @@map("languages")
+}
+
+// ─────────────────────────────────────────────
+// DOCUMENT MANAGEMENT SYSTEM & E-SIGNATURE (Phase 6)
+// ─────────────────────────────────────────────
+
+model DocumentFolder {
+  id             String  @id @default(cuid())
+  organizationId String
+  parentId       String? // Folder hierarki
+
+  name        String  @db.VarChar(255)
+  description String? @db.Text
+  isPrivate   Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization    @relation("org_doc_folders", fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       DocumentFolder? @relation("folder_tree", fields: [parentId], references: [id], onDelete: SetNull)
+
+  children  DocumentFolder[] @relation("folder_tree")
+  documents Document[]       @relation("folder_documents")
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([deletedAt])
+  @@map("document_folders")
+}
+
+model Document {
+  id               String  @id @default(cuid())
+  organizationId   String
+  documentFolderId String?
+  employeeId       String? // Terikat pada employee tertentu (KTP, NPWP, Paklaring)
+  userId           String? // Terkait spesifik pelanggan/kreator
+
+  title    String  @db.VarChar(255)
+  fileUrl  String  @db.VarChar(255) // URL dari S3/R2
+  fileType String? @db.VarChar(50) // pdf, docx, jpeg
+  fileSize Int? // bytes
+
+  type   DocumentType   @default(other)
+  status DocumentStatus @default(active)
+
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization    @relation("org_documents", fields: [organizationId], references: [id], onDelete: Cascade)
+  folder       DocumentFolder? @relation("folder_documents", fields: [documentFolderId], references: [id], onDelete: Cascade)
+
+  signatureRequests SignatureRequest[] @relation("document_signature")
+
+  @@index([organizationId])
+  @@index([documentFolderId])
+  @@index([employeeId])
+  @@index([userId])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("documents")
+}
+
+model SignatureRequest {
+  id             String @id @default(cuid())
+  organizationId String
+  documentId     String
+  requesterId    String // Siapa yang minta ttd (Worker user)
+  signerId       String // Siapa yang diwajibkan ttd (User/Employee)
+
+  status    String    @default("pending") @db.VarChar(50) // pending | signed | voided
+  signedAt  DateTime?
+  signIp    String?   @db.VarChar(50)
+  signAgent String?   @db.VarChar(255) // Browser payload
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_signature_requests", fields: [organizationId], references: [id], onDelete: Cascade)
+  document     Document     @relation("document_signature", fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([documentId])
+  @@index([requesterId])
+  @@index([signerId])
+  @@index([status])
+  @@map("signature_requests")
+}

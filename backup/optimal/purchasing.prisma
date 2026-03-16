@@ -1,0 +1,90 @@
+// ==============================
+// PURCHASING ENUMS
+// ==============================
+
+enum PurchaseStatus {
+  draft
+  sent
+  confirmed
+  received
+  billed
+  canceled
+}
+
+// ==============================
+// PURCHASE ORDERS
+// ==============================
+
+model PurchaseOrder {
+  id             String  @id @default(cuid())
+  organizationId String
+  vendorId       String
+  currencyId     String?
+  storeId        String?
+
+  orderNumber String
+  status      PurchaseStatus @default(draft)
+
+  // Financials
+  subtotal  Decimal @default(0)
+  taxAmount Decimal @default(0)
+  total     Decimal @default(0)
+
+  // Dates
+  orderDate       DateTime  @default(now())
+  expectedArrival DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vendor       Vendor       @relation(fields: [vendorId], references: [id])
+  currency     Currency?    @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+  store        Store?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  lines PurchaseOrderLine[]
+
+  @@unique([organizationId, orderNumber])
+  @@index([organizationId])
+  @@index([vendorId])
+  @@index([status])
+  @@map("purchase_orders")
+}
+
+// ==============================
+// PURCHASE ORDER LINES
+// ==============================
+
+model PurchaseOrderLine {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  variantId       String
+  taxId           String?
+
+  name     String
+  quantity Decimal @default(1)
+  received Decimal @default(0)
+
+  unitPrice Decimal @default(0)
+  taxAmount Decimal @default(0)
+  subtotal  Decimal @default(0)
+  total     Decimal @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+  variant       Variant       @relation(fields: [variantId], references: [id])
+  tax           TaxRate?      @relation(fields: [taxId], references: [id], onDelete: SetNull)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+  @@map("purchase_order_lines")
+}

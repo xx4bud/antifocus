@@ -1,0 +1,129 @@
+// ==============================
+// INVENTORY ENUMS
+// ==============================
+
+enum LocationType {
+  internal
+  customer
+  supplier
+  transit
+  production
+  scrap
+}
+
+enum PickingType {
+  incoming
+  outgoing
+  internal
+}
+
+enum PickingStatus {
+  draft
+  confirmed
+  assigned
+  done
+  canceled
+}
+
+// ==============================
+// STOCK LOCATIONS
+// ==============================
+
+model StockLocation {
+  id             String  @id @default(cuid())
+  organizationId String
+  storeId        String?
+  parentId       String?
+
+  name String
+  code String
+  type LocationType @default(internal)
+
+  active   Boolean @default(true)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  store        Store?          @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  parent       StockLocation?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children     StockLocation[] @relation("LocationHierarchy")
+
+  movesFrom StockMove[] @relation("MoveFrom")
+  movesTo   StockMove[] @relation("MoveTo")
+
+  @@unique([organizationId, code])
+  @@index([storeId])
+  @@index([type])
+  @@index([parentId])
+  @@map("stock_locations")
+}
+
+// ==============================
+// STOCK PICKINGS (Transfer orders)
+// ==============================
+
+model StockPicking {
+  id             String  @id @default(cuid())
+  organizationId String
+  saleOrderId    String?
+
+  name   String
+  type   PickingType   @default(outgoing)
+  status PickingStatus @default(draft)
+
+  scheduledDate DateTime?
+  doneDate      DateTime?
+
+  note     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  saleOrder    SaleOrder?   @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+
+  moves         StockMove[]
+  qualityChecks QualityCheck[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([saleOrderId])
+  @@index([status])
+  @@map("stock_pickings")
+}
+
+// ==============================
+// STOCK MOVES (Individual item movements)
+// ==============================
+
+model StockMove {
+  id             String  @id @default(cuid())
+  pickingId      String?
+  variantId      String
+  fromLocationId String
+  toLocationId   String
+
+  quantity     Decimal @default(0)
+  quantityDone Decimal @default(0)
+
+  status String  @default("draft") // draft, confirmed, done, canceled
+  note   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  picking      StockPicking? @relation(fields: [pickingId], references: [id], onDelete: Cascade)
+  variant      Variant       @relation(fields: [variantId], references: [id])
+  fromLocation StockLocation @relation("MoveFrom", fields: [fromLocationId], references: [id])
+  toLocation   StockLocation @relation("MoveTo", fields: [toLocationId], references: [id])
+
+  @@index([pickingId])
+  @@index([variantId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([status])
+  @@map("stock_moves")
+}

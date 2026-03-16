@@ -1,0 +1,314 @@
+// ==============================
+// AUTH ENUMS
+// ==============================
+
+enum SystemUserRole {
+  superadmin
+  admin
+  user
+}
+
+enum UserStatus {
+  active
+  inactive
+  banned
+  pending
+}
+
+enum ActionType {
+  login
+  logout
+  create
+  update
+  delete
+  export
+  import
+  approve
+  reject
+  cancel
+}
+
+enum LogType {
+  auth
+  system
+  data
+  security
+  integration
+}
+
+// ==============================
+// USERS
+// ==============================
+
+model User {
+  id    String  @id @default(cuid())
+  name  String
+  email String  @unique
+  image String?
+
+  emailVerified Boolean        @default(false)
+  role          SystemUserRole @default(user)
+  status        UserStatus     @default(active)
+  banned        Boolean        @default(false)
+  banReason     String?
+  banExpires    DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Auth
+  sessions   Session[]
+  accounts   Account[]
+  twoFactors TwoFactor[]
+  apiKeys    ApiKey[]
+  userRoles  UserRole[]
+
+  // Organization
+  members     Member[]
+  invitations Invitation[]
+  customers   Customer[]
+  vendors     Vendor[]
+
+  // HR
+  employeeProfile Employee? @relation("UserEmployee")
+
+  // Helpdesk
+  assignedTickets Ticket[]        @relation("TicketAssignee")
+  ticketMessages  TicketMessage[] @relation("TicketMessageAuthor")
+
+  // Notifications
+  notifications     Notification[] @relation("NotificationUser")
+  sentNotifications Notification[] @relation("NotificationSender")
+
+  // Activities
+  activities Activity[] @relation("ActivityAssignee")
+
+  // Quality
+  qualityChecks QualityCheck[] @relation("QualityInspector")
+  qualityAlerts QualityAlert[] @relation("QualityAlertAssignee")
+
+  // Discussions
+  channelMemberships ChannelMember[]     @relation("ChannelMemberships")
+  discussionMessages DiscussionMessage[] @relation("DiscussionAuthor")
+  followers          Follower[]          @relation("RecordFollower")
+  recordNotes        RecordNote[]        @relation("RecordNoteAuthor")
+
+  // Projects
+  managedProjects Project[]     @relation("ProjectManager")
+  assignedTasks   ProjectTask[] @relation("TaskAssignee")
+
+  // Messaging
+  messageLogs MessageLog[] @relation("MessageSender")
+
+  // Documents
+  ownedDocuments DocumentRecord[] @relation("DocumentOwner")
+
+  // Maintenance
+  maintenanceRequests MaintenanceRequest[] @relation("MaintenanceRequester")
+  maintenanceAssigned MaintenanceRequest[] @relation("MaintenanceTechnician")
+
+  // Reports
+  savedReports SavedReport[] @relation("SavedReportAuthor")
+
+  // Data Management
+  dataExportJobs DataExportJob[] @relation("DataExportRequester")
+  dataImportJobs DataImportJob[] @relation("DataImportRequester")
+
+  // Workflows
+  workflowHistory WorkflowHistory[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+// ==============================
+// SESSIONS
+// ==============================
+
+model Session {
+  id     String @id @default(cuid())
+  userId String
+
+  token     String   @unique
+  expiresAt DateTime
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+// ==============================
+// ACCOUNTS (OAuth Providers)
+// ==============================
+
+model Account {
+  id     String @id @default(cuid())
+  userId String
+
+  accountId  String
+  providerId String
+
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+
+  scope    String?
+  idToken  String?
+  password String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+// ==============================
+// VERIFICATION
+// ==============================
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// ==============================
+// TWO FACTOR
+// ==============================
+
+model TwoFactor {
+  id     String @id @default(cuid())
+  userId String
+
+  secret     String
+  backupCode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factors")
+}
+
+// ==============================
+// API KEYS
+// ==============================
+
+model ApiKey {
+  id     String @id @default(cuid())
+  userId String
+
+  name       String
+  key        String    @unique
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+
+  enabled Boolean @default(true)
+
+  permissions String[]
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([key])
+  @@map("api_keys")
+}
+
+// ==============================
+// USER ROLES (Per-Organization)
+// ==============================
+
+model UserRole {
+  id             String @id @default(cuid())
+  userId         String
+  organizationId String
+
+  role        String
+  permissions String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId, role])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("user_roles")
+}
+
+// ==============================
+// RATE LIMITS
+// ==============================
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  count     Int      @default(0)
+  lastReset DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([key])
+  @@map("rate_limits")
+}
+
+// ==============================
+// AUDIT LOGS
+// ==============================
+
+model AuditLog {
+  id             String  @id @default(cuid())
+  organizationId String?
+  userId         String?
+
+  action   ActionType
+  logType  LogType    @default(data)
+  model    String? // e.g., "SaleOrder"
+  recordId String?
+
+  before Json?
+  after  Json?
+
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([action])
+  @@index([logType])
+  @@index([model, recordId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

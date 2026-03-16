@@ -1,0 +1,191 @@
+// ============================================================
+// PROJECT MODULE
+// Covers: Project, ProjectTask, ProjectStage, Timesheet
+// ============================================================
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum ProjectPrivacy {
+  public // semua orang bisa lihat
+  internal // hanya member org
+  private // hanya member project
+}
+
+enum TaskPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  in_review
+  done
+  canceled
+}
+
+enum KanbanState {
+  normal // on track
+  blocked // ada hambatan
+  ready // siap ke stage berikutnya
+}
+
+// ─────────────────────────────────────────────
+// PROJECT STAGE (Kolom Kanban)
+// Dipisah dari ProjectTask agar bisa reuse lintas project
+// ─────────────────────────────────────────────
+
+model ProjectStage {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String  @db.VarChar(255) // Todo | Design Review | Printing | Done
+  code           String  @db.VarChar(100)
+  sequence       Int     @default(0)
+  isFinal        Boolean @default(false)
+  color          String? @db.VarChar(50)
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation("org_project_stages", fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        ProjectTask[] @relation("stage_tasks")
+
+  @@unique([organizationId, code])
+  @@map("project_stages")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT
+// ─────────────────────────────────────────────
+
+model Project {
+  id             String  @id @default(cuid())
+  organizationId String
+  branchId       String?
+  managerId      String? // User
+  profileId      String? // Customer terkait
+  orderId        String? // Order PoD yang memicu project
+
+  name        String         @db.VarChar(255)
+  description String?        @db.Text
+  color       String?        @db.VarChar(50)
+  privacy     ProjectPrivacy @default(internal)
+  active      Boolean        @default(true)
+
+  // PoD: estimasi produksi
+  allowTimesheets Boolean @default(false)
+  estimatedHours  Decimal @default(0) @db.Decimal(10, 2)
+
+  startDate DateTime?
+  endDate   DateTime?
+  deadline  DateTime?
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_projects", fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation("branch_projects", fields: [branchId], references: [id], onDelete: SetNull)
+  manager      User?        @relation("project_manager", fields: [managerId], references: [id], onDelete: SetNull)
+  profile      Profile?     @relation("project_customer", fields: [profileId], references: [id], onDelete: SetNull)
+  order        Order?       @relation("project_order", fields: [orderId], references: [id], onDelete: SetNull)
+
+  tasks      ProjectTask[] @relation("project_tasks")
+  timesheets Timesheet[]   @relation("project_timesheets")
+  tags       ProjectTag[]  @relation("project_tags")
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([managerId])
+  @@index([profileId])
+  @@index([orderId])
+  @@index([active])
+  @@map("projects")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT TASK
+// ─────────────────────────────────────────────
+
+model ProjectTask {
+  id             String  @id @default(cuid())
+  organizationId String
+  projectId      String
+  stageId        String
+  parentId       String? // sub-task
+  assigneeId     String? // User
+
+  name        String       @db.VarChar(255)
+  description String?      @db.Text
+  priority    TaskPriority @default(normal)
+  status      TaskStatus   @default(todo)
+  kanbanState KanbanState  @default(normal)
+  sequence    Int          @default(0)
+  color       String?      @db.VarChar(50)
+
+  progress       Decimal @default(0) @db.Decimal(5, 2) // 0–100
+  plannedHours   Decimal @default(0) @db.Decimal(10, 2)
+  effectiveHours Decimal @default(0) @db.Decimal(10, 2)
+
+  startDate DateTime?
+  deadline  DateTime?
+  doneDate  DateTime?
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_project_tasks", fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation("project_tasks", fields: [projectId], references: [id], onDelete: Cascade)
+  stage        ProjectStage @relation("stage_tasks", fields: [stageId], references: [id], onDelete: Restrict)
+  parent       ProjectTask? @relation("task_hierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  assignee     User?        @relation("task_assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  children   ProjectTask[] @relation("task_hierarchy")
+  timesheets Timesheet[]   @relation("task_timesheets")
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([stageId])
+  @@index([assigneeId])
+  @@index([parentId])
+  @@index([priority])
+  @@index([status])
+  @@index([deadline])
+  @@map("project_tasks")
+}
+
+// ─────────────────────────────────────────────
+// TIMESHEET (Log Jam Kerja)
+// ─────────────────────────────────────────────
+
+model Timesheet {
+  id             String  @id @default(cuid())
+  organizationId String
+  memberId       String
+  projectId      String
+  projectTaskId  String?
+
+  date        DateTime
+  hours       Decimal  @default(0) @db.Decimal(5, 2)
+  description String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation("org_timesheets", fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation("member_timesheets", fields: [memberId], references: [id], onDelete: Cascade)
+  project      Project      @relation("project_timesheets", fields: [projectId], references: [id], onDelete: Cascade)
+  projectTask  ProjectTask? @relation("task_timesheets", fields: [projectTaskId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([projectId])
+  @@index([date])
+  @@map("timesheets")
+}
