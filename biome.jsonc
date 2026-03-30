@@ -10,6 +10,9 @@
       "suspicious": {
         "useAwait": "off"
       },
+      "performance": {
+        "noNamespaceImport": "off"
+      },
       "style": {
         "noNestedTernary": "off"
       }
