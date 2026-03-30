@@ -2,6 +2,7 @@
 
 import { IconChevronDown } from "@tabler/icons-react";
 import { useLocale } from "next-intl";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,8 +27,8 @@ export function LocaleSwitcher() {
     try {
       // @ts-expect-error
       router.replace(pathname, { locale });
-    } catch (error) {
-      console.error("LOCALE_SWITCHER", error);
+    } catch (_error) {
+      toast.error("gagal mengganti bahasa");
     }
   };
 
@@ -37,7 +38,10 @@ export function LocaleSwitcher() {
         aria-label={`Switch language. Current language: ${getLocaleName(currentLocale)}`}
         asChild
       >
-        <Button className="flex items-center justify-between sm:w-40">
+        <Button
+          className="flex items-center justify-between sm:w-40"
+          variant={"outline"}
+        >
           <div className="flex items-center justify-center gap-2">
             <span>{getLocaleFlag(currentLocale)}</span>
             <span className="mt-0.5 hidden sm:inline">

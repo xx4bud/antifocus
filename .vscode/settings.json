@@ -111,6 +111,9 @@
   "workbench.colorTheme": "One Dark Pro",
   "workbench.iconTheme": "material-icon-theme",
 
+  "tailwindCSS.classFunctions": ["cva", "cx", "cn"],
+  "tailwindCSS.experimental.configFile": "src/styles/globals.css",
+
   "i18n-ally.localesPaths": ["src/messages"],
   "i18n-ally.enabledFrameworks": ["next-intl"],
   "i18n-ally.sourceLanguage": "id",
