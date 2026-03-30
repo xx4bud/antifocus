@@ -1,16 +1,16 @@
-import en from "@/messages/en.json";
-import id from "@/messages/id.json";
+import en from "@/messages/en-US.json";
+import id from "@/messages/id-ID.json";
 
 export const LOCALES = {
-  id: {
-    code: "id",
+  "id-ID": {
+    code: "id-ID",
     messages: id,
     name: "Indonesia",
     flag: "🇮🇩",
     direction: "ltr",
   },
-  en: {
-    code: "en",
+  "en-US": {
+    code: "en-US",
     messages: en,
     name: "English",
     flag: "🇺🇸",
@@ -21,7 +21,7 @@ export const LOCALES = {
 export type Locale = keyof typeof LOCALES;
 export type Messages = (typeof LOCALES)[Locale]["messages"];
 
-export const DEFAULT_LOCALE: Locale = LOCALES.id.code;
+export const DEFAULT_LOCALE: Locale = "id-ID";
 export const SUPPORTED_LOCALES: Locale[] = Object.keys(LOCALES) as Locale[];
 
 export function getLocaleName(locale: Locale): string {
