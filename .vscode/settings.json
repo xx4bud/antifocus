@@ -109,5 +109,6 @@
   "workbench.sideBar.location": "left",
   "workbench.statusBar.visible": true,
   "workbench.colorTheme": "One Dark Pro",
-  "workbench.iconTheme": "material-icon-theme"
+  "workbench.iconTheme": "material-icon-theme",
+  "i18n-ally.localesPaths": ["src/messages", "src/lib/i18n"]
 }

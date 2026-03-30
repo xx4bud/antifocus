@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
+import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 
 export default function Home() {
   return (
     <div className="container">
-      <Button>Test</Button>
+      <LocaleSwitcher />
     </div>
   );
 }

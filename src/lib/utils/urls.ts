@@ -1,4 +1,5 @@
 import { env } from "@/env";
+import { defaultLocale, type Locale, locales } from "@/lib/i18n";
 import { isClient } from "@/lib/utils/env";
 
 export function getBaseURL() {
@@ -18,3 +19,40 @@ export function getBaseURL() {
 }
 
 export const baseURL = getBaseURL();
+
+export function getAbsoluteURL(path: string): string {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return cleanPath === "/" ? baseURL : `${baseURL}${cleanPath}`;
+}
+
+export function getLocalePath(path: string, locale: Locale): string {
+  const cleanPath =
+    path === "/" ? "" : path.startsWith("/") ? path : `/${path}`;
+  const prefix = locale === defaultLocale ? "" : `/${locale}`;
+  return `${prefix}${cleanPath}` || "/";
+}
+
+export function getLocaleURL(path: string, locale: Locale): string {
+  return getAbsoluteURL(getLocalePath(path, locale));
+}
+
+export function getMetadataURL(
+  path: string,
+  currentLocale: Locale = defaultLocale
+): {
+  canonical: string;
+  languages: Record<string, string>;
+} {
+  const languages: Record<string, string> = {};
+
+  for (const locale of locales) {
+    languages[locale] = getLocaleURL(path, locale);
+  }
+
+  languages["x-default"] = getLocaleURL(path, defaultLocale);
+
+  return {
+    canonical: getLocaleURL(path, currentLocale),
+    languages,
+  };
+}
