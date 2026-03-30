@@ -9,7 +9,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getLocaleFlag, getLocaleName, type Locale, locales } from "@/lib/i18n";
+import {
+  getLocaleFlag,
+  getLocaleName,
+  type Locale,
+  SUPPORTED_LOCALES,
+} from "@/lib/i18n";
 import { usePathname, useRouter } from "@/lib/i18n/navigation";
 
 export function LocaleSwitcher() {
@@ -19,6 +24,7 @@ export function LocaleSwitcher() {
 
   const handleLocaleChange = (locale: Locale) => {
     try {
+      // @ts-expect-error
       router.replace(pathname, { locale });
     } catch (error) {
       console.error("LOCALE_SWITCHER", error);
@@ -45,7 +51,7 @@ export function LocaleSwitcher() {
         align="start"
         className="w-(--radix-dropdown-menu-trigger-width)"
       >
-        {locales.map((locale) => (
+        {SUPPORTED_LOCALES.map((locale) => (
           <DropdownMenuItem
             aria-current={locale === currentLocale ? "true" : undefined}
             key={locale}

@@ -16,7 +16,7 @@ const nextConfig = {
 };
 
 const withI18n = createNextIntlPlugin({
-  requestConfig: "./src/request.ts",
+  requestConfig: "./src/lib/i18n/request.tsx",
 });
 
 export default withI18n(nextConfig);

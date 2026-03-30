@@ -3,7 +3,7 @@ import {
   type GetRequestConfigParams,
   getRequestConfig,
 } from "next-intl/server";
-import { i18n } from "@/lib/i18n";
+import { LOCALES } from "@/lib/i18n";
 import { routing } from "@/lib/i18n/routing";
 
 export default getRequestConfig(
@@ -16,7 +16,7 @@ export default getRequestConfig(
 
     return {
       locale,
-      messages: i18n[locale].messages,
+      messages: LOCALES[locale].messages,
     };
   }
 );

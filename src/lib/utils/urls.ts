@@ -1,5 +1,5 @@
 import { env } from "@/env";
-import { defaultLocale, type Locale, locales } from "@/lib/i18n";
+import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "@/lib/i18n";
 import { isClient } from "@/lib/utils/env";
 
 export function getBaseURL() {
@@ -28,7 +28,7 @@ export function getAbsoluteURL(path: string): string {
 export function getLocalePath(path: string, locale: Locale): string {
   const cleanPath =
     path === "/" ? "" : path.startsWith("/") ? path : `/${path}`;
-  const prefix = locale === defaultLocale ? "" : `/${locale}`;
+  const prefix = locale === DEFAULT_LOCALE ? "" : `/${locale}`;
   return `${prefix}${cleanPath}` || "/";
 }
 
@@ -38,18 +38,20 @@ export function getLocaleURL(path: string, locale: Locale): string {
 
 export function getMetadataURL(
   path: string,
-  currentLocale: Locale = defaultLocale
+  currentLocale: Locale = DEFAULT_LOCALE
 ): {
+  /** The canonical URL for the page */
   canonical: string;
+  /** Map of language codes to their respective URLs for hreflang */
   languages: Record<string, string>;
 } {
   const languages: Record<string, string> = {};
 
-  for (const locale of locales) {
+  for (const locale of SUPPORTED_LOCALES) {
     languages[locale] = getLocaleURL(path, locale);
   }
 
-  languages["x-default"] = getLocaleURL(path, defaultLocale);
+  languages["x-default"] = getLocaleURL(path, DEFAULT_LOCALE);
 
   return {
     canonical: getLocaleURL(path, currentLocale),

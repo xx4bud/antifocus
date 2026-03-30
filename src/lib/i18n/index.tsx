@@ -1,7 +1,7 @@
 import en from "@/messages/en.json";
 import id from "@/messages/id.json";
 
-export const i18n = {
+export const LOCALES = {
   id: {
     code: "id",
     messages: id,
@@ -18,20 +18,20 @@ export const i18n = {
   },
 } as const;
 
-export type Locale = keyof typeof i18n;
-export type Messages = (typeof i18n)[Locale]["messages"];
+export type Locale = keyof typeof LOCALES;
+export type Messages = (typeof LOCALES)[Locale]["messages"];
 
-export const defaultLocale: Locale = i18n.id.code;
-export const locales: Locale[] = Object.keys(i18n) as Locale[];
+export const DEFAULT_LOCALE: Locale = LOCALES.id.code;
+export const SUPPORTED_LOCALES: Locale[] = Object.keys(LOCALES) as Locale[];
 
 export function getLocaleName(locale: Locale): string {
-  return i18n[locale].name;
+  return LOCALES[locale].name;
 }
 
 export function getLocaleFlag(locale: Locale): string {
-  return i18n[locale].flag;
+  return LOCALES[locale].flag;
 }
 
 export function getLocaleDir(locale: Locale): "ltr" | "rtl" {
-  return i18n[locale].direction;
+  return LOCALES[locale].direction;
 }
