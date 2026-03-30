@@ -1,4 +1,4 @@
-import { LocaleSwitcher } from "@/components/common/locale-switcher";
+import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 
 export default function Home() {
   return (
