@@ -40,9 +40,7 @@ export function getMetadataURL(
   path: string,
   currentLocale: Locale = DEFAULT_LOCALE
 ): {
-  /** The canonical URL for the page */
   canonical: string;
-  /** Map of language codes to their respective URLs for hreflang */
   languages: Record<string, string>;
 } {
   const languages: Record<string, string> = {};

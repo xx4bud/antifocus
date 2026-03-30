@@ -1,2 +1,2 @@
 #!/bin/sh
-pnpm check:all
+pnpm dlx lint-staged

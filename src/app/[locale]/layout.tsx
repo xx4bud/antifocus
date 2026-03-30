@@ -10,7 +10,7 @@ import {
   setRequestLocale,
 } from "next-intl/server";
 import { Provider } from "@/app/provider";
-import type { Locale } from "@/lib/i18n";
+import { getLocaleDir, type Locale } from "@/lib/i18n";
 import { routing } from "@/lib/i18n/routing";
 import { cn } from "@/lib/utils/cn";
 import { createMetadata } from "@/lib/utils/metadata";
@@ -45,7 +45,8 @@ export default async function RootLayout({
         geistMono.variable,
         robotoSerif.variable
       )}
-      lang="id"
+      dir={getLocaleDir(locale)}
+      lang={locale}
       suppressHydrationWarning
     >
       <body className="flex min-h-svh flex-col" suppressHydrationWarning>

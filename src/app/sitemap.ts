@@ -6,6 +6,12 @@ import { getMetadataURL } from "@/lib/utils/urls";
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
 
+  const CATEGORIES = [
+    { slug: "tech" },
+    { slug: "lifestyle" },
+    { slug: "health" },
+  ];
+
   const addEntries = (
     path: string,
     priority: number,
@@ -31,9 +37,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
 
   // dynamic
-  // for (const cat of CATEGORIES) {
-  //   addEntries(`/${cat.slug}`, 0.8, "weekly");
-  // }
+  for (const cat of CATEGORIES) {
+    addEntries(`/${cat.slug}`, 0.8, "weekly");
+  }
 
   return entries;
 }

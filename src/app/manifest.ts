@@ -1,11 +1,9 @@
 import type { MetadataRoute } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { baseURL, getMetadataURL } from "@/lib/utils/urls";
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const locale = await getLocale();
   const t = await getTranslations({ namespace: "metadata", locale });
-  const startUrl = getMetadataURL(baseURL, locale).canonical;
 
   const name = t("title");
   const shortName = t("short_name");
@@ -15,12 +13,12 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     name,
     short_name: shortName,
     description,
-    start_url: startUrl,
+    start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#ffffff",
     lang: locale,
-    scope: startUrl,
+    scope: "/",
     orientation: "portrait-primary",
     icons: [
       {
