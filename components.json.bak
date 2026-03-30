@@ -3,7 +3,6 @@
   "style": "radix-mira",
   "rsc": true,
   "tsx": true,
-  "rtl": true,
   "tailwind": {
     "config": "",
     "css": "src/styles/unused.css",
@@ -12,6 +11,7 @@
     "prefix": ""
   },
   "iconLibrary": "tabler",
+  "rtl": true,
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils/cn",
@@ -20,6 +20,6 @@
     "hooks": "@/hooks"
   },
   "menuColor": "default",
-  "menuAccent": "bold",
+  "menuAccent": "subtle",
   "registries": {}
 }
