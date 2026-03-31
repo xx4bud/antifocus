@@ -1,6 +1,6 @@
 import { env } from "@/env";
 import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "@/lib/i18n";
-import { isClient } from "@/utils";
+import { isClient } from "@/lib/utils";
 
 export function getBaseURL() {
   if (isClient) {

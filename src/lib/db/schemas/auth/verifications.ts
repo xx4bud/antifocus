@@ -1,5 +1,5 @@
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { generateId } from "@/utils/ids";
+import { generateId } from "@/lib/utils/ids";
 
 /**
  * Better auth verifications table

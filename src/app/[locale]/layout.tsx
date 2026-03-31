@@ -12,8 +12,8 @@ import {
 import { Provider } from "@/app/provider";
 import { getLocaleDir, type Locale } from "@/lib/i18n";
 import { routing } from "@/lib/i18n/routing";
+import { baseURL, cn, createMetadata, getMetadataURL } from "@/lib/utils";
 import { geistMono, geistSans, robotoSerif } from "@/styles/fonts";
-import { baseURL, cn, createMetadata, getMetadataURL } from "@/utils";
 
 export default async function RootLayout({
   children,

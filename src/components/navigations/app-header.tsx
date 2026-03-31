@@ -1,5 +1,5 @@
-import { HeaderMain } from "@/components/shared/header-main";
-import { HeaderMobile } from "@/components/shared/header-mobile";
+import { HeaderMain } from "@/components/navigations/header-main";
+import { HeaderMobile } from "@/components/navigations/header-mobile";
 
 export function AppHeader() {
   return (

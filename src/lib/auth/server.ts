@@ -2,8 +2,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { env } from "@/env";
 import { db, schema } from "@/lib/db";
-import { baseURL, isProduction } from "@/utils";
-import { generateId } from "@/utils/ids";
+import { baseURL, isProduction } from "@/lib/utils";
+import { generateId } from "@/lib/utils/ids";
 
 interface InitAuthProps {
   baseURL: string;

@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { accounts } from "@/lib/db/schemas/auth/accounts";
 import { sessions } from "@/lib/db/schemas/auth/sessions";
-import { generateId } from "@/utils/ids";
+import { generateId } from "@/lib/utils/ids";
 
 /**
  * Better auth: users table

@@ -1,5 +1,4 @@
 import type { Locale } from "@/lib/i18n/types";
-import en from "@/messages/en-US.json";
 import id from "@/messages/id-ID.json";
 
 export const LOCALES = {
@@ -10,14 +9,10 @@ export const LOCALES = {
     flag: "🇮🇩",
     direction: "ltr",
   },
-  "en-US": {
-    code: "en-US",
-    messages: en,
-    name: "English",
-    flag: "🇺🇸",
-    direction: "ltr",
-  },
+  // for now i18n for root metadata only
+  // "en-US": {},
 } as const;
 
 export const DEFAULT_LOCALE: Locale = "id-ID";
+
 export const SUPPORTED_LOCALES: Locale[] = Object.keys(LOCALES) as Locale[];

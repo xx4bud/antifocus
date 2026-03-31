@@ -1,5 +1,5 @@
-import { AppFooter } from "@/components/shared/app-footer";
-import { AppHeader } from "@/components/shared/app-header";
+import { AppFooter } from "@/components/navigations/app-footer";
+import { AppHeader } from "@/components/navigations/app-header";
 
 export default function PublicLayout({
   children,

@@ -1,6 +1,6 @@
 import { createNavigation } from "next-intl/navigation";
 import { routing } from "@/lib/i18n/routing";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 export const {
   Link: IntlLink,

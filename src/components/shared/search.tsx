@@ -4,7 +4,7 @@ import { IconSearch, IconX } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 interface SearchProps extends Omit<React.ComponentProps<"form">, "onSubmit"> {
   onSubmit?: (query: string) => void;
