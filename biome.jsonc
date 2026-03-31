@@ -15,7 +15,8 @@
         "noNamespaceImport": "off"
       },
       "style": {
-        "noNestedTernary": "off"
+        "noNestedTernary": "off",
+        "noExportedImports": "off"
       }
     }
   }

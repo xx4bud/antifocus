@@ -7,8 +7,12 @@ export function getBaseURL() {
     return window.location.origin;
   }
 
-  if (env.VERCEL_ENV) {
+  if (env.VERCEL_ENV === "production") {
     return `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+
+  if (env.VERCEL_URL) {
+    return `https://${env.VERCEL_URL}`;
   }
 
   return `http://localhost:${process.env.PORT ?? 3000}`;

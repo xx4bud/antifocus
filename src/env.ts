@@ -11,6 +11,14 @@ export const env = createEnv({
       .default("development"),
   },
 
+  server: {
+    // db (neon postgres)
+    DATABASE_URL: z.string().min(1),
+
+    // better-auth
+    BETTER_AUTH_SECRET: z.string().min(1),
+  },
+
   experimental__runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
   },
