@@ -1,7 +1,6 @@
 import { createNavigation } from "next-intl/navigation";
-import type React from "react";
 import { routing } from "@/lib/i18n/routing";
-import { cn } from "@/lib/utils/cn";
+import { cn } from "@/utils";
 
 export const {
   Link: IntlLink,

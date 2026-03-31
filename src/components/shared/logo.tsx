@@ -1,5 +1,5 @@
 import type React from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link } from "@/lib/i18n";
 
 interface LogoProps extends React.ComponentProps<typeof Link> {
   children?: React.ReactNode;

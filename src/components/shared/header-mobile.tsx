@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { LogoWhite } from "@/components/ui/logo";
-import { SearchForm, SearchFormTrigger } from "@/components/ui/search-form";
+import { LogoWhite } from "@/components/shared/logo";
+import { Search, SearchTrigger } from "@/components/shared/search";
 
 export function HeaderMobile() {
   const [openSearch, setOpenSearch] = useState(false);
@@ -15,8 +15,8 @@ export function HeaderMobile() {
     <nav className="flex flex-1 items-center md:hidden">
       {openSearch ? (
         <div className="flex flex-1 items-center gap-3">
-          <SearchFormTrigger isOpen={true} onClick={onClick} />
-          <SearchForm />
+          <Search />
+          <SearchTrigger isOpen={true} onClick={onClick} />
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-between">
@@ -24,7 +24,7 @@ export function HeaderMobile() {
             <LogoWhite href={"/"} />
           </div>
           <div className="flex items-center">
-            <SearchFormTrigger isOpen={false} onClick={onClick} />
+            <SearchTrigger isOpen={false} onClick={onClick} />
           </div>
         </div>
       )}

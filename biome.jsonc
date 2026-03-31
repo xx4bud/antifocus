@@ -11,6 +11,7 @@
         "useAwait": "off"
       },
       "performance": {
+        "noBarrelFile": "off",
         "noNamespaceImport": "off"
       },
       "style": {

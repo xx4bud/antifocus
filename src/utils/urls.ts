@@ -1,18 +1,14 @@
 import { env } from "@/env";
 import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "@/lib/i18n";
-import { isClient } from "@/lib/utils/env";
+import { isClient } from "@/utils";
 
 export function getBaseURL() {
   if (isClient) {
     return window.location.origin;
   }
 
-  if (env.VERCEL_ENV === "production") {
+  if (env.VERCEL_ENV) {
     return `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-
-  if (env.VERCEL_ENV === "preview") {
-    return `https://${env.VERCEL_URL}`;
   }
 
   return `http://localhost:${process.env.PORT ?? 3000}`;
