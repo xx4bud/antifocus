@@ -48,7 +48,7 @@ pids
 .agents
 .claude
 .kilo
-.sources
+.backups
 skills-lock.json
 
 # outputs
