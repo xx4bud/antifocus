@@ -51,7 +51,6 @@ export function initAuth(opts: InitAuthProps) {
       max: 10, // 10 requests per window
       storage: "secondary-storage",
     },
-
     experimental: {
       joins: true,
     },
@@ -93,7 +92,6 @@ export function initAuth(opts: InitAuthProps) {
         maxAge: 5 * 60, // 5 minutes cache for sessions
       },
     },
-
     databaseHooks: {
       user: {
         create: {
@@ -107,7 +105,6 @@ export function initAuth(opts: InitAuthProps) {
             if (!user.displayUsername && user.username) {
               user.displayUsername = user.username;
             }
-
             return { data: user };
           },
         },
