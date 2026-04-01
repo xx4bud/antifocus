@@ -27,7 +27,6 @@ function Search({
   return (
     <form
       aria-label="search form"
-      autoComplete="off"
       className={cn("relative flex flex-1 items-center", className)}
       onSubmit={handleSubmit}
       {...props}

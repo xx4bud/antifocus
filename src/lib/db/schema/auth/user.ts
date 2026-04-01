@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { accounts } from "@/lib/db/schemas/auth/accounts";
-import { sessions } from "@/lib/db/schemas/auth/sessions";
+import { accounts } from "@/lib/db/schema/auth/account";
+import { sessions } from "@/lib/db/schema/auth/session";
 import { generateId } from "@/lib/utils/ids";
 
 /**
@@ -17,8 +17,16 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: text("image"), // avatar url
+
+    // username plugin
     username: text("username").unique(),
+    displayUsername: text("display_username"),
+
+    // phone-number plugin
     phoneNumber: text("phone_number"),
+    phoneNumberVerified: boolean("phone_number_verified")
+      .default(false)
+      .notNull(),
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

@@ -2,7 +2,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
 import { env } from "@/env";
 import type { DbSchema } from "@/lib/db/types";
-import * as schema from "./schemas";
+import * as schema from "./schema";
 
 export { schema };
 
