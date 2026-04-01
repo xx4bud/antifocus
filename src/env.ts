@@ -20,6 +20,14 @@ export const env = createEnv({
 
     // email (resend)
     RESEND_API_KEY: z.string().min(1),
+
+    // cache (upstash redis)
+    KV_REST_API_URL: z.string().min(1),
+    KV_REST_API_TOKEN: z.string().min(1),
+
+    // google oauth
+    GOOGLE_CLIENT_ID: z.string().min(1),
+    GOOGLE_CLIENT_SECRET: z.string().min(1),
   },
 
   experimental__runtimeEnv: {

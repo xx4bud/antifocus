@@ -22,7 +22,8 @@
     "noImplicitThis": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/assets/*": ["./public/assets/*"]
     },
     "plugins": [
       {
