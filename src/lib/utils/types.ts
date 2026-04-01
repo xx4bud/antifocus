@@ -1,3 +1,5 @@
+import type { NextRequest, NextResponse } from "next/server";
+
 export interface AppError {
   code: string;
   context?: Record<string, unknown>;
@@ -24,3 +26,7 @@ export type AppResponse<T = unknown> =
         context?: Record<string, unknown>;
       };
     };
+
+export type ProxyHandler = (
+  request: NextRequest
+) => Promise<NextResponse | undefined>;

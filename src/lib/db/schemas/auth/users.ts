@@ -17,6 +17,8 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: text("image"), // avatar url
+    username: text("username").unique(),
+    phoneNumber: text("phone_number"),
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

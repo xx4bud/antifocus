@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { phoneNumber, username } from "better-auth/plugins";
 import { env } from "@/env";
 import { db, schema } from "@/lib/db";
 import { baseURL, isProduction } from "@/lib/utils";
@@ -24,6 +25,8 @@ export function initAuth(opts: InitAuthProps) {
       schema,
       usePlural: true,
     }),
+
+    plugins: [username(), phoneNumber()],
 
     experimental: {
       joins: true,

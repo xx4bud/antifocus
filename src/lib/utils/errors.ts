@@ -60,7 +60,7 @@ export function parseUnknownError(error: unknown): AppError {
 }
 
 export function parseError(error: unknown): AppError {
-  console.error("🔥 Error:", error);
+  console.error("ERROR:", error);
 
   let appError: AppError;
 
