@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SUPPORTED_LOCALES } from "@/lib/i18n";
 import { ROUTES } from "@/lib/i18n/routing";
-import { getMetadataURL } from "@/lib/utils/urls";
+import { getMetadataURL } from "@/lib/utils";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];

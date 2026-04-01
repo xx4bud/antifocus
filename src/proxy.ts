@@ -1,16 +1,15 @@
 import type { NextRequest } from "next/server";
-import createMiddleware from "next-intl/middleware";
-import { routing } from "@/lib/i18n/routing";
+import { authHandler, chain, i18nHandler } from "@/lib/proxies";
+import { toErrorHandler } from "@/lib/utils/api";
+import { parseError } from "@/lib/utils/errors";
 
-const i18nMiddleware = createMiddleware(routing);
+const middleware = chain([authHandler, i18nHandler]);
 
-export default function proxy(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   try {
-    const i18nResponse = i18nMiddleware(req);
-
-    return i18nResponse;
+    return await middleware(req);
   } catch (error) {
-    console.error("PROXY", error);
+    return toErrorHandler(parseError(error));
   }
 }
 

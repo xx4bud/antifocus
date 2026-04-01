@@ -225,6 +225,6 @@
   }
 
   .container {
-    @apply mx-auto max-w-7xl p-2;
+    @apply mx-auto max-w-6xl;
   }
 }

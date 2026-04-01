@@ -10,8 +10,13 @@
       "suspicious": {
         "useAwait": "off"
       },
+      "performance": {
+        "noBarrelFile": "off",
+        "noNamespaceImport": "off"
+      },
       "style": {
-        "noNestedTernary": "off"
+        "noNestedTernary": "off",
+        "noExportedImports": "off"
       }
     }
   }

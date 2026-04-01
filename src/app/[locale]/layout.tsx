@@ -12,9 +12,7 @@ import {
 import { Provider } from "@/app/provider";
 import { getLocaleDir, type Locale } from "@/lib/i18n";
 import { routing } from "@/lib/i18n/routing";
-import { cn } from "@/lib/utils/cn";
-import { createMetadata } from "@/lib/utils/metadata";
-import { baseURL, getMetadataURL } from "@/lib/utils/urls";
+import { baseURL, cn, createMetadata, getMetadataURL } from "@/lib/utils";
 import { geistMono, geistSans, robotoSerif } from "@/styles/fonts";
 
 export default async function RootLayout({

@@ -3,8 +3,8 @@ import {
   type GetRequestConfigParams,
   getRequestConfig,
 } from "next-intl/server";
-import { LOCALES } from "@/lib/i18n";
-import { routing } from "@/lib/i18n/routing";
+import { LOCALES } from "./constant";
+import { routing } from "./routing";
 
 export default getRequestConfig(
   async ({ requestLocale }: GetRequestConfigParams) => {

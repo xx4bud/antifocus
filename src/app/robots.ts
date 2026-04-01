@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SUPPORTED_LOCALES } from "@/lib/i18n";
 import { PROTECTED_ROUTES } from "@/lib/i18n/routing";
-import { baseURL, getLocalePath } from "@/lib/utils/urls";
+import { baseURL, getLocalePath } from "@/lib/utils";
 
 export default function robots(): MetadataRoute.Robots {
   const disallow = SUPPORTED_LOCALES.flatMap((locale) =>

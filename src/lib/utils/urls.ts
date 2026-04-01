@@ -1,6 +1,6 @@
 import { env } from "@/env";
 import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "@/lib/i18n";
-import { isClient } from "@/lib/utils/env";
+import { isClient } from "@/lib/utils";
 
 export function getBaseURL() {
   if (isClient) {
@@ -11,7 +11,7 @@ export function getBaseURL() {
     return `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
 
-  if (env.VERCEL_ENV === "preview") {
+  if (env.VERCEL_URL) {
     return `https://${env.VERCEL_URL}`;
   }
 

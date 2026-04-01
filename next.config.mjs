@@ -13,6 +13,8 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
+
+  serverExternalPackages: ["@node-rs/argon2"],
 };
 
 const withI18n = createNextIntlPlugin({
