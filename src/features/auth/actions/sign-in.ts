@@ -7,32 +7,30 @@ import type { AppResponse } from "@/lib/utils/types";
 import { type SignInInput, validSignIn } from "../validators/sign-in";
 
 /**
- * Server action for user authentication
+ * Server action for user authentication with layered architecture.
+ * Supports email, username, and phone number login via Better Auth.
  */
 export async function signInAction(values: SignInInput): Promise<AppResponse> {
-  const result = validSignIn(values);
+  const parsed = validSignIn(values);
 
-  if (!result.success) {
+  if (!parsed.success) {
     return {
       success: false,
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Data masuk tidak valid",
-        context: result.error.flatten().fieldErrors,
-      },
+      error: parseError(parsed.error),
     };
   }
 
-  const { identifier, password, rememberMe } = result.data;
+  const { identifier, password, rememberMe } = parsed.data;
   const commonBody = {
     password,
     dontRememberMe: !rememberMe,
   };
 
   try {
-    let response: unknown;
     const requestHeaders = await headers();
+    let response: unknown;
 
+    // Delegate to appropriate Better Auth provider based on identifier type
     switch (identifier.type) {
       case "email":
         response = await auth.api.signInEmail({
@@ -56,7 +54,7 @@ export async function signInAction(values: SignInInput): Promise<AppResponse> {
         break;
 
       default:
-        throw new Error("Tipe pengenal tidak valid");
+        throw new Error("Metode masuk tidak didukung");
     }
 
     return {
@@ -64,15 +62,9 @@ export async function signInAction(values: SignInInput): Promise<AppResponse> {
       data: response,
     };
   } catch (error) {
-    const appError = parseError(error);
-
     return {
       success: false,
-      error: {
-        code: appError.code,
-        message: appError.message,
-        context: appError.context,
-      },
+      error: parseError(error),
     };
   }
 }

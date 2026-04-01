@@ -9,6 +9,7 @@ import { Link, useRouter } from "@/lib/i18n";
 import { signInAction } from "../actions/sign-in";
 import { type SignInInput, signInSchema } from "../validators/sign-in";
 import { AuthCard } from "./auth-card";
+import { SocialAuth } from "./social-auth";
 
 export function SignInForm() {
   const { handleError, handleSuccess } = useFeedback();
@@ -44,67 +45,70 @@ export function SignInForm() {
   return (
     <AuthCard
       content={
-        <form
-          className="grid"
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
-          }}
-        >
-          <FieldGroup>
-            <form.AppField name="identifier">
-              {(field) => (
-                <field.input
-                  autoComplete="username"
-                  label="Email atau Username"
-                  placeholder="Masukan email atau username anda"
-                />
-              )}
-            </form.AppField>
-
-            <form.AppField name="password">
-              {(field) => (
-                <field.input
-                  autoComplete="current-password"
-                  className="flex items-center justify-between"
-                  label="Kata sandi"
-                  labelRight={
-                    <Link href="/forgot-password">Lupa kata sandi?</Link>
-                  }
-                  placeholder="Masukan kata sandi anda"
-                />
-              )}
-            </form.AppField>
-
-            <div>
-              <form.AppField name="rememberMe">
+        <>
+          <SocialAuth />
+          <form
+            className="grid"
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
+            <FieldGroup>
+              <form.AppField name="identifier">
                 {(field) => (
-                  <field.checkbox
-                    label="Ingat Saya"
-                    labelRight={
-                      <Link href="/sign-in/phone">Masuk dengan telepon</Link>
-                    }
+                  <field.input
+                    autoComplete="username"
+                    label="Email atau Username"
+                    placeholder="Masukan email atau username anda"
                   />
                 )}
               </form.AppField>
-            </div>
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
-            >
-              {([canSubmit, isSubmitting]) => (
-                <LoadingButton
-                  className="w-full"
-                  disabled={!canSubmit}
-                  loading={isSubmitting}
-                  type="submit"
-                >
-                  Masuk
-                </LoadingButton>
-              )}
-            </form.Subscribe>
-          </FieldGroup>
-        </form>
+
+              <form.AppField name="password">
+                {(field) => (
+                  <field.input
+                    autoComplete="current-password"
+                    className="flex items-center justify-between"
+                    label="Kata sandi"
+                    labelRight={
+                      <Link href="/forgot-password">Lupa kata sandi?</Link>
+                    }
+                    placeholder="Masukan kata sandi anda"
+                  />
+                )}
+              </form.AppField>
+
+              <div>
+                <form.AppField name="rememberMe">
+                  {(field) => (
+                    <field.checkbox
+                      label="Ingat Saya"
+                      labelRight={
+                        <Link href="/sign-in/phone">Masuk dengan telepon</Link>
+                      }
+                    />
+                  )}
+                </form.AppField>
+              </div>
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              >
+                {([canSubmit, isSubmitting]) => (
+                  <LoadingButton
+                    className="w-full"
+                    disabled={!canSubmit}
+                    loading={isSubmitting}
+                    type="submit"
+                  >
+                    Masuk
+                  </LoadingButton>
+                )}
+              </form.Subscribe>
+            </FieldGroup>
+          </form>
+        </>
       }
       description="Masuk ke akun anda untuk melanjutkan"
       footer={

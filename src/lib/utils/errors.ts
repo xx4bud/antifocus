@@ -76,7 +76,7 @@ export function parseError(error: unknown): AppError {
     appError = parseUnknownError(error);
   }
 
-  if (isProduction) {
+  if (isProduction && appError.code !== "AUTH_ERROR") {
     return {
       ...appError,
       message: "Internal server error",
