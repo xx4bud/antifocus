@@ -1,5 +1,3 @@
-import "server-only";
-
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import {
   createTRPCOptionsProxy,
