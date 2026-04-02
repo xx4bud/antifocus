@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { type NewUser, type User, users } from "@/lib/db/schema/auth/user";
+import { type NewUser, type User, users } from "@/lib/db/schema/auth";
 
 /**
  * Update user metadata

@@ -1,14 +1,12 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { nextCookies } from "better-auth/next-js";
-import { phoneNumber, username } from "better-auth/plugins";
+import { oAuthProxy } from "better-auth/plugins";
 import { env } from "@/env";
-import { generateUsernameFromEmail } from "@/features/auth/utils/username";
-import { cache } from "@/lib/cache/utils";
 import { db, schema } from "@/lib/db";
-import { baseURL, isProduction } from "@/lib/utils";
+import { baseURL, isDevelopment, isProduction } from "@/lib/utils";
 import { generateId } from "@/lib/utils/ids";
-import { sendVerificationEmail } from "../notifications/email/send-verification-email";
+import { authOptions } from "./options";
+import { authPlugins } from "./plugins";
 
 interface InitAuthProps {
   baseURL: string;
@@ -20,7 +18,8 @@ interface InitAuthProps {
 
 export function initAuth(opts: InitAuthProps) {
   return betterAuth({
-    appName: "Antifocus",
+    ...authOptions,
+    appName: "antifocus",
     baseURL: opts.baseURL,
     secret: opts.secret,
 
@@ -39,74 +38,18 @@ export function initAuth(opts: InitAuthProps) {
       },
     },
 
-    secondaryStorage: {
-      get: (key) => cache.get<string>(key),
-      set: (key, value, ttl) => cache.set(key, value, ttl),
-      delete: (key) => cache.delete(key),
-    },
-
-    rateLimit: {
-      enabled: isProduction,
-      window: 60, // 60 seconds
-      max: 10, // 10 requests per window
-      storage: "secondary-storage",
-    },
     experimental: {
       joins: true,
     },
 
-    plugins: [username(), phoneNumber(), nextCookies()],
-
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: true, // enforce email verification before sign-in
-
-      // custom password reset handler
-      sendResetPassword: async ({ user, url }) => {
-        const { resetPasswordEmail } = await import(
-          "../notifications/email/send-reset-password"
-        );
-        await resetPasswordEmail.sendResetPassword({
-          email: user.email,
-          url,
-        });
-      },
-    },
-
-    emailVerification: {
-      sendOnSignUp: true,
-      autoSignInAfterVerification: true,
-      sendVerificationEmail: async ({ user, url }) => {
-        await sendVerificationEmail({
-          email: user.email,
-          url,
-        });
-      },
-    },
-
-    session: {
-      expiresIn: 60 * 60 * 24 * 7, // 7 days
-      updateAge: 60 * 60 * 24, // 1 day
-      cookieCache: {
-        enabled: true,
-        maxAge: 5 * 60, // 5 minutes cache for sessions
-      },
-    },
-    databaseHooks: {
-      user: {
-        create: {
-          before: async (user) => {
-            // Ensure unique username exists
-            if (!user.username && user.email) {
-              user.username = generateUsernameFromEmail(user.email);
-            }
-
-            // Sync displayUsername with username if not provided
-            if (!user.displayUsername && user.username) {
-              user.displayUsername = user.username;
-            }
-            return { data: user };
-          },
+    cookies: {
+      sessionToken: {
+        options: {
+          httpOnly: true,
+          secure: isProduction,
+          sameSite: "strict",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
         },
       },
     },
@@ -115,9 +58,31 @@ export function initAuth(opts: InitAuthProps) {
       database: {
         generateId: () => generateId(),
       },
-      // secure cookies in production
+      ipAddress: {
+        ipAddressHeaders: ["x-client-ip", "x-forwarded-for"],
+        disableIpTracking: false,
+      },
+      cookiePrefix: "afc",
+      crossSubDomainCookies: {
+        enabled: false,
+      },
       useSecureCookies: isProduction,
+      disableCSRFCheck: false,
     },
+
+    trustedOrigins: [
+      "antifocus://",
+      opts.baseURL,
+      opts.productionURL,
+      ...(isDevelopment ? ["*"] : []),
+    ],
+
+    plugins: [
+      ...authPlugins,
+      oAuthProxy({
+        productionURL: opts.productionURL,
+      }),
+    ],
 
     logger: {
       disabled: isProduction,

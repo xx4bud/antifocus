@@ -1,17 +1,17 @@
 import { baseURL } from "@/lib/utils";
 import { sendEmail } from "./send-email";
 
-/**
- * Service for sending password reset links via email.
- * This is a critical security flow.
- */
-
-export const resetPasswordEmail = {
-  sendResetPassword: async ({ email, url }: { email: string; url: string }) => {
-    return sendEmail({
-      to: email,
-      subject: "Atur ulang kata sandi Antifocus Anda",
-      html: `
+export async function sendResetPassword({
+  email,
+  url,
+}: {
+  email: string;
+  url: string;
+}) {
+  return sendEmail({
+    to: email,
+    subject: "Atur ulang kata sandi Antifocus Anda",
+    html: `
         <div style="font-family: sans-serif; padding: 20px; text-align: center;">
           <img
             src="${baseURL}/assets/avatar.png"
@@ -30,6 +30,5 @@ export const resetPasswordEmail = {
           </div>
         </div>
       `,
-    });
-  },
-};
+  });
+}
