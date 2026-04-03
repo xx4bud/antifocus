@@ -25,9 +25,17 @@ export const env = createEnv({
     KV_REST_API_URL: z.string().min(1),
     KV_REST_API_TOKEN: z.string().min(1),
 
-    // google oauth
+    // aauth (google)
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
+
+    // background jobs (inngest)
+    INNGEST_EVENT_KEY: z.string().min(1),
+    INNGEST_SIGNING_KEY: z.string().min(1),
+
+    // monitoring (sentry)
+    SENTRY_DSN: z.string().min(1),
+    SENTRY_AUTH_TOKEN: z.string().min(1),
   },
 
   experimental__runtimeEnv: {

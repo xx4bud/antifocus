@@ -15,6 +15,15 @@ const nextConfig = {
   },
 
   serverExternalPackages: ["@node-rs/argon2"],
+
+  experimental:
+    process.env.NODE_ENV === "development"
+      ? {
+          serverActions: {
+            allowedOrigins: ["localhost", "127.0.0.1", "*.app.github.dev"],
+          },
+        }
+      : undefined,
 };
 
 const withI18n = createNextIntlPlugin({

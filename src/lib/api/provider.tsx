@@ -5,7 +5,7 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { useMemo, useState } from "react";
 import superjson from "superjson";
 import type { AppRouter } from "@/lib/api/root";
-import { TRPCProvider } from "./client";
+import { TRPCProvider } from "./trpc.client";
 
 /**
  * tRPC + React Query Provider component to be used in the root layout.

@@ -4,10 +4,32 @@ import {
   type TRPCQueryOptions,
 } from "@trpc/tanstack-react-query";
 import { cache } from "react";
-import { createContext } from "./context";
+import { getServerSession } from "@/features/auth/actions/session";
+import { db } from "@/lib/db";
+import { logger } from "@/lib/utils/logger";
 import { makeQueryClient } from "./query";
 import { type AppRouter, appRouter } from "./root";
-import { createCallerFactory } from "./trpc";
+import { createCallerFactory } from "./trpc.server";
+
+export const createContext = cache(async () => {
+  const session = await getServerSession();
+
+  return {
+    db,
+    session,
+    user: session?.user ?? null,
+    userId: session?.user?.id ?? null,
+    dbUserId: session?.user?.id ?? null, // Assuming same for now
+    userRole: session?.user?.role ?? null,
+    userRoles: session?.user?.role ? [session.user.role] : [],
+    isInactive: session?.user?.status === "inactive",
+    logger,
+    requestId: `req-${Date.now()}`, // Placeholder
+    ipAddress: "127.0.0.1", // Placeholder
+  };
+});
+
+export type Context = Awaited<ReturnType<typeof createContext>>;
 
 const getQueryClient = cache(makeQueryClient);
 

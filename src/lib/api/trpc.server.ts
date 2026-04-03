@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import SuperJSON from "superjson";
 import z, { ZodError } from "zod";
 import { isDevelopment } from "@/lib/utils";
-import type { Context } from "./context";
+import type { Context } from "./server";
 
 const t = initTRPC.context<Context>().create({
   transformer: SuperJSON,
@@ -41,9 +41,24 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   return result;
 });
 
-export const publicProcedure = t.procedure.use(timingMiddleware);
+const loggingMiddleware = t.middleware(async ({ next, path, ctx }) => {
+  const start = Date.now();
 
-export const authProcedure = t.procedure.use(({ ctx, next }) => {
+  ctx.logger.info(`TRPC ${path} started`);
+
+  const result = await next();
+
+  const duration = Date.now() - start;
+  ctx.logger.info(`TRPC ${path} completed in ${duration}ms`);
+
+  return result;
+});
+
+export const publicProcedure = t.procedure
+  .use(loggingMiddleware)
+  .use(timingMiddleware);
+
+export const authProcedure = publicProcedure.use(({ ctx, next }) => {
   if (!(ctx.session && ctx.user)) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
@@ -60,12 +75,25 @@ export const authProcedure = t.procedure.use(({ ctx, next }) => {
   });
 });
 
+const enforceRBAC = t.middleware(({ ctx, next }) => {
+  if (!ctx.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  if (!ctx.dbUserId) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  if (ctx.isInactive) {
+    throw new TRPCError({ code: "FORBIDDEN" });
+  }
+  return next({ ctx: { ...ctx, userId: ctx.userId, dbUserId: ctx.dbUserId } });
+});
+
 /**
  * RBAC Procedure: Guard by specific roles
  */
 export const rbacProcedure = (roles: string[]) =>
-  authProcedure.use(({ ctx, next }) => {
-    if (!roles.includes(ctx.user.role)) {
+  authProcedure.use(enforceRBAC).use(({ ctx, next }) => {
+    if (!roles.some((role) => ctx.userRoles.includes(role))) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "Akses ditolak: Membutuhkan role yang sesuai",

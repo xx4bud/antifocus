@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { updateUserMetadata } from "@/features/auth/mutations/user";
-import { adminProcedure, authProcedure, router } from "@/lib/api/trpc";
+import { adminProcedure, authProcedure, router } from "@/lib/api/trpc.server";
 
 export const authRouter = router({
   /**

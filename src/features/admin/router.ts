@@ -1,4 +1,4 @@
-import { adminProcedure, router } from "@/lib/api/trpc";
+import { adminProcedure, router } from "@/lib/api/trpc.server";
 
 export const adminRouter = router({
   getStats: adminProcedure.query(async () => {
