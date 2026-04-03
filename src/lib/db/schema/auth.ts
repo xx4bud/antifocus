@@ -45,7 +45,7 @@ export const userRoles = pgTable(
       .defaultNow()
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [
@@ -99,7 +99,7 @@ export const users = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -143,7 +143,7 @@ export const accounts = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [index("accounts_user_id_idx").on(table.userId)]
@@ -183,7 +183,7 @@ export const sessions = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [index("sessions_user_id_idx").on(table.userId)]
@@ -211,7 +211,7 @@ export const verifications = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [index("verifications_identifier_idx").on(table.identifier)]
@@ -277,7 +277,7 @@ export const apikeys = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [

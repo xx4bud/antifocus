@@ -61,7 +61,7 @@ export const organizations = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -95,7 +95,7 @@ export const members = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -137,7 +137,7 @@ export const invitations = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [
@@ -172,7 +172,7 @@ export const organizationRoles = pgTable(
       .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [

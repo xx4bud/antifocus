@@ -19,7 +19,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .$onUpdateFn(() => new Date())
     .notNull(),
   username: text("username").unique(),
   displayUsername: text("display_username"),
@@ -44,7 +44,7 @@ export const sessions = pgTable(
     token: text("token").notNull().unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
@@ -76,7 +76,7 @@ export const accounts = pgTable(
     password: text("password"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     metadata: jsonb("metadata"),
   },
@@ -93,7 +93,7 @@ export const verifications = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     metadata: jsonb("metadata"),
   },
@@ -128,7 +128,7 @@ export const organizations = pgTable(
     status: text("status").default("pending").notNull(),
     settings: jsonb("settings"),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     deletedAt: timestamp("deleted_at"),
   },
@@ -145,9 +145,7 @@ export const organizationRoles = pgTable(
     role: text("role").notNull(),
     permission: jsonb("permission"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").$onUpdate(
-      () => /* @__PURE__ */ new Date()
-    ),
+    updatedAt: timestamp("updated_at").$onUpdateFn(() => new Date()),
     metadata: jsonb("metadata"),
     system: boolean("system").default(false),
     enabled: boolean("enabled").default(true),
@@ -173,7 +171,7 @@ export const members = pgTable(
     status: text("status").default("pending").notNull(),
     metadata: jsonb("metadata"),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
     deletedAt: timestamp("deleted_at"),
   },
@@ -200,7 +198,7 @@ export const invitations = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     metadata: jsonb("metadata"),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => new Date())
+      .$onUpdateFn(() => new Date())
       .notNull(),
   },
   (table) => [
