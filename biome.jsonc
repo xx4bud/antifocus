@@ -6,6 +6,10 @@
     "ultracite/biome/react"
   ],
   "linter": {
-    "rules": {}
+    "rules": {
+      "performance": {
+        "noNamespaceImport": "off"
+      }
+    }
   }
 }
