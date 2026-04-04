@@ -1,0 +1,60 @@
+import { env } from "@/env";
+import { defaultLocale, type Locale, locales } from "@/lib/i18n";
+import { isClient } from "@/lib/utils/env";
+
+export function getBaseURL() {
+  if (isClient) {
+    return window.location.origin;
+  }
+
+  if (env.VERCEL_ENV === "production") {
+    return `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+
+  if (env.VERCEL_URL) {
+    return `https://${env.VERCEL_URL}`;
+  }
+
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+}
+
+export const baseURL = getBaseURL();
+
+export const createPath = (path: string) =>
+  path.startsWith("/") ? path : `/${path}`;
+
+export function getAbsoluteURL(path: string) {
+  const cleanPath = createPath(path);
+  return cleanPath === "/" ? baseURL : `${baseURL}${cleanPath}`;
+}
+
+export function getLocalePath(path: string, locale: Locale): string {
+  const cleanPath = createPath(path);
+  const prefix = locale === defaultLocale ? "" : `/${locale}`;
+  return `${prefix}${cleanPath}` || "/";
+}
+
+export function getLocaleURL(path: string, locale: Locale): string {
+  return getAbsoluteURL(getLocalePath(path, locale));
+}
+
+export function getMetadataURL(
+  path: string,
+  currentLocale: Locale = defaultLocale
+): {
+  canonical: string;
+  languages: Record<string, string>;
+} {
+  const languages: Record<string, string> = {};
+
+  for (const locale of locales) {
+    languages[locale] = getLocaleURL(path, locale);
+  }
+
+  languages["x-default"] = getLocaleURL(path, defaultLocale);
+
+  return {
+    canonical: getLocaleURL(path, currentLocale),
+    languages,
+  };
+}

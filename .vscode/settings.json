@@ -123,7 +123,7 @@
   "tailwindCSS.classFunctions": ["cva", "cx", "cn"],
   "tailwindCSS.experimental.configFile": "src/styles/globals.css",
 
-  "i18n-ally.localesPaths": ["src/messages"],
+  "i18n-ally.localesPaths": ["src/lib/i18n/messages"],
   "i18n-ally.enabledFrameworks": ["next-intl"],
   "i18n-ally.sourceLanguage": "id-ID",
   "i18n-ally.displayLanguage": "id-ID",
