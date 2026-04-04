@@ -8,28 +8,5 @@
     "keywords": "antifocus, print, custom, merchandise, souvenir, indonesia",
     "author_name": "xx4bud",
     "author_url": "https://github.com/xx4bud"
-  },
-  "admin": {
-    "sidebar": {
-      "main_menu": "Menu Utama"
-    },
-    "nav": {
-      "dashboard": "Dashboard",
-      "users": "Pengguna",
-      "organizations": "Organisasi",
-      "orders": "Pesanan",
-      "settings": "Pengaturan"
-    },
-    "dashboard": {
-      "title": "Dashboard",
-      "total_users": "Total Pengguna",
-      "organizations": "Organisasi",
-      "revenue": "Pendapatan",
-      "active_now": "Aktif Sekarang",
-      "overview": "Ikhtisar",
-      "recent_activity": "Aktivitas Terkini",
-      "no_activity": "Belum ada aktivitas.",
-      "chart_placeholder": "Komponen grafik akan diimplementasikan di sini"
-    }
   }
 }

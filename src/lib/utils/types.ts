@@ -27,6 +27,6 @@ export type AppResponse<T = unknown> =
       };
     };
 
-export type ProxyHandler = (
+export type AppHandler = (
   request: NextRequest
 ) => Promise<NextResponse | undefined>;

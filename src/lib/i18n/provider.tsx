@@ -14,7 +14,7 @@ export function I18nProvider({
 }>) {
   return (
     <NextIntlClientProvider
-      getMessageFallback={({ namespace, key }) => `${namespace}.${key}`}
+      getMessageFallback={({ namespace, key }) => `${namespace}_${key}`}
       locale={locale}
       messages={messages}
       onError={(error) => new Error(error.message)}

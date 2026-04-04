@@ -1,6 +1,6 @@
 import { createNavigation } from "next-intl/navigation";
 import { routing } from "@/lib/i18n/routing";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 
 export const {
   Link: IntlLink,
@@ -37,12 +37,6 @@ export function Link({ className, href = "#", ref, ...props }: LinkProps) {
   }
 
   return (
-    <IntlLink
-      className={cn(className)}
-      // @ts-expect-error
-      href={href}
-      ref={ref}
-      {...props}
-    />
+    <IntlLink className={cn(className)} href={href} ref={ref} {...props} />
   );
 }
