@@ -32,6 +32,15 @@
   "[yaml]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
+  "[graphql]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[svelte]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
 
   "editor.defaultFormatter": "biomejs.biome",
   "editor.formatOnSave": true,
