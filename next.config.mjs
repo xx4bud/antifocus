@@ -19,7 +19,14 @@ const nextConfig = {
   },
 
   experimental: {
-    optimizePackageImports: ["zod"],
+    optimizePackageImports: [
+      "zod",
+      "@dnd-kit/*",
+      "@tabler/icons-react",
+      "recharts",
+      "@shadcn",
+      "tw-animate-css",
+    ],
   },
 };
 

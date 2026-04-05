@@ -13,13 +13,7 @@ export function I18nProvider({
   timeZone?: string;
 }>) {
   return (
-    <NextIntlClientProvider
-      getMessageFallback={({ namespace, key }) => `${namespace}.${key}`}
-      locale={locale}
-      messages={messages}
-      onError={(error) => new Error(error.message)}
-      timeZone={timeZone}
-    >
+    <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
       {children}
     </NextIntlClientProvider>
   );

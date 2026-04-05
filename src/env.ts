@@ -11,7 +11,17 @@ export const env = createEnv({
       .default("development"),
   },
 
-  server: {},
+  server: {
+    // database (neon)
+    DATABASE_URL: z.url(),
+
+    // better-auth
+    BETTER_AUTH_SECRET: z.string(),
+
+    // oauth (google)
+    GOOGLE_CLIENT_ID: z.string(),
+    GOOGLE_CLIENT_SECRET: z.string(),
+  },
 
   experimental__runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,

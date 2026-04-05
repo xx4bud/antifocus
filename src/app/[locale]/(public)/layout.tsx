@@ -9,7 +9,7 @@ export default function PublicLayout({
   return (
     <div className="relative flex flex-1 flex-col">
       <AppHeader />
-      <main className="container flex min-h-svh flex-1 flex-col">
+      <main className="container flex min-h-svh flex-1 flex-col bg-muted">
         {children}
       </main>
       <AppFooter />
