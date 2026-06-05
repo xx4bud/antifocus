@@ -1,0 +1,137 @@
+// ==============================
+// Attributes
+// ==============================
+
+model Attribute {
+    id             String @id @default(cuid())
+    organizationId String @map("organization_id")
+
+    type AttributeType @default(select)
+    name String
+    code String
+
+    position Int   @default(0)
+    metadata Json? @db.JsonB
+
+    createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+    deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    options    AttributeOption[]
+    categories CategoryAttribute[]
+    products   ProductAttribute[]
+
+    @@unique([organizationId, code])
+    @@index([organizationId])
+    @@map("attributes")
+}
+
+model AttributeOption {
+    id          String @id @default(cuid())
+    attributeId String @map("attribute_id")
+
+    name String
+    code String
+
+    position Int   @default(0)
+    metadata Json? @db.JsonB
+
+    createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+    deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+    attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+    products ProductAttribute[]
+    variants VariantOption[]
+
+    @@unique([attributeId, code])
+    @@index([attributeId])
+    @@map("attribute_options")
+}
+
+// ==============================
+// Categories
+// ==============================
+
+model Category {
+    id             String @id @default(cuid())
+    organizationId String @map("organization_id")
+
+    name String
+    slug String
+
+    position Int   @default(0)
+    metadata Json? @db.JsonB
+
+    createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+    deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    images     CategoryImage[]
+    attributes CategoryAttribute[]
+    products   ProductCategory[]
+
+    @@unique([organizationId, slug])
+    @@map("categories")
+}
+
+model CategoryImage {
+    id         String @id @default(cuid())
+    categoryId String @map("category_id")
+    fileId     String @map("file_id")
+
+    position  Int      @default(0)
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    file     File     @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+    @@unique([categoryId, fileId])
+    @@map("category_images")
+}
+
+model CategoryAttribute {
+    id          String @id @default(cuid())
+    categoryId  String @map("category_id")
+    attributeId String @map("attribute_id")
+
+    required  Boolean  @default(false)
+    position  Int      @default(0)
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+
+    @@unique([categoryId, attributeId])
+    @@map("category_attributes")
+}
+
+// ==============================
+// Tags
+// ==============================
+
+model Tag {
+    id             String @id @default(cuid())
+    organizationId String @map("organization_id")
+
+    name String
+    code String
+
+    metadata Json? @db.JsonB
+
+    createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+    deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    products ProductTag[]
+
+    @@unique([organizationId, code])
+    @@map("tags")
+}

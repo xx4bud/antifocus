@@ -1,0 +1,90 @@
+// ==============================
+// Payments
+// ==============================
+
+model Invoice {
+    id             String @id @default(cuid())
+    orderId        String @map("order_id")
+    organizationId String @map("organization_id")
+
+    invoiceNumber String        @map("invoice_number")
+    status        InvoiceStatus @default(draft)
+
+    currencyCode   CurrencyCode @default(IDR) @map("currency_code")
+    subTotal       BigInt       @default(0) @map("sub_total")
+    taxAmount      BigInt       @default(0) @map("tax_amount")
+    discountAmount BigInt       @default(0) @map("discount_amount")
+    totalAmount    BigInt       @default(0) @map("total_amount")
+    paidAmount     BigInt       @default(0) @map("paid_amount")
+
+    issuedAt DateTime? @map("issued_at") @db.Timestamptz(3)
+    dueAt    DateTime? @map("due_at") @db.Timestamptz(3)
+
+    metadata Json? @db.JsonB
+
+    createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+    deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+    order        Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    items    InvoiceItem[]
+    payments Payment[]
+
+    @@unique([organizationId, invoiceNumber])
+    @@index([orderId])
+    @@index([status])
+    @@map("invoices")
+}
+
+// ==============================
+// Payments
+// ==============================
+
+model Payment {
+    id        String @id @default(cuid())
+    invoiceId String @map("invoice_id")
+
+    method PaymentMethod @default(bank_transfer)
+    status PaymentStatus @default(pending)
+
+    currencyCode CurrencyCode @default(IDR) @map("currency_code")
+    amount       BigInt       @default(0)
+
+    referenceId String?   @map("reference_id")
+    paidAt      DateTime? @map("paid_at") @db.Timestamptz(3)
+
+    metadata Json? @db.JsonB
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+    @@index([invoiceId])
+    @@map("payments")
+}
+
+// ==============================
+// Invoice Items
+// ==============================
+
+model InvoiceItem {
+    id          String  @id @default(cuid())
+    invoiceId   String  @map("invoice_id")
+    orderItemId String? @map("order_item_id")
+
+    description String
+    quantity    Int    @default(1)
+    unitPrice   BigInt @default(0) @map("unit_price")
+    totalPrice  BigInt @default(0) @map("total_price")
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    invoice   Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+    orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+    @@index([invoiceId])
+    @@map("invoice_items")
+}

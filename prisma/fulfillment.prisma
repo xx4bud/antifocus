@@ -1,0 +1,45 @@
+// ==============================
+// Fulfillment
+// ==============================
+
+model Fulfillment {
+    id      String @id @default(cuid())
+    orderId String @map("order_id")
+
+    status FulfillmentStatus @default(pending)
+
+    trackingNumber  String? @map("tracking_number")
+    trackingUrl     String? @map("tracking_url")
+    shippingCarrier String? @map("shipping_carrier")
+
+    shippedAt   DateTime? @map("shipped_at") @db.Timestamptz(3)
+    deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(3)
+
+    metadata Json? @db.JsonB
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+    items FulfillmentItem[]
+
+    @@index([orderId])
+    @@map("fulfillments")
+}
+
+model FulfillmentItem {
+    id            String @id @default(cuid())
+    fulfillmentId String @map("fulfillment_id")
+    orderItemId   String @map("order_item_id")
+
+    quantity Int @default(1)
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+    orderItem   OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+    @@unique([fulfillmentId, orderItemId])
+    @@map("fulfillment_items")
+}

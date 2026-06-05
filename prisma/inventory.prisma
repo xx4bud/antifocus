@@ -1,0 +1,113 @@
+// ==============================
+// Branch Stock
+// ==============================
+
+model BranchStock {
+    id        String @id @default(cuid())
+    branchId  String @map("branch_id")
+    variantId String @map("variant_id")
+
+    quantity  Int @default(0)
+    reserved  Int @default(0)
+    available Int @default(0)
+
+    metadata Json? @db.JsonB
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+    variant Variant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+    movements StockMovement[]
+
+    @@unique([branchId, variantId]) // 1 branch = 1 record per variant
+    @@map("branch_stocks")
+}
+
+// ==============================
+// Stock Movements
+// ==============================
+
+model StockMovement {
+    id            String @id @default(cuid())
+    branchStockId String @map("branch_stock_id")
+
+    type     MovementType
+    reason   String
+    quantity Int
+
+    note String?
+
+    referenceType String? @map("reference_type")
+    referenceId   String? @map("reference_id")
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    branchStock BranchStock @relation(fields: [branchStockId], references: [id], onDelete: Cascade)
+
+    @@index([branchStockId])
+    @@index([referenceType, referenceId])
+    @@map("stock_movements")
+}
+
+// ==============================
+// Purchase Orders
+// ==============================
+
+model PurchaseOrder {
+    id             String @id @default(cuid())
+    organizationId String @map("organization_id")
+    supplierId     String @map("supplier_id")
+    branchId       String @map("branch_id")
+
+    orderNumber String              @map("order_number")
+    status      PurchaseOrderStatus @default(draft)
+
+    currencyCode   CurrencyCode @default(IDR) @map("currency_code")
+    subTotal       BigInt       @default(0) @map("sub_total")
+    taxAmount      BigInt       @default(0) @map("tax_amount")
+    discountAmount BigInt       @default(0) @map("discount_amount")
+    totalAmount    BigInt       @default(0) @map("total_amount")
+
+    note     String?
+    metadata Json?   @db.JsonB
+
+    orderedAt  DateTime? @map("ordered_at") @db.Timestamptz(3)
+    receivedAt DateTime? @map("received_at") @db.Timestamptz(3)
+
+    createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+    deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    supplier     Supplier     @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+    branch       Branch       @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+    items PurchaseOrderItem[]
+
+    @@unique([organizationId, orderNumber])
+    @@index([supplierId])
+    @@index([branchId])
+    @@index([status])
+    @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+    id              String @id @default(cuid())
+    purchaseOrderId String @map("purchase_order_id")
+    variantId       String @map("variant_id")
+
+    quantity    Int    @default(0)
+    receivedQty Int    @default(0) @map("received_qty")
+    unitCost    BigInt @default(0) @map("unit_cost")
+    totalCost   BigInt @default(0) @map("total_cost")
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+    variant       Variant       @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+    @@unique([purchaseOrderId, variantId])
+    @@map("purchase_order_items")
+}

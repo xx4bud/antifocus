@@ -1,0 +1,158 @@
+// ==============================
+// Better Auth Users
+// ==============================
+
+model User {
+    id            String  @id @default(cuid())
+    name          String
+    email         String  @unique @db.VarChar(255)
+    emailVerified Boolean @default(false) @map("email_verified")
+    image         String?
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    // username plugin
+    username        String? @unique @db.VarChar(255)
+    displayUsername String? @map("display_username")
+
+    // phone number plugin
+    phoneNumber         String?  @unique @map("phone_number") @db.VarChar(255)
+    phoneNumberVerified Boolean? @default(false) @map("phone_number_verified")
+
+    // admin plugin
+    role       UserRole? @default(user)
+    banned     Boolean?  @default(false)
+    banReason  String?   @map("ban_reason")
+    banExpires DateTime? @map("ban_expires") @db.Timestamptz(3)
+
+    // two factor plugin
+    twoFactorEnabled Boolean? @default(false) @map("two_factor_enabled")
+
+    // additional fields
+    status    EntityStatus @default(active)
+    metadata  Json?        @db.JsonB
+    deletedAt DateTime?    @map("deleted_at") @db.Timestamptz(3)
+
+    // auth
+    sessions   Session[]
+    accounts   Account[]
+    twoFactors TwoFactor[]
+
+    // org
+    members     Member[]
+    invitations Invitation[]
+
+    // contact
+    customers Customer[]
+    addresses Address[]
+
+    // media
+    files File[]
+
+    @@index([name])
+    @@index([role])
+    @@index([status])
+    @@map("users")
+}
+
+// ==============================
+// Better Auth Sessions
+// ==============================
+
+model Session {
+    id     String @id @default(cuid())
+    userId String @map("user_id")
+
+    token     String   @unique @db.VarChar(255)
+    ipAddress String?  @map("ip_address")
+    userAgent String?  @map("user_agent")
+    expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    // admin plugin
+    impersonatedBy String? @map("impersonated_by")
+
+    // org plugin
+    activeOrganizationId String? @map("active_organization_id")
+
+    // additional fields
+    metadata Json? @db.JsonB
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@map("sessions")
+}
+
+// ==============================
+// Better Auth Accounts
+// ==============================
+
+model Account {
+    id         String @id @default(cuid())
+    userId     String @map("user_id")
+    providerId String @map("provider_id")
+    accountId  String @map("account_id")
+
+    idToken      String? @map("id_token")
+    accessToken  String? @map("access_token")
+    refreshToken String? @map("refresh_token")
+    scope        String?
+    password     String?
+
+    accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+    refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    // additional fields
+    metadata Json? @db.JsonB
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([providerId, accountId])
+    @@index([userId])
+    @@map("accounts")
+}
+
+// ==============================
+// Better Auth Verifications
+// ==============================
+
+model Verification {
+    id         String   @id @default(cuid())
+    identifier String
+    value      String
+    expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+
+    // additional fields
+    metadata Json? @db.JsonB
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    @@index([identifier])
+    @@map("verifications")
+}
+
+// ==============================
+// Better Auth Two Factors
+// ==============================
+
+model TwoFactor {
+    id     String @id @default(cuid())
+    userId String @map("user_id")
+
+    secret      String
+    backupCodes String  @map("backup_codes")
+    verified    Boolean @default(false)
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@map("two_factors")
+}

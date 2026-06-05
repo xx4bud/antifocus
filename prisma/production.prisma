@@ -1,0 +1,61 @@
+// ==============================
+// Production Orders
+// ==============================
+
+model ProductionOrder {
+    id             String  @id @default(cuid())
+    organizationId String  @map("organization_id")
+    orderId        String? @map("order_id") // null = made-to-stock
+    branchId       String? @map("branch_id") // in-house production
+    supplierId     String? @map("supplier_id") // outsource/makloon
+
+    orderNumber String                @map("order_number")
+    status      ProductionOrderStatus @default(draft)
+
+    note     String?
+    metadata Json?   @db.JsonB
+
+    startedAt   DateTime? @map("started_at") @db.Timestamptz(3)
+    completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+
+    createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+    deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    order        Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+    branch       Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+    supplier     Supplier?    @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+    items ProductionOrderItem[]
+
+    @@unique([organizationId, orderNumber])
+    @@index([orderId])
+    @@index([branchId])
+    @@index([supplierId])
+    @@index([status])
+    @@map("production_orders")
+}
+
+model ProductionOrderItem {
+    id                String  @id @default(cuid())
+    productionOrderId String  @map("production_order_id")
+    variantId         String  @map("variant_id")
+    orderItemId       String? @map("order_item_id")
+
+    quantity     Int @default(0)
+    completedQty Int @default(0) @map("completed_qty")
+    rejectedQty  Int @default(0) @map("rejected_qty")
+
+    metadata Json? @db.JsonB
+
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+    variant         Variant         @relation(fields: [variantId], references: [id], onDelete: Restrict)
+    orderItem       OrderItem?      @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+    @@unique([productionOrderId, variantId])
+    @@map("production_order_items")
+}
