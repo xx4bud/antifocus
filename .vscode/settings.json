@@ -85,5 +85,12 @@
   "tailwindCSS.lint.invalidTailwindDirective": "error",
   "tailwindCSS.lint.recommendedVariantOrder": "error",
   "tailwindCSS.lint.suggestCanonicalClasses": "error",
-  "tailwindCSS.experimental.configFile": "src/styles/globals.css"
+  "tailwindCSS.experimental.configFile": "src/styles/globals.css",
+
+  "i18n-ally.localesPaths": ["messages"],
+  "i18n-ally.enabledFrameworks": ["next-intl"],
+  "i18n-ally.sourceLanguage": "id",
+  "i18n-ally.displayLanguage": "id",
+  "i18n-ally.keystyle": "nested",
+  "i18n-ally.autoDetection": true
 }
