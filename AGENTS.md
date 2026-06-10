@@ -21,24 +21,3 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 <!-- END:nextjs-agent-rules -->
 
 ---
-
-## Setup Commands
-
-- **Install dependencies**: `pnpm install`
-- **Clean project (removes caches & node_modules)**: `pnpm clean`
-
-## Development Workflow
-
-- **Start dev server**: `pnpm dev` (Runs with Turbopack and `.env` loaded via `dotenv-cli`).
-- **Build for production**: `pnpm build`
-- **Start production server**: `pnpm start`
-
-## Testing & Quality Control Instructions
-
-Code quality is strictly enforced via Ultracite. Run these commands to verify changes:
-
-- **Lint and Auto-fix**: `pnpm check:lint` (runs `ultracite fix --unsafe .`)
-- **Type Checking**: `pnpm check:types` (runs `next typegen && tsc --noEmit`)
-- **Run all checks**: `pnpm check:all`
-
-*Note: Always ensure `pnpm check:all` passes before finalizing changes.*
