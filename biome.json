@@ -6,6 +6,13 @@
     "ultracite/biome/next"
   ],
   "linter": {
-    "rules": {}
+    "rules": {
+      "style": {
+        "noExportedImports": "off"
+      },
+      "suspicious": {
+        "useAwait": "off"
+      }
+    }
   }
 }
