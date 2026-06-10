@@ -1,7 +1,8 @@
 "use client";
 
+import { I18nProvider } from "@/components/providers/i18n-provider";
 import type { Locale, Messages } from "@/lib/i18n/locales";
-import { I18nProvider } from "@/lib/i18n/provider";
+import { TRPCReactProvider } from "./trpc-provider";
 
 interface AppProviderProps {
   children: React.ReactNode;
@@ -18,7 +19,7 @@ export function AppProvider({
 }: AppProviderProps) {
   return (
     <I18nProvider locale={locale} messages={messages} timeZone={timeZone}>
-      {children}
+      <TRPCReactProvider>{children}</TRPCReactProvider>
     </I18nProvider>
   );
 }

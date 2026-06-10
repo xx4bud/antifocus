@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from "next-intl";
-import type { Locale, Messages } from "./locales";
+import type { Locale, Messages } from "../../lib/i18n/locales";
 
 export function I18nProvider({
   children,

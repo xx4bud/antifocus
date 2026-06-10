@@ -1,9 +1,9 @@
 import { getMessages, getTimeZone, getTranslations } from "next-intl/server";
-import { AppProvider } from "@/components/app-provider";
+import { AppProvider } from "@/components/providers/app-provider";
 import { getLocaleParams } from "@/lib/i18n/request";
 import { routing } from "@/lib/i18n/routing";
-import { cn } from "@/lib/utils/cn";
 import { constructMetadata } from "@/lib/utils/seo";
+import { cn } from "@/lib/utils/ui";
 import { fontMono, fontSans, fontSerif } from "@/styles/fonts";
 import "@/styles/globals.css";
 import type { Metadata, Viewport } from "next";
