@@ -1,0 +1,276 @@
+import { z } from "zod/v4";
+import { createTRPCRouter, orgProcedure } from "@/lib/api/trpc";
+import { createError } from "@/lib/utils/error";
+import {
+  getCourierById,
+  getPurchaseOrderById,
+  listCouriers,
+  listInventories,
+  listPurchaseOrderItems,
+  listPurchaseOrders,
+} from "./queries";
+import {
+  adjustStockService,
+  createCourierService,
+  createPurchaseOrderService,
+  deleteCourierService,
+  deletePurchaseOrderService,
+  updateCourierService,
+  updatePurchaseOrderStatusService,
+} from "./services";
+import {
+  createCourierSchema,
+  createPurchaseOrderSchema,
+  createStockAdjustmentSchema,
+  supplyFiltersSchema,
+  updateCourierSchema,
+  updatePurchaseOrderStatusSchema,
+} from "./validators";
+
+export const supplyRouter = createTRPCRouter({
+  // ==============================
+  // Couriers
+  // ==============================
+
+  listCouriers: orgProcedure
+    .input(supplyFiltersSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listCouriers(ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  getCourier: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await getCourierById(ctx.orgId, input.id);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  createCourier: orgProcedure
+    .input(createCourierSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await createCourierService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  updateCourier: orgProcedure
+    .input(z.object({ id: z.string(), data: updateCourierSchema }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await updateCourierService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id,
+        input.data
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  deleteCourier: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await deleteCourierService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  // ==============================
+  // Purchase Orders
+  // ==============================
+
+  listPurchaseOrders: orgProcedure
+    .input(supplyFiltersSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listPurchaseOrders(ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  getPurchaseOrder: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await getPurchaseOrderById(ctx.orgId, input.id);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  createPurchaseOrder: orgProcedure
+    .input(createPurchaseOrderSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await createPurchaseOrderService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  updatePurchaseOrderStatus: orgProcedure
+    .input(z.object({ id: z.string(), data: updatePurchaseOrderStatusSchema }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await updatePurchaseOrderStatusService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id,
+        input.data
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  deletePurchaseOrder: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await deletePurchaseOrderService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  listPurchaseOrderItems: orgProcedure
+    .input(z.object({ purchaseOrderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listPurchaseOrderItems(
+        ctx.orgId,
+        input.purchaseOrderId
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  // ==============================
+  // Inventory
+  // ==============================
+
+  listInventories: orgProcedure
+    .input(z.object({ branchId: z.string(), filters: supplyFiltersSchema }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listInventories(
+        ctx.orgId,
+        input.branchId,
+        input.filters
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  adjustStock: orgProcedure
+    .input(createStockAdjustmentSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await adjustStockService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+});
