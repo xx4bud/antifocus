@@ -1,8 +1,9 @@
+import type { BetterAuthOptions } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { emailSchema } from "@/lib/db/validations/email";
-import { nameSchema } from "@/lib/db/validations/name";
-import { phoneNumberSchema } from "@/lib/db/validations/phone-number";
-import { usernameSchema } from "@/lib/db/validations/username";
+import { emailSchema } from "@/lib/validations/email";
+import { nameSchema } from "@/lib/validations/name";
+import { phoneNumberSchema } from "@/lib/validations/phone-number";
+import { usernameSchema } from "@/lib/validations/username";
 
 /**
  * Global authentication API hooks for input validation and normalization.
@@ -70,4 +71,4 @@ export const hooks = {
       },
     };
   }),
-};
+} as const satisfies BetterAuthOptions["hooks"];

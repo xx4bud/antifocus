@@ -4,7 +4,7 @@ import { IconBrandGoogle, IconLoader2 } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { signInSocialAction } from "@/features/main/auth/lib/actions";
+import { signInSocialAction } from "@/features/auth/lib/actions";
 import { useFeedback } from "@/hooks/use-feedback";
 
 interface SocialAuthProps {

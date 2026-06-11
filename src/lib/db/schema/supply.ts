@@ -22,7 +22,6 @@ import {
   type PurchaseOrderStatus,
   type PurchasePaymentStatus,
 } from "./enums";
-import { supplierBills } from "./finance";
 import {
   fulfillmentItems,
   fulfillments,
@@ -52,7 +51,7 @@ export const couriers = pgTable(
     code: varcharColumn("code"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // tracking config, integration details
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -60,7 +59,7 @@ export const couriers = pgTable(
   (table) => [
     idx("couriers", table.organizationId),
     idx("couriers", table.integrationId),
-    uidx("couriers", table.organizationId, table.code),
+    idx("couriers", table.organizationId, table.code), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -92,7 +91,9 @@ export const shippingMethods = pgTable(
   "shipping_methods",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     courierId: text("courier_id")
       .notNull()
       .references(() => couriers.id, { onDelete: "cascade" }),
@@ -101,7 +102,7 @@ export const shippingMethods = pgTable(
     code: varcharColumn("code").notNull(),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // constraints, dimensions rules
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -109,7 +110,7 @@ export const shippingMethods = pgTable(
   (table) => [
     idx("shipping_methods", table.organizationId),
     idx("shipping_methods", table.courierId),
-    uidx("shipping_methods", table.courierId, table.code),
+    idx("shipping_methods", table.courierId, table.code), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -141,7 +142,9 @@ export const shippingRates = pgTable(
   "shipping_rates",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     shippingMethodId: text("shipping_method_id")
       .notNull()
       .references(() => shippingMethods.id, { onDelete: "cascade" }),
@@ -159,7 +162,7 @@ export const shippingRates = pgTable(
     estimatedDays: varcharColumn("estimated_days"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific conditions, surcharges
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -182,7 +185,7 @@ export type ShippingRate = typeof shippingRates.$inferSelect;
 export type ShippingRateInsert = typeof shippingRates.$inferInsert;
 
 // ==============================
-// Purchase Orders (Kulakan)
+// Purchase Orders
 // ==============================
 
 export const purchaseOrders = pgTable(
@@ -218,7 +221,7 @@ export const purchaseOrders = pgTable(
     expectedDeliveryDate: timestampColumn("expected_delivery_date"),
 
     notes: text("notes"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // vendor notes, terms of delivery
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -227,7 +230,8 @@ export const purchaseOrders = pgTable(
     idx("purchase_orders", table.organizationId),
     idx("purchase_orders", table.supplierId),
     idx("purchase_orders", table.branchId),
-    uidx("purchase_orders", table.organizationId, table.purchaseNumber),
+    idx("purchase_orders", table.status),
+    idx("purchase_orders", table.organizationId, table.purchaseNumber), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -252,9 +256,6 @@ export const purchaseOrderRelations = relations(
 
     // supply
     items: many(purchaseOrderItems),
-
-    // finance
-    supplierBills: many(supplierBills),
   })
 );
 
@@ -283,7 +284,7 @@ export const purchaseOrderItems = pgTable(
     unitCost: decimalColumn("unit_cost"),
     totalCost: decimalColumn("total_cost"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // quality checks, receiving notes
 
     ...timestamps,
   },
@@ -370,7 +371,7 @@ export type Inventory = typeof inventories.$inferSelect;
 export type InventoryInsert = typeof inventories.$inferInsert;
 
 // ==============================
-// Inventory Movements (Ledger)
+// Inventory Movements
 // ==============================
 
 export const inventoryMovements = pgTable(
@@ -389,7 +390,7 @@ export const inventoryMovements = pgTable(
     quantity: decimalColumn("quantity").notNull(),
     unitCost: decimalColumn("unit_cost"),
 
-    // Polymorphic references
+    // Polymorphic references: Must link to EXACTLY ONE source document
     purchaseOrderItemId: text("purchase_order_item_id").references(
       () => purchaseOrderItems.id,
       { onDelete: "set null" }
@@ -418,8 +419,8 @@ export const inventoryMovements = pgTable(
       { onDelete: "set null" }
     ),
 
-    reference: varcharColumn("reference"),
-    metadata: jsonbColumn("metadata"),
+    reference: varcharColumn("reference"), // fallback manual reference if not linked to document
+    metadata: jsonbColumn("metadata"), // adjustment reasons, batch numbers
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -492,7 +493,7 @@ export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type InventoryMovementInsert = typeof inventoryMovements.$inferInsert;
 
 // ==============================
-// Inventory Transfers (Surat Jalan)
+// Inventory Transfers
 // ==============================
 
 export const inventoryTransfers = pgTable(
@@ -526,7 +527,7 @@ export const inventoryTransfers = pgTable(
     receivedAt: timestampColumn("received_at"),
 
     notes: text("notes"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // delivery instructions, vehicle details
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -535,7 +536,8 @@ export const inventoryTransfers = pgTable(
     idx("inventory_transfers", table.organizationId),
     idx("inventory_transfers", table.sourceBranchId),
     idx("inventory_transfers", table.destinationBranchId),
-    uidx("inventory_transfers", table.organizationId, table.transferNumber),
+    idx("inventory_transfers", table.status),
+    idx("inventory_transfers", table.organizationId, table.transferNumber), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -578,7 +580,9 @@ export const inventoryTransferItems = pgTable(
   "inventory_transfer_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     inventoryTransferId: text("inventory_transfer_id")
       .notNull()
       .references(() => inventoryTransfers.id, { onDelete: "cascade" }),
@@ -591,7 +595,7 @@ export const inventoryTransferItems = pgTable(
 
     unitCost: decimalColumn("unit_cost"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // discrepancies, damage notes
 
     ...timestamps,
   },

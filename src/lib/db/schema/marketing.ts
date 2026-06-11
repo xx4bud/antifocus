@@ -68,7 +68,7 @@ export const promotions = pgTable(
     usedCount: intColumn("used_count"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"), // description
+    metadata: jsonbColumn("metadata"), // rules engine config or detailed description
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -114,7 +114,9 @@ export const vouchers = pgTable(
   "vouchers",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     promotionId: text("promotion_id")
       .notNull()
       .references(() => promotions.id, { onDelete: "cascade" }),
@@ -125,7 +127,7 @@ export const vouchers = pgTable(
     usedCount: intColumn("used_count").default(0).notNull(),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific voucher notes
 
     deletedAt: timestampColumn("deleted_at"),
     ...timestamps,
@@ -133,7 +135,7 @@ export const vouchers = pgTable(
   (table) => [
     idx("vouchers", table.organizationId),
     idx("vouchers", table.promotionId),
-    uidx("vouchers", table.organizationId, table.code),
+    idx("vouchers", table.code), // downgraded from uidx for soft delete
   ]
 );
 
@@ -160,7 +162,9 @@ export const promotionProducts = pgTable(
   "promotion_products",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     promotionId: text("promotion_id")
       .notNull()
       .references(() => promotions.id, { onDelete: "cascade" }),
@@ -202,7 +206,9 @@ export const promotionCollections = pgTable(
   "promotion_collections",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     promotionId: text("promotion_id")
       .notNull()
       .references(() => promotions.id, { onDelete: "cascade" }),
@@ -245,7 +251,9 @@ export const promotionUsages = pgTable(
   "promotion_usages",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     customerId: text("customer_id").notNull(),
     promotionId: text("promotion_id").references(() => promotions.id, {
@@ -262,7 +270,7 @@ export const promotionUsages = pgTable(
       .notNull(),
 
     discountAmount: decimalColumn("discount_amount").default(0),
-    metadata: jsonbColumn("metadata"), // notes
+    metadata: jsonbColumn("metadata"), // usage context notes
 
     ...timestamps,
   },
@@ -319,7 +327,9 @@ export const banners = pgTable(
   "banners",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     fileId: text("file_id"),
 
     name: varcharColumn("name").notNull(),
@@ -339,7 +349,7 @@ export const banners = pgTable(
     endDate: timestampColumn("end_date"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"), // notes
+    metadata: jsonbColumn("metadata"), // display targeting config
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -375,7 +385,9 @@ export const reviews = pgTable(
   "reviews",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     productId: text("product_id"),
     branchId: text("branch_id"),
@@ -396,9 +408,10 @@ export const reviews = pgTable(
     replyText: text("reply_text"),
     repliedAt: timestampColumn("replied_at"),
 
-    metadata: jsonbColumn("metadata"), // notes
+    metadata: jsonbColumn("metadata"), // external sync ids or moderation notes
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("reviews", table.organizationId),
@@ -453,7 +466,9 @@ export const reviewImages = pgTable(
   "review_images",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     reviewId: text("review_id")
       .notNull()
@@ -496,17 +511,20 @@ export const postCategories = pgTable(
   "post_categories",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     name: varcharColumn("name").notNull(),
     slug: varcharColumn("slug").notNull(),
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("post_categories", table.organizationId),
     idx("post_categories", table.slug),
-    uidx("post_categories", table.organizationId, table.slug),
+    // uidx removed because soft delete requires unique slug reuse
   ]
 );
 
@@ -532,7 +550,9 @@ export const posts = pgTable(
   "posts",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     categoryId: text("category_id").references(() => postCategories.id, {
       onDelete: "set null",
@@ -566,7 +586,7 @@ export const posts = pgTable(
     idx("posts", table.authorId),
     idx("posts", table.fileId),
     idx("posts", table.slug),
-    uidx("posts", table.organizationId, table.slug),
+    // uidx removed because soft delete requires unique slug reuse
   ]
 );
 
@@ -607,7 +627,9 @@ export const tickets = pgTable(
   "tickets",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     ticketNumber: varcharColumn("ticket_number").notNull(),
 
@@ -634,10 +656,11 @@ export const tickets = pgTable(
       .default(DEFAULT_TICKET_STATUS)
       .notNull(),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // custom fields
 
     resolvedAt: timestampColumn("resolved_at"),
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("tickets", table.organizationId),
@@ -645,7 +668,8 @@ export const tickets = pgTable(
     idx("tickets", table.assigneeId),
     idx("tickets", table.orderId),
     idx("tickets", table.branchId),
-    uidx("tickets", table.organizationId, table.ticketNumber),
+    idx("tickets", table.status),
+    idx("tickets", table.ticketNumber), // downgraded from uidx for soft delete
   ]
 );
 
@@ -695,7 +719,9 @@ export const ticketMessages = pgTable(
   "ticket_messages",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
 
     ticketId: text("ticket_id")
       .notNull()

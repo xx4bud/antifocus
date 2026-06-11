@@ -1,11 +1,11 @@
 import type { BetterAuthOptions } from "better-auth";
 import React from "react";
-import { PASSWORD_RULES } from "@/lib/db/validations/password";
 import { FROM_EMAIL, sendEmail } from "@/lib/email";
 import { ResetPasswordEmail } from "@/lib/email/templates/reset-password";
 import { hashPassword, verifyPassword } from "@/lib/utils/hash";
+import { PASSWORD_RULES } from "@/lib/validations/password";
 
-export const emailAndPassword: BetterAuthOptions["emailAndPassword"] = {
+export const emailAndPassword = {
   enabled: true,
   autoSignIn: false, //defaults to true
   requireEmailVerification: true,
@@ -43,4 +43,4 @@ export const emailAndPassword: BetterAuthOptions["emailAndPassword"] = {
     ...additionalFields,
     id,
   }),
-};
+} as const satisfies BetterAuthOptions["emailAndPassword"];

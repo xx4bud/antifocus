@@ -43,13 +43,14 @@ export const tags = pgTable(
     slug: varcharColumn("slug").notNull(),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // search synonyms, color codes
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("tags", table.organizationId),
-    uidx("tags", table.organizationId, table.slug),
+    idx("tags", table.organizationId, table.slug), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -90,13 +91,14 @@ export const attributes = pgTable(
 
     position: intColumn("position").notNull().default(0),
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // UI layout hints (e.g. display as color swatch)
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("attributes", table.organizationId),
-    uidx("attributes", table.organizationId, table.slug),
+    idx("attributes", table.organizationId, table.slug), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -126,7 +128,9 @@ export const attributeOptions = pgTable(
   "attribute_options",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     attributeId: text("attribute_id")
       .notNull()
       .references(() => attributes.id, { onDelete: "cascade" }),
@@ -138,9 +142,10 @@ export const attributeOptions = pgTable(
     cost: decimalColumn("cost"),
 
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // visual hex codes, icons
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("attribute_options", table.organizationId),
@@ -186,14 +191,15 @@ export const categories = pgTable(
 
     position: intColumn("position").notNull().default(0),
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // icon, UI layout hints, SEO tags
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("categories", table.organizationId),
     idx("categories", table.parentId as PgColumn),
-    uidx("categories", table.organizationId, table.slug),
+    idx("categories", table.organizationId, table.slug), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -233,7 +239,9 @@ export const categoryImages = pgTable(
   "category_images",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     categoryId: text("category_id")
       .notNull()
       .references(() => categories.id, { onDelete: "cascade" }),
@@ -242,7 +250,7 @@ export const categoryImages = pgTable(
       .references(() => files.id, { onDelete: "cascade" }),
 
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // alt text, image dimensions
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -278,7 +286,9 @@ export const categoryAttributes = pgTable(
   "category_attributes",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     categoryId: text("category_id")
       .notNull()
       .references(() => categories.id, { onDelete: "cascade" }),
@@ -288,7 +298,7 @@ export const categoryAttributes = pgTable(
 
     required: falseColumn("required"),
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // display condition rules
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -335,13 +345,14 @@ export const collections = pgTable(
 
     position: intColumn("position").notNull().default(0),
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // UI hints, cover image specs
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("collections", table.organizationId),
-    uidx("collections", table.organizationId, table.slug),
+    idx("collections", table.organizationId, table.slug), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -373,7 +384,9 @@ export const collectionImages = pgTable(
   "collection_images",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     collectionId: text("collection_id")
       .notNull()
       .references(() => collections.id, { onDelete: "cascade" }),
@@ -382,7 +395,7 @@ export const collectionImages = pgTable(
       .references(() => files.id, { onDelete: "cascade" }),
 
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // alt text, image dimensions
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -434,14 +447,15 @@ export const units = pgTable(
 
     position: intColumn("position").notNull().default(0),
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific conversion rules
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("units", table.organizationId),
     idx("units", table.baseUnitId),
-    uidx("units", table.organizationId, table.code),
+    idx("units", table.organizationId, table.code), // no unique — allow reuse after soft delete
   ]
 );
 

@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 
-export const account: BetterAuthOptions["account"] = {
+export const account = {
   accountLinking: {
     enabled: true,
     trustedProviders: ["google"],
@@ -12,4 +12,4 @@ export const account: BetterAuthOptions["account"] = {
       required: false,
     },
   },
-};
+} as const satisfies BetterAuthOptions["account"];

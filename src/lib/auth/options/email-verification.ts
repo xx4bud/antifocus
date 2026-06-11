@@ -3,7 +3,7 @@ import React from "react";
 import { FROM_EMAIL, sendEmail } from "@/lib/email";
 import { VerifyEmail } from "@/lib/email/templates/verify-email";
 
-export const emailVerification: BetterAuthOptions["emailVerification"] = {
+export const emailVerification = {
   sendVerificationEmail: async ({ user, url }) => {
     await sendEmail({
       from: FROM_EMAIL,
@@ -12,4 +12,4 @@ export const emailVerification: BetterAuthOptions["emailVerification"] = {
       react: React.createElement(VerifyEmail, { url, userName: user.name }),
     });
   },
-};
+} as const satisfies BetterAuthOptions["emailVerification"];

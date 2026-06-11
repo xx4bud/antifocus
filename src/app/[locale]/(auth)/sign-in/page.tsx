@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SignInForm } from "@/features/main/auth/components/sign-in-form";
+import { SignInForm } from "@/features/auth/components/sign-in-form";
 import { getLocaleParams } from "@/lib/i18n/request";
 import { constructMetadata } from "@/lib/utils/seo";
 

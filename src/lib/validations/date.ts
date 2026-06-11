@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { isExpired } from "../../utils/date";
+import { isExpired } from "../utils/date";
 
 /**
  * ISO 8601 datetime string regex patterns.

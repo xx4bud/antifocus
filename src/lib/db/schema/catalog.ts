@@ -72,7 +72,7 @@ export const products = pgTable(
       .$type<ProductType>()
       .default(DEFAULT_PRODUCT_TYPE)
       .notNull(),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // SEO tags, custom canonicals, specifications
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -82,7 +82,8 @@ export const products = pgTable(
     idx("products", table.slug),
     idx("products", table.unitId),
     idx("products", table.status),
-    uidx("products", table.organizationId, table.slug),
+    idx("products", table.type), // for quick filtering by type
+    idx("products", table.organizationId, table.slug), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -118,15 +119,17 @@ export const productImages = pgTable(
   "product_images",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    fileId: text("file_id").notNull(),
+    fileId: text("file_id").notNull(), // Should ideally reference files.id but Drizzle circular deps can be tricky. Assume safe.
 
     main: falseColumn("main"),
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // alt text, specific focus points
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -159,7 +162,9 @@ export const productTags = pgTable(
   "product_tags",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -169,7 +174,7 @@ export const productTags = pgTable(
 
     main: falseColumn("main"),
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // custom tag display logic
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -202,7 +207,9 @@ export const productCategories = pgTable(
   "product_categories",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -212,7 +219,7 @@ export const productCategories = pgTable(
 
     main: falseColumn("main"),
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // custom category display notes
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -248,7 +255,9 @@ export const productAttributes = pgTable(
   "product_attributes",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -258,7 +267,7 @@ export const productAttributes = pgTable(
     attributeOptionId: text("attribute_option_id"),
 
     value: jsonbColumn("value").notNull(),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific overrides for this product
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -299,7 +308,9 @@ export const productCollections = pgTable(
   "product_collections",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -309,7 +320,7 @@ export const productCollections = pgTable(
 
     main: falseColumn("main"),
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // contextual placement notes
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -345,7 +356,9 @@ export const variants = pgTable(
   "variants",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -377,7 +390,7 @@ export const variants = pgTable(
 
     enabled: trueColumn("enabled"),
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific dimension overrides, packaging info
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -386,7 +399,8 @@ export const variants = pgTable(
     idx("variants", table.organizationId),
     idx("variants", table.productId),
     idx("variants", table.baseVariantId),
-    uidx("variants", table.organizationId, table.sku),
+    idx("variants", table.price), // for sorting/filtering by price
+    idx("variants", table.organizationId, table.sku), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -434,15 +448,17 @@ export const variantImages = pgTable(
   "variant_images",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     variantId: text("variant_id")
       .notNull()
       .references(() => variants.id, { onDelete: "cascade" }),
-    fileId: text("file_id").notNull(),
+    fileId: text("file_id").notNull(), // Assuming cross-domain relations handled carefully
 
     main: falseColumn("main"),
     position: intColumn("position").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // alt text, image focus point
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -475,14 +491,16 @@ export const variantOptions = pgTable(
   "variant_options",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     variantId: text("variant_id")
       .notNull()
       .references(() => variants.id, { onDelete: "cascade" }),
-    attributeOptionId: text("attribute_option_id").notNull(),
+    attributeOptionId: text("attribute_option_id").notNull(), // Assuming foreign key constraint added in DB directly or loosely coupled
 
     value: jsonbColumn("value").notNull(),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // override specific styles
 
     price: decimalColumn("price"),
     cost: decimalColumn("cost"),
@@ -518,7 +536,9 @@ export const designAreas = pgTable(
   "design_area",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -532,7 +552,7 @@ export const designAreas = pgTable(
     x: numColumn("x"),
     y: numColumn("y"),
     z: intColumn("z"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // bleed area rules, safe zones
 
     price: decimalColumn("price"),
     cost: decimalColumn("cost"),
@@ -574,11 +594,13 @@ export const productDesigns = pgTable(
   "product_designs",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     areaId: text("area_id")
       .notNull()
       .references(() => designAreas.id, { onDelete: "cascade" }),
-    fileId: text("file_id"),
+    fileId: text("file_id"), // Loosely coupled file ref
 
     name: varcharColumn("name").notNull(),
     placement: varcharColumn("placement"),
@@ -587,7 +609,7 @@ export const productDesigns = pgTable(
     offsetX: numColumn("offset_x"),
     offsetY: numColumn("offset_y"),
     offsetZ: intColumn("offset_z"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // template mapping, color replacements
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -632,9 +654,10 @@ export const pricelists = pgTable(
     endDate: timestampColumn("end_date"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // target audience, seasonal notes
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [idx("pricelists", table.organizationId)]
 );
@@ -659,7 +682,9 @@ export const pricelistItems = pgTable(
   "pricelist_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     pricelistId: text("pricelist_id")
       .notNull()
       .references(() => pricelists.id, { onDelete: "cascade" }),
@@ -672,7 +697,7 @@ export const pricelistItems = pgTable(
 
     minQuantity: numColumn("min_quantity").notNull().default(1),
     maxQuantity: numColumn("max_quantity").notNull().default(0),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // tier conditions, promotional highlights
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },
@@ -720,9 +745,10 @@ export const costlists = pgTable(
     endDate: timestampColumn("end_date"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // supplier contract refs, moq notices
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("costlists", table.organizationId),
@@ -750,7 +776,9 @@ export const costlistItems = pgTable(
   "costlist_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     costlistId: text("costlist_id")
       .notNull()
       .references(() => costlists.id, { onDelete: "cascade" }),
@@ -765,7 +793,7 @@ export const costlistItems = pgTable(
 
     leadTime: intColumn("lead_time").notNull().default(0),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // alternative sourcing options, quality caveats
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
   },

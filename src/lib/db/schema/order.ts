@@ -8,7 +8,6 @@ import {
   timestampColumn,
   timestamps,
   trueColumn,
-  uidx,
   varcharColumn,
 } from "../helpers";
 import { designAreas, pricelists, variants } from "./catalog";
@@ -70,7 +69,7 @@ export const orderSessions = pgTable(
     openedAt: timestampColumn("opened_at"),
     closedAt: timestampColumn("closed_at"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // e.g. terminal/device info
 
     ...timestamps,
   },
@@ -78,6 +77,7 @@ export const orderSessions = pgTable(
     idx("order_sessions", table.organizationId),
     idx("order_sessions", table.branchId),
     idx("order_sessions", table.memberId),
+    idx("order_sessions", table.status),
   ]
 );
 
@@ -127,14 +127,15 @@ export const orderChannels = pgTable(
     code: varcharColumn("code"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // config/credentials
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
     idx("order_channels", table.organizationId),
     idx("order_channels", table.integrationId),
-    uidx("order_channels", table.organizationId, table.code),
+    idx("order_channels", table.code), // downgraded from uidx for soft delete
   ]
 );
 
@@ -234,7 +235,7 @@ export const orders = pgTable(
     billingAddress: jsonbColumn("billing_address"),
     shippingRate: jsonbColumn("shipping_rate"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // additional order notes or custom fields
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -245,7 +246,7 @@ export const orders = pgTable(
     idx("orders", table.customerId),
     idx("orders", table.sessionId),
     idx("orders", table.status),
-    uidx("orders", table.organizationId, table.orderNumber),
+    idx("orders", table.orderNumber), // downgraded from uidx for soft delete
   ]
 );
 
@@ -325,7 +326,9 @@ export const orderItems = pgTable(
   "order_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
@@ -342,7 +345,7 @@ export const orderItems = pgTable(
 
     totalPrice: decimalColumn("total_price").default(0),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // snapshot of variant name/sku or line item notes
 
     ...timestamps,
   },
@@ -398,7 +401,9 @@ export const orderItemDesigns = pgTable(
   "order_item_designs",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     orderItemId: text("order_item_id")
       .notNull()
       .references(() => orderItems.id, { onDelete: "cascade" }),
@@ -410,7 +415,7 @@ export const orderItemDesigns = pgTable(
     scale: decimalColumn("scale", 5, 2).notNull().default(1),
     rotation: decimalColumn("rotation", 5, 2).notNull().default(0),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // editor canvas state, layer configs
 
     ...timestamps,
   },
@@ -455,7 +460,9 @@ export const fulfillments = pgTable(
   "fulfillments",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
@@ -478,7 +485,7 @@ export const fulfillments = pgTable(
     shippedAt: timestampColumn("shipped_at"),
     deliveredAt: timestampColumn("delivered_at"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // courier API response snapshot
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -487,7 +494,8 @@ export const fulfillments = pgTable(
     idx("fulfillments", table.organizationId),
     idx("fulfillments", table.orderId),
     idx("fulfillments", table.branchId),
-    uidx("fulfillments", table.organizationId, table.fulfillmentNumber),
+    idx("fulfillments", table.status),
+    idx("fulfillments", table.fulfillmentNumber), // downgraded from uidx for soft delete
   ]
 );
 
@@ -528,7 +536,9 @@ export const fulfillmentItems = pgTable(
   "fulfillment_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     fulfillmentId: text("fulfillment_id")
       .notNull()
       .references(() => fulfillments.id, { onDelete: "cascade" }),
@@ -575,7 +585,9 @@ export const orderReturns = pgTable(
   "order_returns",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
@@ -591,7 +603,7 @@ export const orderReturns = pgTable(
 
     receivedAt: timestampColumn("received_at"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // customer complaint details or return tracking info
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -600,7 +612,8 @@ export const orderReturns = pgTable(
     idx("order_returns", table.organizationId),
     idx("order_returns", table.orderId),
     idx("order_returns", table.branchId),
-    uidx("order_returns", table.organizationId, table.returnNumber),
+    idx("order_returns", table.status),
+    idx("order_returns", table.returnNumber), // downgraded from uidx for soft delete
   ]
 );
 
@@ -635,7 +648,9 @@ export const orderReturnItems = pgTable(
   "order_return_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     orderReturnId: text("order_return_id")
       .notNull()
       .references(() => orderReturns.id, { onDelete: "cascade" }),

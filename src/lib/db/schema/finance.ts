@@ -8,18 +8,16 @@ import {
   timestampColumn,
   timestamps,
   trueColumn,
-  uidx,
   varcharColumn,
 } from "../helpers";
 import { products } from "./catalog";
 import { integrations } from "./core";
 import {
-  type BillStatus,
-  DEFAULT_BILL_STATUS,
   DEFAULT_INVOICE_STATUS,
   DEFAULT_PAYMENT_STATUS,
   type FeeType,
   type InvoiceStatus,
+  type InvoiceType,
   type PaymentMethodType,
   type PaymentStatus,
   type PaymentType,
@@ -27,6 +25,10 @@ import {
 import { orders } from "./order";
 import { branches, organizations, suppliers } from "./org";
 import { purchaseOrders } from "./supply";
+
+// ==============================
+// Enums
+// ==============================
 
 // ==============================
 // Tax Rates
@@ -45,25 +47,22 @@ export const taxRates = pgTable(
     rate: decimalColumn("rate", 5, 2).notNull(),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"), // notes
+    metadata: jsonbColumn("metadata"), // exceptions, notes
 
-    deletedAt: timestampColumn("deleted_at"),
+    deletedAt: timestampColumn("deleted_at"), // soft delete
     ...timestamps,
   },
   (table) => [
     idx("tax_rates", table.organizationId),
-    uidx("tax_rates", table.organizationId, table.code),
+    idx("tax_rates", table.organizationId, table.code), // no unique — allow reuse after soft-delete; dedup at app layer
   ]
 );
 
 export const taxRateRelations = relations(taxRates, ({ one, many }) => ({
-  // core / org
   organization: one(organizations, {
     fields: [taxRates.organizationId],
     references: [organizations.id],
   }),
-
-  // catalog
   products: many(products),
 }));
 
@@ -109,43 +108,35 @@ export const paymentMethods = pgTable(
     reconcileAt: timestampColumn("reconcile_at"),
 
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"), // routing
+    metadata: jsonbColumn("metadata"), // payment instructions, routing rules
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"), // soft delete
   },
   (table) => [
     idx("payment_methods", table.organizationId),
     idx("payment_methods", table.integrationId),
     idx("payment_methods", table.branchId),
-    uidx("payment_methods", table.organizationId, table.code),
+    idx("payment_methods", table.organizationId, table.code), // no unique — allow reuse after soft-delete
   ]
 );
 
 export const paymentMethodRelations = relations(
   paymentMethods,
   ({ one, many }) => ({
-    // identity
     organization: one(organizations, {
       fields: [paymentMethods.organizationId],
       references: [organizations.id],
     }),
-
-    // core
     integration: one(integrations, {
       fields: [paymentMethods.integrationId],
       references: [integrations.id],
     }),
-
-    // org
     branch: one(branches, {
       fields: [paymentMethods.branchId],
       references: [branches.id],
     }),
-
-    // finance
     payments: many(payments),
-
-    // order
     orders: many(orders),
   })
 );
@@ -164,11 +155,26 @@ export const invoices = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    orderId: text("order_id").references(() => orders.id, {
+    branchId: text("branch_id").references(() => branches.id, {
       onDelete: "set null",
     }),
 
-    invoiceNumber: varcharColumn("invoice_number").notNull(),
+    // Polymorphic Document Relations
+    orderId: text("order_id").references(() => orders.id, {
+      onDelete: "set null",
+    }), // null if type is ap / expense
+    purchaseOrderId: text("purchase_order_id").references(
+      () => purchaseOrders.id,
+      {
+        onDelete: "set null",
+      }
+    ), // null if type is ar / expense
+    supplierId: text("supplier_id").references(() => suppliers.id, {
+      onDelete: "set null",
+    }), // null if type is ar / expense
+
+    type: text("type").$type<InvoiceType>().notNull(), // ar (income), ap (bill), expense (opex)
+    invoiceNumber: varcharColumn("invoice_number").notNull(), // sequential number (INV-XXX, BILL-XXX, EXP-XXX)
     dueDate: timestampColumn("due_date"),
 
     status: text("status")
@@ -182,204 +188,49 @@ export const invoices = pgTable(
     grandTotal: decimalColumn("grand_total").notNull().default(0),
     amountDue: decimalColumn("amount_due").notNull().default(0),
 
-    metadata: jsonbColumn("metadata"), // notes
+    metadata: jsonbColumn("metadata"), // notes, terms, PO reference, receipt attachments
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"), // soft delete
   },
   (table) => [
     idx("invoices", table.organizationId),
+    idx("invoices", table.branchId),
     idx("invoices", table.orderId),
-    uidx("invoices", table.organizationId, table.invoiceNumber),
+    idx("invoices", table.purchaseOrderId),
+    idx("invoices", table.supplierId),
+    idx("invoices", table.type),
+    idx("invoices", table.status),
+    idx("invoices", table.organizationId, table.invoiceNumber), // no unique — allow reuse after soft-delete
   ]
 );
 
 export const invoiceRelations = relations(invoices, ({ one, many }) => ({
-  // identity
   organization: one(organizations, {
     fields: [invoices.organizationId],
     references: [organizations.id],
   }),
-
-  // order
+  branch: one(branches, {
+    fields: [invoices.branchId],
+    references: [branches.id],
+  }),
   order: one(orders, {
     fields: [invoices.orderId],
     references: [orders.id],
   }),
-
-  // finance
+  purchaseOrder: one(purchaseOrders, {
+    fields: [invoices.purchaseOrderId],
+    references: [purchaseOrders.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [invoices.supplierId],
+    references: [suppliers.id],
+  }),
   payments: many(payments),
 }));
 
 export type Invoice = typeof invoices.$inferSelect;
 export type InvoiceInsert = typeof invoices.$inferInsert;
-
-// ==============================
-// Supplier Bills
-// ==============================
-
-export const supplierBills = pgTable(
-  "supplier_bills",
-  {
-    id: idColumn(),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    purchaseOrderId: text("purchase_order_id").references(
-      () => purchaseOrders.id,
-      { onDelete: "set null" }
-    ),
-    supplierId: text("supplier_id").references(() => suppliers.id, {
-      onDelete: "set null",
-    }),
-
-    billNumber: varcharColumn("bill_number").notNull(),
-    dueDate: timestampColumn("due_date"),
-
-    status: text("status")
-      .$type<BillStatus>()
-      .default(DEFAULT_BILL_STATUS)
-      .notNull(),
-
-    grandTotal: decimalColumn("grand_total").notNull().default(0),
-    amountDue: decimalColumn("amount_due").notNull().default(0),
-
-    metadata: jsonbColumn("metadata"), // notes
-
-    ...timestamps,
-  },
-  (table) => [
-    idx("supplier_bills", table.organizationId),
-    idx("supplier_bills", table.purchaseOrderId),
-    idx("supplier_bills", table.supplierId),
-    uidx("supplier_bills", table.organizationId, table.billNumber),
-  ]
-);
-
-export const supplierBillRelations = relations(
-  supplierBills,
-  ({ one, many }) => ({
-    // identity
-    organization: one(organizations, {
-      fields: [supplierBills.organizationId],
-      references: [organizations.id],
-    }),
-
-    // supply
-    purchaseOrder: one(purchaseOrders, {
-      fields: [supplierBills.purchaseOrderId],
-      references: [purchaseOrders.id],
-    }),
-
-    // org
-    supplier: one(suppliers, {
-      fields: [supplierBills.supplierId],
-      references: [suppliers.id],
-    }),
-
-    // finance
-    payments: many(payments),
-  })
-);
-
-export type SupplierBill = typeof supplierBills.$inferSelect;
-export type SupplierBillInsert = typeof supplierBills.$inferInsert;
-
-// ==============================
-// Expense Categories
-// ==============================
-
-export const expenseCategories = pgTable(
-  "expense_categories",
-  {
-    id: idColumn(),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-
-    name: varcharColumn("name").notNull(),
-    metadata: jsonbColumn("metadata"), // description
-
-    ...timestamps,
-  },
-  (table) => [
-    idx("expense_categories", table.organizationId),
-    uidx("expense_categories", table.organizationId, table.name),
-  ]
-);
-
-export const expenseCategoryRelations = relations(
-  expenseCategories,
-  ({ one, many }) => ({
-    organization: one(organizations, {
-      fields: [expenseCategories.organizationId],
-      references: [organizations.id],
-    }),
-    expenses: many(expenses),
-  })
-);
-
-export type ExpenseCategory = typeof expenseCategories.$inferSelect;
-export type ExpenseCategoryInsert = typeof expenseCategories.$inferInsert;
-
-// ==============================
-// Expenses (OPEX)
-// ==============================
-
-export const expenses = pgTable(
-  "expenses",
-  {
-    id: idColumn(),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    categoryId: text("category_id")
-      .notNull()
-      .references(() => expenseCategories.id, { onDelete: "restrict" }),
-    branchId: text("branch_id").references(() => branches.id, {
-      onDelete: "set null",
-    }),
-
-    title: varcharColumn("title").notNull(),
-    amount: decimalColumn("amount").notNull(),
-    date: timestampColumn("date").notNull(),
-
-    referenceId: text("reference_id"),
-    metadata: jsonbColumn("metadata"), // description
-
-    ...timestamps,
-  },
-  (table) => [
-    idx("expenses", table.organizationId),
-    idx("expenses", table.categoryId),
-    idx("expenses", table.branchId),
-  ]
-);
-
-export const expenseRelations = relations(expenses, ({ one, many }) => ({
-  // identity
-  organization: one(organizations, {
-    fields: [expenses.organizationId],
-    references: [organizations.id],
-  }),
-
-  // finance
-  category: one(expenseCategories, {
-    fields: [expenses.categoryId],
-    references: [expenseCategories.id],
-  }),
-
-  // org
-  branch: one(branches, {
-    fields: [expenses.branchId],
-    references: [branches.id],
-  }),
-
-  // finance
-  payments: many(payments),
-}));
-
-export type Expense = typeof expenses.$inferSelect;
-export type ExpenseInsert = typeof expenses.$inferInsert;
 
 // ==============================
 // Payments
@@ -395,20 +246,11 @@ export const payments = pgTable(
     paymentMethodId: text("payment_method_id")
       .notNull()
       .references(() => paymentMethods.id, { onDelete: "restrict" }),
-    invoiceId: text("invoice_id").references(() => invoices.id, {
-      onDelete: "set null",
-    }),
-    supplierBillId: text("supplier_bill_id").references(
-      () => supplierBills.id,
-      {
-        onDelete: "set null",
-      }
-    ),
-    expenseId: text("expense_id").references(() => expenses.id, {
-      onDelete: "set null",
-    }),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoices.id, { onDelete: "cascade" }), // every payment references a unified invoice/bill/expense
 
-    type: text("type").$type<PaymentType>().notNull(),
+    type: text("type").$type<PaymentType>().notNull(), // inbound (incoming cash) / outbound (outgoing cash)
     status: text("status")
       .$type<PaymentStatus>()
       .default(DEFAULT_PAYMENT_STATUS)
@@ -417,29 +259,26 @@ export const payments = pgTable(
     amount: decimalColumn("amount").notNull(),
     paidAt: timestampColumn("paid_at"),
 
-    referenceId: text("reference_id"),
-    metadata: jsonbColumn("metadata"), // description
+    referenceId: text("reference_id"), // external reference number (gateway trx ID, bank transfer reference)
+    metadata: jsonbColumn("metadata"), // gateway response, receipt url
 
     ...timestamps,
+    deletedAt: timestampColumn("deleted_at"), // soft delete
   },
   (table) => [
     idx("payments", table.organizationId),
     idx("payments", table.paymentMethodId),
     idx("payments", table.invoiceId),
-    idx("payments", table.supplierBillId),
-    idx("payments", table.expenseId),
     idx("payments", table.type),
+    idx("payments", table.status),
   ]
 );
 
 export const paymentRelations = relations(payments, ({ one }) => ({
-  // identity
   organization: one(organizations, {
     fields: [payments.organizationId],
     references: [organizations.id],
   }),
-
-  // finance
   paymentMethod: one(paymentMethods, {
     fields: [payments.paymentMethodId],
     references: [paymentMethods.id],
@@ -447,14 +286,6 @@ export const paymentRelations = relations(payments, ({ one }) => ({
   invoice: one(invoices, {
     fields: [payments.invoiceId],
     references: [invoices.id],
-  }),
-  supplierBill: one(supplierBills, {
-    fields: [payments.supplierBillId],
-    references: [supplierBills.id],
-  }),
-  expense: one(expenses, {
-    fields: [payments.expenseId],
-    references: [expenses.id],
   }),
 }));
 

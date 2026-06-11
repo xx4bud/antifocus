@@ -4,12 +4,12 @@ import { IconLoader2, IconLock, IconMail } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import { useAppForm } from "@/components/forms/form-hooks";
 import { Button } from "@/components/ui/button";
-import { SocialAuth } from "@/features/main/auth/components/social-auth";
-import { signInAction } from "@/features/main/auth/lib/actions";
+import { SocialAuth } from "@/features/auth/components/social-auth";
+import { signInAction } from "@/features/auth/lib/actions";
 import {
   type SignInData,
   signInFormSchema,
-} from "@/features/main/auth/lib/validators";
+} from "@/features/auth/lib/validators";
 import { useFeedback } from "@/hooks/use-feedback";
 import { Link, useRouter } from "@/lib/i18n/navigation";
 

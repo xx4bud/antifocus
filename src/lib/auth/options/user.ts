@@ -3,7 +3,7 @@ import React from "react";
 import { FROM_EMAIL, sendEmail } from "@/lib/email";
 import { ChangeEmailAlert } from "@/lib/email/templates/change-email-alert";
 
-export const user: BetterAuthOptions["user"] = {
+export const user = {
   changeEmail: {
     enabled: true,
     sendChangeEmailConfirmation: async ({ user, url }) => {
@@ -33,4 +33,4 @@ export const user: BetterAuthOptions["user"] = {
       required: false,
     },
   },
-};
+} as const satisfies BetterAuthOptions["user"];

@@ -107,3 +107,9 @@ export const sumAmounts = (...amounts: number[]): number =>
     amounts.reduce((sum, val) => sum + val, 0),
     2
   );
+
+/**
+ * Convert Dinero object back to JS number for DB inserts (mode: "number").
+ */
+export const toDB = (moneyObj: Dinero<number>): number =>
+  Number(toDecimal(moneyObj));

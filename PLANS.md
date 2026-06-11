@@ -18,9 +18,9 @@
 | Inngest / Redis / UploadThing clients | ✅ Done | Client instances wired |
 | Utility functions | ✅ Done | money, date, id, error, etc. |
 | DB schema: auth + org | ✅ Done | `auth.ts`, `org.ts` in Drizzle |
-| DB schema: core / taxonomy / catalog | ❌ Needed | Tasks T-01, T-02 |
-| DB schema: finance / supply / order | ❌ Needed | Tasks T-01, T-02, T-03 |
-| DB schema: production / marketing | ❌ Needed | Task T-03 |
+| DB schema: core / taxonomy / catalog | ✅ Done | Tasks T-01, T-02 |
+| DB schema: finance / supply / order | ✅ Done | Tasks T-01, T-02, T-03 |
+| DB schema: production / marketing | ✅ Done | Task T-03 |
 | Domain tRPC routers | ❌ Needed | Tasks T-05 through T-24 |
 | Admin ERP pages | ❌ Needed | Tasks T-25 through T-28 |
 | Storefront pages | ❌ Needed | Tasks T-29 through T-30 |

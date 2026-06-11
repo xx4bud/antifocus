@@ -2,10 +2,10 @@
 
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { emailSchema } from "@/lib/db/validations/email";
-import { usernameSchema } from "@/lib/db/validations/username";
 import { parseError } from "@/lib/utils/error";
 import { tryCatchAsync } from "@/lib/utils/result";
+import { emailSchema } from "@/lib/validations/email";
+import { usernameSchema } from "@/lib/validations/username";
 import {
   type SignInData,
   type SignUpData,

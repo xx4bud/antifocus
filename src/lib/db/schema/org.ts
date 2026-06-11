@@ -1,6 +1,11 @@
 import { relations } from "drizzle-orm";
 import { pgTable, text } from "drizzle-orm/pg-core";
-import type { AuthInvitation, AuthMember, AuthOrg } from "@/lib/auth";
+import type {
+  AuthActiveOrg,
+  AuthInvitation,
+  AuthMember,
+  AuthOrg,
+} from "@/lib/auth";
 import {
   decimalColumn,
   falseColumn,
@@ -36,15 +41,7 @@ import {
   type InvitationStatus,
   type OrgRole,
 } from "./enums";
-import {
-  expenseCategories,
-  expenses,
-  invoices,
-  paymentMethods,
-  payments,
-  supplierBills,
-  taxRates,
-} from "./finance";
+import { invoices, paymentMethods, payments, taxRates } from "./finance";
 import {
   banners,
   postCategories,
@@ -90,11 +87,11 @@ export const organizations = pgTable(
     ...timestamps,
 
     // custom fields
-    metadata: jsonbColumn("metadata"),
     status: text("status")
       .$type<EntityStatus>()
       .default(DEFAULT_ENTITY_STATUS)
       .notNull(),
+    metadata: jsonbColumn("metadata"), // tax info, legal entity, business type, preferences
     deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
@@ -138,9 +135,6 @@ export const organizationRelations = relations(organizations, ({ many }) => ({
   taxRates: many(taxRates),
   paymentMethods: many(paymentMethods),
   invoices: many(invoices),
-  supplierBills: many(supplierBills),
-  expenseCategories: many(expenseCategories),
-  expenses: many(expenses),
   payments: many(payments),
 
   // supply
@@ -173,8 +167,10 @@ export const organizationRelations = relations(organizations, ({ many }) => ({
   tickets: many(tickets),
 }));
 
-export type Organization = typeof organizations.$inferSelect;
+export type Organization = AuthOrg;
 export type OrganizationInsert = typeof organizations.$inferInsert;
+
+export type ActiveOrg = AuthActiveOrg;
 
 // ==============================
 // Better Auth Organization Roles
@@ -187,13 +183,13 @@ export const organizationRoles = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    role: text("role").notNull(),
+    role: varcharColumn("role").notNull(),
     permission: text("permission"), // by better auth
 
     // custom fields
     system: falseColumn("system"),
     enabled: trueColumn("enabled"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // UI description, internal notes
     ...timestamps,
   },
   (table) => [
@@ -205,6 +201,7 @@ export const organizationRoles = pgTable(
 export const organizationRoleRelations = relations(
   organizationRoles,
   ({ one }) => ({
+    // org
     organization: one(organizations, {
       fields: [organizationRoles.organizationId],
       references: [organizations.id],
@@ -212,7 +209,7 @@ export const organizationRoleRelations = relations(
   })
 );
 
-export type OrganizationRole = AuthOrg;
+export type OrganizationRole = typeof organizationRoles.$inferSelect;
 export type OrganizationRoleInsert = typeof organizationRoles.$inferInsert;
 
 // ==============================
@@ -238,7 +235,7 @@ export const members = pgTable(
       .$type<EntityStatus>()
       .default(DEFAULT_ENTITY_STATUS)
       .notNull(),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // employment details, notes, emergency contact
     deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
@@ -254,15 +251,13 @@ export const memberRelations = relations(members, ({ one, many }) => ({
     fields: [members.organizationId],
     references: [organizations.id],
   }),
+  branchMembers: many(branchMembers),
 
   // auth
   user: one(users, {
     fields: [members.userId],
     references: [users.id],
   }),
-
-  // org
-  branchMembers: many(branchMembers),
 
   // core
   addresses: many(addresses),
@@ -306,7 +301,7 @@ export const invitations = pgTable(
     ...timestamps,
 
     // custom fields
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // target branch_id, source channel, message
   },
   (table) => [
     idx("invitations", table.organizationId),
@@ -316,10 +311,13 @@ export const invitations = pgTable(
 );
 
 export const invitationRelations = relations(invitations, ({ one }) => ({
+  // org
   organization: one(organizations, {
     fields: [invitations.organizationId],
     references: [organizations.id],
   }),
+
+  // auth
   inviter: one(users, {
     fields: [invitations.inviterId],
     references: [users.id],
@@ -349,14 +347,14 @@ export const branches = pgTable(
     logo: text("logo"),
     cover: text("cover"),
 
-    rating: decimalColumn("rating", 3, 2),
-    reviewCount: intColumn("review_count"),
+    rating: decimalColumn("rating", 3, 2).default(0).notNull(),
+    reviewCount: intColumn("review_count").default(0).notNull(),
 
     status: text("status")
       .$type<BranchStatus>()
       .default(DEFAULT_BRANCH_STATUS)
       .notNull(),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // operating hours, facility details, notes
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -368,17 +366,15 @@ export const branches = pgTable(
 );
 
 export const branchRelations = relations(branches, ({ one, many }) => ({
+  // org
   organization: one(organizations, {
     fields: [branches.organizationId],
     references: [organizations.id],
   }),
-
-  // org
   members: many(branchMembers),
 
   // core
   addresses: many(addresses),
-  sequences: many(sequences),
 
   // finance
   paymentMethods: many(paymentMethods),
@@ -394,8 +390,6 @@ export const branchRelations = relations(branches, ({ one, many }) => ({
   purchaseOrders: many(purchaseOrders),
   inventories: many(inventories),
   inventoryMovements: many(inventoryMovements),
-
-  // transfers (inventoryTransfers)
   transfersSent: many(inventoryTransfers, { relationName: "transfer_source" }),
   transfersReceived: many(inventoryTransfers, {
     relationName: "transfer_destination",
@@ -404,9 +398,6 @@ export const branchRelations = relations(branches, ({ one, many }) => ({
   // order
   fulfillments: many(fulfillments),
   orderReturns: many(orderReturns),
-
-  // finance
-  expenses: many(expenses),
 
   // marketing
   tickets: many(tickets),
@@ -447,6 +438,7 @@ export const branchMembers = pgTable(
 );
 
 export const branchMemberRelations = relations(branchMembers, ({ one }) => ({
+  // org
   branch: one(branches, {
     fields: [branchMembers.branchId],
     references: [branches.id],
@@ -480,13 +472,11 @@ export const customers = pgTable(
     phoneNumber: varcharColumn("phone_number").notNull(),
     email: varcharColumn("email"),
 
-    image: text("image"),
-
     status: text("status")
       .$type<EntityStatus>()
       .default(DEFAULT_ENTITY_STATUS)
       .notNull(),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // custom attributes, preferences, internal notes
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -500,10 +490,13 @@ export const customers = pgTable(
 );
 
 export const customerRelations = relations(customers, ({ one, many }) => ({
+  // org
   organization: one(organizations, {
     fields: [customers.organizationId],
     references: [organizations.id],
   }),
+
+  // auth
   user: one(users, {
     fields: [customers.userId],
     references: [users.id],
@@ -542,7 +535,7 @@ export const suppliers = pgTable(
       .$type<EntityStatus>()
       .default(DEFAULT_ENTITY_STATUS)
       .notNull(),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // payment terms, rating, internal notes, lead time
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -555,6 +548,7 @@ export const suppliers = pgTable(
 );
 
 export const supplierRelations = relations(suppliers, ({ one, many }) => ({
+  // org
   organization: one(organizations, {
     fields: [suppliers.organizationId],
     references: [organizations.id],
@@ -571,9 +565,6 @@ export const supplierRelations = relations(suppliers, ({ one, many }) => ({
 
   // supply
   purchaseOrders: many(purchaseOrders),
-
-  // finance
-  supplierBills: many(supplierBills),
 }));
 
 export type Supplier = typeof suppliers.$inferSelect;

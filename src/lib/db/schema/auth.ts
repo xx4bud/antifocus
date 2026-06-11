@@ -1,10 +1,11 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 import type { AuthSession, AuthUser } from "@/lib/auth";
 import {
   falseColumn,
   idColumn,
   idx,
+  intColumn,
   jsonbColumn,
   timestampColumn,
   timestamps,
@@ -37,7 +38,7 @@ export const users = pgTable(
 
     // username plugin
     username: varcharColumn("username").unique(),
-    displayUsername: text("display_username"),
+    displayUsername: varcharColumn("display_username"),
 
     // phone number plugin
     phoneNumber: varcharColumn("phone_number").unique(),
@@ -57,7 +58,7 @@ export const users = pgTable(
       .$type<EntityStatus>()
       .default(DEFAULT_ENTITY_STATUS)
       .notNull(),
-    metadata: jsonbColumn("metadata"), // profiles, preferences, settings
+    metadata: jsonbColumn("metadata"), // profiles, preferences, settings, onboarding status
     deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
@@ -111,12 +112,13 @@ export const sessions = pgTable(
     activeOrganizationId: text("active_organization_id"),
 
     // custom fields
-    metadata: jsonbColumn("metadata"), // active_branch_id
+    metadata: jsonbColumn("metadata"), // active_branch_id, device info
   },
   (table) => [idx("sessions", table.userId), idx("sessions", table.token)]
 );
 
 export const sessionRelations = relations(sessions, ({ one }) => ({
+  // auth
   user: one(users, {
     fields: [sessions.userId],
     references: [users.id],
@@ -148,10 +150,10 @@ export const accounts = pgTable(
     refreshTokenExpiresAt: timestampColumn("refresh_token_expires_at"),
 
     scope: text("scope"),
-    password: text("password"),
+    password: text("password"), // hash by argon2
 
     // custom fields
-    metadata: jsonbColumn("metadata"), // raw data
+    metadata: jsonbColumn("metadata"), // raw provider payload, tokens, profile sync data
   },
   (table) => [
     uidx("accounts", table.userId, table.providerId, table.accountId),
@@ -160,6 +162,7 @@ export const accounts = pgTable(
 );
 
 export const accountRelations = relations(accounts, ({ one }) => ({
+  // auth
   user: one(users, {
     fields: [accounts.userId],
     references: [users.id],
@@ -183,7 +186,7 @@ export const verifications = pgTable(
     ...timestamps,
 
     // custom fields
-    metadata: jsonbColumn("metadata"), // raw data
+    metadata: jsonbColumn("metadata"), // context (e.g., attempt counts, intent)
   },
   (table) => [idx("verifications", table.identifier)]
 );
@@ -209,6 +212,7 @@ export const twoFactors = pgTable(
 );
 
 export const twoFactorRelations = relations(twoFactors, ({ one }) => ({
+  // auth
   user: one(users, {
     fields: [twoFactors.userId],
     references: [users.id],
@@ -232,18 +236,19 @@ export const apikeys = pgTable(
     key: text("key").notNull(),
     name: varcharColumn("name"),
     start: text("start"),
-    prefix: varcharColumn("prefix"),
-    permissions: text("permissions"), // by better auth
-    metadata: text("metadata"), // by better auth
+    prefix: text("prefix"),
+
+    permissions: text("permissions"), // by better auth (JSON string)
+    metadata: text("metadata"), // by better auth (JSON string)
 
     enabled: trueColumn("enabled"),
     rateLimitEnabled: trueColumn("rate_limit_enabled"),
-    rateLimitTimeWindow: integer("rate_limit_time_window").default(60),
-    rateLimitMax: integer("rate_limit_max").default(100),
-    refillInterval: integer("refill_interval"),
-    refillAmount: integer("refill_amount"),
-    requestCount: integer("request_count").notNull().default(0),
-    remaining: integer("remaining"),
+    rateLimitTimeWindow: intColumn("rate_limit_time_window").default(60),
+    rateLimitMax: intColumn("rate_limit_max").default(100),
+    refillInterval: intColumn("refill_interval"),
+    refillAmount: intColumn("refill_amount"),
+    requestCount: intColumn("request_count").notNull().default(0),
+    remaining: intColumn("remaining"),
 
     lastRefillAt: timestampColumn("last_refill_at"),
     lastRequest: timestampColumn("last_request"),

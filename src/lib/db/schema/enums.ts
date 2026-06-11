@@ -117,6 +117,13 @@ export const DEFAULT_DESIGN_STATUS: DesignStatus = DESIGN_STATUS.PENDING;
 // Finance Enums
 // ==============================
 
+export const INVOICE_TYPE = {
+  AR: "ar",
+  AP: "ap",
+  EXPENSE: "expense",
+} as const;
+export type InvoiceType = (typeof INVOICE_TYPE)[keyof typeof INVOICE_TYPE];
+
 export const PAYMENT_METHOD_TYPE = {
   CASH: "cash",
   BANK_TRANSFER: "bank_transfer",

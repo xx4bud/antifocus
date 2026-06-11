@@ -44,7 +44,7 @@ export const billOfMaterials = pgTable(
     name: varcharColumn("name").notNull(),
     code: varcharColumn("code"),
     instructions: text("instructions"),
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific machine settings, tooling requirements
 
     enabled: trueColumn("enabled"),
 
@@ -54,7 +54,7 @@ export const billOfMaterials = pgTable(
   (table) => [
     idx("bill_of_materials", table.organizationId),
     idx("bill_of_materials", table.variantId),
-    uidx("bill_of_materials", table.organizationId, table.code),
+    idx("bill_of_materials", table.organizationId, table.code), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -89,7 +89,9 @@ export const bomItems = pgTable(
   "bom_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     bomId: text("bom_id")
       .notNull()
       .references(() => billOfMaterials.id, { onDelete: "cascade" }),
@@ -102,7 +104,7 @@ export const bomItems = pgTable(
       onDelete: "set null",
     }),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific material requirements, alternatives
 
     ...timestamps,
   },
@@ -155,10 +157,10 @@ export const productionOrders = pgTable(
 
     orderId: text("order_id").references(() => orders.id, {
       onDelete: "cascade",
-    }),
+    }), // null = make-to-stock
     supplierId: text("supplier_id").references(() => suppliers.id, {
       onDelete: "set null",
-    }),
+    }), // null = in-house production, not-null = makloon/subcontract
 
     productionNumber: varcharColumn("production_number"),
 
@@ -177,7 +179,7 @@ export const productionOrders = pgTable(
     targetDate: timestampColumn("target_date"),
     completedDate: timestampColumn("completed_date"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // QC notes, delay reasons
 
     ...timestamps,
     deletedAt: timestampColumn("deleted_at"),
@@ -187,7 +189,9 @@ export const productionOrders = pgTable(
     idx("production_orders", table.orderId),
     idx("production_orders", table.branchId),
     idx("production_orders", table.supplierId),
-    uidx("production_orders", table.organizationId, table.productionNumber),
+    idx("production_orders", table.status),
+    idx("production_orders", table.priority),
+    idx("production_orders", table.organizationId, table.productionNumber), // no unique — allow reuse after soft delete
   ]
 );
 
@@ -233,7 +237,9 @@ export const productionOrderItems = pgTable(
   "production_order_items",
   {
     id: idColumn(),
-    organizationId: text("organization_id").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
     productionOrderId: text("production_order_id")
       .notNull()
       .references(() => productionOrders.id, { onDelete: "cascade" }),
@@ -250,7 +256,7 @@ export const productionOrderItems = pgTable(
 
     unitCost: decimalColumn("unit_cost"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // specific measurements, defect notes
 
     createdAt: timestampColumn("created_at").notNull().defaultNow(),
     updatedAt: timestampColumn("updated_at")
@@ -333,7 +339,7 @@ export const productionTasks = pgTable(
     startedAt: timestampColumn("started_at"),
     completedAt: timestampColumn("completed_at"),
 
-    metadata: jsonbColumn("metadata"),
+    metadata: jsonbColumn("metadata"), // operator notes, material wastage
 
     ...timestamps,
   },
@@ -342,6 +348,7 @@ export const productionTasks = pgTable(
     idx("production_tasks", table.productionOrderId),
     idx("production_tasks", table.productionOrderItemId),
     idx("production_tasks", table.assigneeId),
+    idx("production_tasks", table.status),
   ]
 );
 

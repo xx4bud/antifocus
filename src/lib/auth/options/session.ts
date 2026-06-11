@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 
-export const session: BetterAuthOptions["session"] = {
+export const session = {
   expiresIn: 60 * 60 * 24 * 7,
   updateAge: 60 * 60 * 24,
   cookieCache: {
@@ -15,4 +15,4 @@ export const session: BetterAuthOptions["session"] = {
       required: false,
     },
   },
-};
+} as const satisfies BetterAuthOptions["session"];
