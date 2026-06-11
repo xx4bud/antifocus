@@ -11,5 +11,27 @@
   },
   "Home": {
     "title": "Selamat Datang di Antifocus"
+  },
+  "Auth": {
+    "signInTitle": "Masuk",
+    "signInDescription": "Masukkan email atau username Anda untuk mengakses akun",
+    "signUpTitle": "Buat Akun",
+    "signUpDescription": "Masukkan detail Anda untuk mendaftar akun baru",
+    "identifierLabel": "Email atau Username",
+    "nameLabel": "Nama Lengkap",
+    "usernameLabel": "Username",
+    "emailLabel": "Alamat Email",
+    "passwordLabel": "Kata Sandi",
+    "confirmPasswordLabel": "Konfirmasi Kata Sandi",
+    "signInButton": "Masuk",
+    "signUpButton": "Daftar",
+    "signOutButton": "Keluar",
+    "submitting": "Mohon tunggu...",
+    "dontHaveAccount": "Belum punya akun?",
+    "alreadyHaveAccount": "Sudah punya akun?",
+    "orContinueWith": "Atau lanjutkan dengan",
+    "signInSuccess": "Berhasil masuk!",
+    "signUpSuccess": "Akun berhasil dibuat! Anda telah masuk.",
+    "redirectingSocial": "Mengalihkan..."
   }
 }

@@ -1,13 +1,23 @@
 import { type APIError, isAPIError } from "better-auth/api";
 import { ZodError } from "zod";
 
+/**
+ * Standardized application error format.
+ */
 export interface AppError {
+  /** Machine-readable error code */
   code: string;
+  /** Additional diagnostic context */
   context?: Record<string, unknown>;
+  /** User-friendly error message */
   message: string;
+  /** Suggested HTTP status code */
   statusCode?: number;
 }
 
+/**
+ * Creates an immutable AppError object.
+ */
 export const createError = (
   code: string,
   message: string,
@@ -21,6 +31,9 @@ export const createError = (
     context,
   });
 
+/**
+ * Parses a Zod validation error into a structured AppError.
+ */
 export const parseZodError = (error: ZodError): AppError => {
   const firstIssue = error.issues[0];
   const message = firstIssue
@@ -36,6 +49,9 @@ export const parseZodError = (error: ZodError): AppError => {
   });
 };
 
+/**
+ * Parses a Better Auth API error into a structured AppError.
+ */
 export const parseAuthError = (error: APIError): AppError => {
   const status = error.status;
 
@@ -59,6 +75,9 @@ export const parseAuthError = (error: APIError): AppError => {
   );
 };
 
+/**
+ * Coerces any unknown error into a normalized AppError.
+ */
 export const parseError = (error: unknown): AppError => {
   if (error && typeof error === "object" && "code" in error) {
     return error as AppError;

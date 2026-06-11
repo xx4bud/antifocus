@@ -1,6 +1,7 @@
 import { username } from "better-auth/plugins";
+import { USERNAME_RULES } from "@/lib/db/validations/username";
 
 export const usernamePlugin = username({
-  minUsernameLength: 3,
-  maxUsernameLength: 30,
+  minUsernameLength: USERNAME_RULES.MIN,
+  maxUsernameLength: USERNAME_RULES.MAX,
 });

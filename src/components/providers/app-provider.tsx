@@ -1,7 +1,9 @@
 "use client";
 
+import { Toaster } from "sonner";
 import { I18nProvider } from "@/components/providers/i18n-provider";
 import type { Locale, Messages } from "@/lib/i18n/locales";
+import { TooltipProvider } from "../ui/tooltip";
 import { TRPCReactProvider } from "./trpc-provider";
 
 interface AppProviderProps {
@@ -19,7 +21,10 @@ export function AppProvider({
 }: AppProviderProps) {
   return (
     <I18nProvider locale={locale} messages={messages} timeZone={timeZone}>
-      <TRPCReactProvider>{children}</TRPCReactProvider>
+      <TRPCReactProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+        <Toaster />
+      </TRPCReactProvider>
     </I18nProvider>
   );
 }

@@ -15,6 +15,9 @@ interface ConstructMetadataProps {
   title: string | { default: string; template: string };
 }
 
+/**
+ * Constructs Next.js Metadata configuration with multi-language SEO alternates.
+ */
 export function constructMetadata({
   title,
   description,

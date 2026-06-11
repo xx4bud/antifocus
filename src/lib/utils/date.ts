@@ -7,10 +7,6 @@ import {
 } from "date-fns";
 import { getAppLocale, type Locale } from "../i18n/locales";
 
-// ==============================
-// Date Utilities
-// ==============================
-
 /**
  * Format a date using the specified app locale.
  */

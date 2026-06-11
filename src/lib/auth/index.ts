@@ -5,7 +5,7 @@ import { env, isProduction } from "../../env";
 import { db, schema } from "../db";
 import { redis } from "../redis";
 import { APP_NAME } from "../utils/constants";
-import { generateId } from "../utils/ids";
+import { generateId } from "../utils/id";
 import { getBaseUrl } from "../utils/urls";
 import { authOptions } from "./options";
 import { authPlugins } from "./plugins";

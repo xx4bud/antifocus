@@ -1,7 +1,3 @@
-// ==============================
-// Number Utilities
-// ==============================
-
 /**
  * Clamp a number within a range.
  * clamp(15, 0, 10) → 10

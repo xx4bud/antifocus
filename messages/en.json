@@ -11,5 +11,27 @@
   },
   "Home": {
     "title": "Welcome to Antifocus"
+  },
+  "Auth": {
+    "signInTitle": "Sign In",
+    "signInDescription": "Enter your email or username to access your account",
+    "signUpTitle": "Create an Account",
+    "signUpDescription": "Enter your details to create your account",
+    "identifierLabel": "Email or Username",
+    "nameLabel": "Full Name",
+    "usernameLabel": "Username",
+    "emailLabel": "Email Address",
+    "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm Password",
+    "signInButton": "Sign In",
+    "signUpButton": "Sign Up",
+    "signOutButton": "Sign Out",
+    "submitting": "Please wait...",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "orContinueWith": "Or continue with",
+    "signInSuccess": "Successfully signed in!",
+    "signUpSuccess": "Account created successfully! You are now logged in.",
+    "redirectingSocial": "Redirecting..."
   }
 }

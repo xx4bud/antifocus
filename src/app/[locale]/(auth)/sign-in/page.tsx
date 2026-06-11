@@ -1,18 +1,10 @@
 import type { Metadata } from "next";
+import { SignInForm } from "@/features/main/auth/components/sign-in-form";
 import { getLocaleParams } from "@/lib/i18n/request";
 import { constructMetadata } from "@/lib/utils/seo";
 
-// interface Props {
-//   params: Promise<{ locale: string }>;
-// }
-
 export default async function SignInPage() {
-  return (
-    <div className="flex flex-col gap-4 p-6">
-      <h1 className="font-bold text-2xl tracking-tight">Sign In</h1>
-      <p className="text-muted-foreground">Coming soon...</p>
-    </div>
-  );
+  return <SignInForm />;
 }
 
 export async function generateMetadata({
@@ -24,7 +16,7 @@ export async function generateMetadata({
 
   return constructMetadata({
     title: "Sign In",
-    description: "Coming soon...",
+    description: "Access your Antifocus account",
     locale,
     path: "/sign-in",
   });

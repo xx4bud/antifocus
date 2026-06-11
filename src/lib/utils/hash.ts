@@ -9,6 +9,9 @@ const opts: Options = {
   parallelism: 1,
 };
 
+/**
+ * Securely hashes a password using Argon2id.
+ */
 export const hashPassword = async (
   password: string
 ): Promise<AppResult<string>> =>
@@ -23,6 +26,9 @@ export const hashPassword = async (
       )
   );
 
+/**
+ * Verifies a plain text password against an Argon2id hash.
+ */
 export const verifyPassword = async (
   hashedPassword: string,
   plainPassword: string

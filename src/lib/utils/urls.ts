@@ -1,5 +1,8 @@
 import { env, isClient } from "@/env";
 
+/**
+ * Retrieves the base URL for the application depending on runtime environment (client, server, dev/prod).
+ */
 export const getBaseUrl = (): string => {
   if (isClient) {
     return window.location.origin;
@@ -16,9 +19,11 @@ export const getBaseUrl = (): string => {
   return "http://localhost:3000";
 };
 
+/**
+ * Constructs an absolute URL from a relative path.
+ */
 export const getAbsoluteUrl = (path: string): string => {
   const baseUrl = getBaseUrl();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  // Prevent returning 'http://localhost:3000/' (trailing slash) for root path
   return `${baseUrl}${cleanPath === "/" ? "" : cleanPath}`;
 };

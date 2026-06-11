@@ -1,7 +1,3 @@
-// ==============================
-// Object Utilities
-// ==============================
-
 /**
  * Creates an object composed of the picked object properties.
  */

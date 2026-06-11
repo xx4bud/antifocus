@@ -1,5 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import React from "react";
+import { PASSWORD_RULES } from "@/lib/db/validations/password";
 import { FROM_EMAIL, sendEmail } from "@/lib/email";
 import { ResetPasswordEmail } from "@/lib/email/templates/reset-password";
 import { hashPassword, verifyPassword } from "@/lib/utils/hash";
@@ -9,8 +10,8 @@ export const emailAndPassword: BetterAuthOptions["emailAndPassword"] = {
   autoSignIn: false, //defaults to true
   requireEmailVerification: true,
   resetPasswordTokenExpiresIn: 60 * 30, // 30 minutes
-  minPasswordLength: 8,
-  maxPasswordLength: 256,
+  minPasswordLength: PASSWORD_RULES.MIN,
+  maxPasswordLength: PASSWORD_RULES.MAX,
   revokeSessionsOnPasswordReset: true,
   sendResetPassword: async ({ user, url }) => {
     await sendEmail({

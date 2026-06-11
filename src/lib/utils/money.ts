@@ -2,10 +2,6 @@ import { allocate, type Dinero, dinero, toDecimal } from "dinero.js";
 import { getAppLocale, type Locale } from "../i18n/locales";
 import { roundTo } from "./number";
 
-// ==============================
-// Money Utilities (Dinero.js v2)
-// ==============================
-
 /**
  * Creates a Dinero object from a raw decimal string or number.
  * Assumes the input is in major units (e.g., 150.50 means 150 dollars/rupiah and 50 cents).
