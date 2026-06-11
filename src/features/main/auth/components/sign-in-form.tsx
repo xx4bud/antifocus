@@ -47,14 +47,12 @@ export function SignInForm() {
   });
 
   return (
-    <div className="relative w-full max-w-md">
-      {/* Background glow decorator */}
-      <div className="absolute -inset-1 rounded-2xl bg-linear-to-r from-primary/30 to-violet-500/30 opacity-70 blur-xl transition duration-1000 group-hover:duration-200" />
-
-      {/* Glassmorphism Card */}
-      <div className="relative flex flex-col gap-6 rounded-2xl border border-border/50 bg-card/45 p-8 shadow-2xl backdrop-blur-xl dark:bg-card/30">
-        <div className="flex flex-col gap-2 text-center">
-          <h1 className="bg-linear-to-r from-foreground to-foreground/85 bg-clip-text font-bold text-3xl text-foreground tracking-tight">
+    <div className="w-full max-w-md">
+      {/* Clean minimal card */}
+      <div className="flex flex-col gap-6 rounded-xl border border-border bg-card p-8 shadow-md">
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h1 className="font-semibold text-2xl tracking-tight">
             {t("signInTitle")}
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -62,6 +60,7 @@ export function SignInForm() {
           </p>
         </div>
 
+        {/* Form */}
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {
@@ -96,33 +95,34 @@ export function SignInForm() {
                 </form.AppField>
 
                 <Button
-                  className="relative mt-2 w-full overflow-hidden font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 active:scale-[0.98]"
+                  className="w-full font-medium"
                   disabled={isSubmitting}
                   size="lg"
                   type="submit"
                 >
                   {isSubmitting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <IconLoader2 className="size-4 animate-spin" />
-                      {t("submitting")}
-                    </span>
-                  ) : (
-                    t("signInButton")
-                  )}
+                    <IconLoader2
+                      className="animate-spin"
+                      data-icon="inline-start"
+                    />
+                  ) : null}
+                  {isSubmitting ? t("submitting") : t("signInButton")}
                 </Button>
               </>
             )}
           </form.Subscribe>
         </form>
 
+        {/* Social auth */}
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => <SocialAuth disabled={isSubmitting} />}
         </form.Subscribe>
 
+        {/* Link to sign up */}
         <div className="text-center text-muted-foreground text-sm">
           {t("dontHaveAccount")}{" "}
           <Link
-            className="font-semibold text-primary underline-offset-4 hover:underline"
+            className="font-medium text-primary underline-offset-2 hover:underline"
             href="/sign-up"
           >
             {t("signUpButton")}

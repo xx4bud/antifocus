@@ -44,13 +44,13 @@ export function SocialAuth({ disabled }: SocialAuthProps) {
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-border/50 border-t" />
         </div>
-        <span className="relative bg-transparent px-3 text-muted-foreground text-xs uppercase tracking-wider backdrop-blur-xs">
+        <span className="relative bg-background px-3 text-muted-foreground text-xs uppercase tracking-wider">
           {t("orContinueWith")}
         </span>
       </div>
 
       <Button
-        className="w-full font-medium transition-all duration-200 hover:bg-muted/80"
+        className="w-full font-medium transition-colors"
         disabled={disabled || isPending}
         onClick={handleGoogleSignIn}
         size="lg"
@@ -58,9 +58,9 @@ export function SocialAuth({ disabled }: SocialAuthProps) {
         variant="outline"
       >
         {isPending ? (
-          <IconLoader2 className="size-4 animate-spin" />
+          <IconLoader2 className="animate-spin" data-icon="inline-start" />
         ) : (
-          <IconBrandGoogle className="size-5 text-red-500" />
+          <IconBrandGoogle data-icon="inline-start" />
         )}
         Google
       </Button>

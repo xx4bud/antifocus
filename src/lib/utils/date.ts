@@ -8,14 +8,20 @@ import {
 import { getAppLocale, type Locale } from "../i18n/locales";
 
 /**
+ * Get the current date/time (source of truth).
+ */
+export const now = (): Date => new Date();
+
+/**
  * Format a date using the specified app locale.
+ * Handles both Date and TZDate properly without stripping timezone.
  */
 export const formatDate = (
   date: Date | string | number,
   locale: Locale = "id"
 ): string => {
   const appLocale = getAppLocale(locale);
-  return format(new Date(date), appLocale.defaultDateFormat, {
+  return format(toDate(date), appLocale.defaultDateFormat, {
     locale: appLocale.dateFns,
   });
 };
@@ -29,7 +35,7 @@ export const formatDateTime = (
 ): string => {
   const appLocale = getAppLocale(locale);
   const formatStr = `${appLocale.defaultDateFormat} ${appLocale.defaultTimeFormat}`;
-  return format(new Date(date), formatStr, {
+  return format(toDate(date), formatStr, {
     locale: appLocale.dateFns,
   });
 };
@@ -42,7 +48,7 @@ export const formatRelative = (
   locale: Locale = "id"
 ): string => {
   const appLocale = getAppLocale(locale);
-  return formatDistanceToNow(new Date(date), {
+  return formatDistanceToNow(toDate(date), {
     addSuffix: true,
     locale: appLocale.dateFns,
   });
@@ -52,7 +58,7 @@ export const formatRelative = (
  * Check if a date is in the past (expired).
  */
 export const isExpired = (date: Date | string | number): boolean =>
-  isPast(new Date(date));
+  isPast(toDate(date));
 
 /**
  * Add business days (skip weekends).
@@ -68,5 +74,16 @@ export const fromUTC = (
   locale: Locale = "id"
 ): TZDate => {
   const appLocale = getAppLocale(locale);
-  return new TZDate(new Date(date), appLocale.defaultTimeZone);
+  return new TZDate(toDate(date), appLocale.defaultTimeZone);
+};
+
+/**
+ * Normalize Date | TZDate | string | number to Date.
+ * Preserves the instant in time (no timezone stripping).
+ */
+const toDate = (date: Date | string | number): Date => {
+  if (typeof date === "string" || typeof date === "number") {
+    return new Date(date);
+  }
+  return date;
 };

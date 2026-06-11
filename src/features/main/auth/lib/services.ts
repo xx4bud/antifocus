@@ -1,10 +1,10 @@
 import { headers } from "next/headers";
 import { cache } from "react";
-import type { Session, User } from "../db/schema";
-import { createError, parseError } from "../utils/error";
-import type { AppResult } from "../utils/result";
-import { tryCatchAsync } from "../utils/result";
-import { auth } from "./index";
+import { auth } from "@/lib/auth";
+import type { Session, User } from "@/lib/db/schema";
+import { createError, parseError } from "@/lib/utils/error";
+import type { AppResult } from "@/lib/utils/result";
+import { tryCatchAsync } from "@/lib/utils/result";
 
 export const getAuthSession = cache(
   async (): Promise<AppResult<Session | null>> =>

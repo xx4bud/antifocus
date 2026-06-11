@@ -1,42 +1,57 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { isExpired } from "../../utils/date";
 
 /**
- * Standard date schema. Coerces valid ISO strings or timestamps to Date objects.
+ * ISO 8601 datetime string regex patterns.
+ * Supports standard ISO datetime strings (with or without milliseconds and timezone).
  */
-export const dateSchema = z.coerce.date();
-
-export const optionalDateSchema = dateSchema.optional();
+const DATETIME_REGEX =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/;
 
 /**
- * Date that must be in the past.
+ * Timestamp schema (ISO 8601 with timezone).
+ * Corresponds to Drizzle `timestampColumn()` — timestamp with timezone.
+ */
+export const timestampSchema = z
+  .string()
+  .regex(DATETIME_REGEX, "Must be a valid ISO 8601 datetime")
+  .pipe(z.coerce.date());
+
+export const optionalTimestampSchema = timestampSchema.optional();
+
+/**
+ * Timestamp that must be in the past.
  * E.g., Date of birth, historical events.
  */
-export const pastDateSchema = z.coerce.date().refine((val) => isExpired(val), {
-  message: "Date must be in the past",
-});
+export const pastTimestampSchema = timestampSchema.refine(
+  (val) => isExpired(val),
+  {
+    message: "Timestamp must be in the past",
+  }
+);
 
 /**
- * Date that must be in the future.
+ * Timestamp that must be in the future.
  * E.g., Expiration date, scheduled publication.
  */
-export const futureDateSchema = z.coerce
-  .date()
-  .refine((val) => !isExpired(val), {
-    message: "Date must be in the future",
-  });
+export const futureTimestampSchema = timestampSchema.refine(
+  (val) => !isExpired(val),
+  {
+    message: "Timestamp must be in the future",
+  }
+);
 
 /**
- * Date range schema with start and end validation.
+ * Timestamp range schema with start and end validation.
  */
-export const dateRangeSchema = z
+export const timestampRangeSchema = z
   .object({
-    start: z.coerce.date(),
-    end: z.coerce.date(),
+    start: timestampSchema,
+    end: timestampSchema,
   })
   .refine((data) => data.end >= data.start, {
-    message: "End date must be exactly on or after start date",
+    message: "End timestamp must be exactly on or after start timestamp",
     path: ["end"],
   });
 
-export const optionalDateRangeSchema = dateRangeSchema.optional();
+export const optionalTimestampRangeSchema = timestampRangeSchema.optional();

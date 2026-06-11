@@ -1,7 +1,7 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UTApi } from "uploadthing/server";
 import { env } from "@/env";
-import { requireAuthSession } from "../auth/services";
+import { requireAuthSession } from "../../features/main/auth/lib/services";
 import { createError } from "../utils/error";
 import { type AppResult, tryCatchAsync } from "../utils/result";
 

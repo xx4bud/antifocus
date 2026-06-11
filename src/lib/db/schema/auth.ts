@@ -1,22 +1,25 @@
 import { relations } from "drizzle-orm";
-import {
-  boolean,
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import type { AuthSession, AuthUser } from "@/lib/auth";
-import { idColumn, timestampColumn, timestamptz } from "../helpers";
+import {
+  falseColumn,
+  idColumn,
+  idx,
+  jsonbColumn,
+  timestampColumn,
+  timestamps,
+  trueColumn,
+  uidx,
+  varcharColumn,
+} from "../helpers";
+import { addresses, notifications } from "./core";
 import {
   DEFAULT_ENTITY_STATUS,
   DEFAULT_USER_ROLE,
   type EntityStatus,
   type UserRole,
 } from "./enums";
-import { invitations, members } from "./org";
+import { customers, invitations, members } from "./org";
 
 // ==============================
 // Better Auth Users
@@ -26,43 +29,41 @@ export const users = pgTable(
   "users",
   {
     id: idColumn(),
-    name: text("name").notNull(),
-    email: varchar("email", { length: 255 }).notNull().unique(),
-    emailVerified: boolean("email_verified").notNull().default(false),
+    name: varcharColumn("name").notNull(),
+    email: varcharColumn("email").notNull().unique(),
+    emailVerified: falseColumn("email_verified"),
     image: text("image"),
-    ...timestampColumn(),
+    ...timestamps,
 
     // username plugin
-    username: varchar("username", { length: 255 }).unique(),
+    username: varcharColumn("username").unique(),
     displayUsername: text("display_username"),
 
     // phone number plugin
-    phoneNumber: varchar("phone_number", { length: 255 }).unique(),
-    phoneNumberVerified: boolean("phone_number_verified")
-      .notNull()
-      .default(false),
+    phoneNumber: varcharColumn("phone_number").unique(),
+    phoneNumberVerified: falseColumn("phone_number_verified"),
 
     // two factor plugin
-    twoFactorEnabled: boolean("two_factor_enabled").default(false),
+    twoFactorEnabled: falseColumn("two_factor_enabled"),
 
     // admin plugin
     role: text("role").$type<UserRole>().default(DEFAULT_USER_ROLE),
-    banned: boolean("banned").default(false),
+    banned: falseColumn("banned"),
     banReason: text("ban_reason"),
-    banExpires: timestamptz("ban_expires"),
+    banExpires: timestampColumn("ban_expires"),
 
     // custom fields
     status: text("status")
       .$type<EntityStatus>()
       .default(DEFAULT_ENTITY_STATUS)
       .notNull(),
-    metadata: jsonb("metadata"), // profiles, preferences, settings
-    deletedAt: timestamptz("deleted_at"),
+    metadata: jsonbColumn("metadata"), // profiles, preferences, settings
+    deletedAt: timestampColumn("deleted_at"),
   },
   (table) => [
-    index("users_name_idx").on(table.name),
-    index("users_role_idx").on(table.role),
-    index("users_status_idx").on(table.status),
+    idx("users", table.name),
+    idx("users", table.role),
+    idx("users", table.status),
   ]
 );
 
@@ -75,6 +76,11 @@ export const userRelations = relations(users, ({ many }) => ({
   // org
   members: many(members),
   invitations: many(invitations),
+  customers: many(customers),
+
+  // core
+  addresses: many(addresses),
+  notifications: many(notifications),
 }));
 
 export type User = AuthUser;
@@ -92,11 +98,11 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    token: varchar("token", { length: 255 }).notNull().unique(),
-    expiresAt: timestamptz("expires_at").notNull(),
+    token: varcharColumn("token").notNull().unique(),
+    expiresAt: timestampColumn("expires_at").notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
-    ...timestampColumn(),
+    ...timestamps,
 
     // admin plugin
     impersonatedBy: text("impersonated_by"),
@@ -105,12 +111,9 @@ export const sessions = pgTable(
     activeOrganizationId: text("active_organization_id"),
 
     // custom fields
-    metadata: jsonb("metadata"), // active_branch_id
+    metadata: jsonbColumn("metadata"), // active_branch_id
   },
-  (table) => [
-    index("sessions_user_id_idx").on(table.userId),
-    index("sessions_token_idx").on(table.token),
-  ]
+  (table) => [idx("sessions", table.userId), idx("sessions", table.token)]
 );
 
 export const sessionRelations = relations(sessions, ({ one }) => ({
@@ -136,21 +139,24 @@ export const accounts = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     providerId: text("provider_id").notNull(), // google, credentials, etc
     accountId: text("account_id").notNull(),
-    ...timestampColumn(),
+    ...timestamps,
 
     idToken: text("id_token"),
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
-    accessTokenExpiresAt: timestamptz("access_token_expires_at"),
-    refreshTokenExpiresAt: timestamptz("refresh_token_expires_at"),
+    accessTokenExpiresAt: timestampColumn("access_token_expires_at"),
+    refreshTokenExpiresAt: timestampColumn("refresh_token_expires_at"),
 
     scope: text("scope"),
     password: text("password"),
 
     // custom fields
-    metadata: jsonb("metadata"), // raw data
+    metadata: jsonbColumn("metadata"), // raw data
   },
-  (table) => [index("accounts_user_id_idx").on(table.userId)]
+  (table) => [
+    uidx("accounts", table.userId, table.providerId, table.accountId),
+    idx("accounts", table.userId),
+  ]
 );
 
 export const accountRelations = relations(accounts, ({ one }) => ({
@@ -173,13 +179,13 @@ export const verifications = pgTable(
     id: idColumn(),
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
-    expiresAt: timestamptz("expires_at").notNull(),
-    ...timestampColumn(),
+    expiresAt: timestampColumn("expires_at").notNull(),
+    ...timestamps,
 
     // custom fields
-    metadata: jsonb("metadata"), // raw data
+    metadata: jsonbColumn("metadata"), // raw data
   },
-  (table) => [index("verifications_identifier_idx").on(table.identifier)]
+  (table) => [idx("verifications", table.identifier)]
 );
 
 export type Verification = typeof verifications.$inferSelect;
@@ -199,7 +205,7 @@ export const twoFactors = pgTable(
     secret: text("secret").notNull(),
     backupCodes: text("backup_codes").notNull(),
   },
-  (table) => [index("two_factors_user_id_idx").on(table.userId)]
+  (table) => [idx("two_factors", table.userId)]
 );
 
 export const twoFactorRelations = relations(twoFactors, ({ one }) => ({
@@ -219,19 +225,19 @@ export type TwoFactorInsert = typeof twoFactors.$inferInsert;
 export const apikeys = pgTable(
   "apikeys",
   {
-    id: text("id").primaryKey(),
+    id: idColumn(),
     configId: text("config_id").notNull().default("default"),
-    referenceId: text("reference_id").notNull(), // polymorphic
+    referenceId: text("reference_id").notNull(),
 
     key: text("key").notNull(),
-    name: text("name"),
+    name: varcharColumn("name"),
     start: text("start"),
-    prefix: text("prefix"),
+    prefix: varcharColumn("prefix"),
     permissions: text("permissions"), // by better auth
     metadata: text("metadata"), // by better auth
 
-    enabled: boolean("enabled").notNull().default(true),
-    rateLimitEnabled: boolean("rate_limit_enabled").notNull().default(true),
+    enabled: trueColumn("enabled"),
+    rateLimitEnabled: trueColumn("rate_limit_enabled"),
     rateLimitTimeWindow: integer("rate_limit_time_window").default(60),
     rateLimitMax: integer("rate_limit_max").default(100),
     refillInterval: integer("refill_interval"),
@@ -239,16 +245,16 @@ export const apikeys = pgTable(
     requestCount: integer("request_count").notNull().default(0),
     remaining: integer("remaining"),
 
-    lastRefillAt: timestamptz("last_refill_at"),
-    lastRequest: timestamptz("last_request"),
-    expiresAt: timestamptz("expires_at"),
+    lastRefillAt: timestampColumn("last_refill_at"),
+    lastRequest: timestampColumn("last_request"),
+    expiresAt: timestampColumn("expires_at"),
 
-    ...timestampColumn(),
+    ...timestamps,
   },
   (table) => [
-    index("apikeys_config_id_idx").on(table.configId),
-    index("apikeys_reference_id_idx").on(table.referenceId),
-    index("apikeys_key_idx").on(table.key),
+    idx("apikeys", table.configId),
+    idx("apikeys", table.referenceId),
+    idx("apikeys", table.key),
   ]
 );
 

@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/services";
+import { getAuthSession } from "@/features/main/auth/lib/services";
 import { db } from "@/lib/db";
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
