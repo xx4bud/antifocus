@@ -68,7 +68,7 @@ function TableHead({ className, ...props }: ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-10 whitespace-nowrap px-2 text-start align-middle font-medium text-foreground [&:has([role=checkbox])]:pe-0",
+        "h-10 whitespace-nowrap px-2 text-start align-middle font-medium text-foreground has-[[role=checkbox]]:pe-0",
         className
       )}
       data-slot="table-head"
@@ -81,7 +81,7 @@ function TableCell({ className, ...props }: ComponentProps<"td">) {
   return (
     <td
       className={cn(
-        "whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pe-0",
+        "whitespace-nowrap p-2 align-middle has-[[role=checkbox]]:pe-0",
         className
       )}
       data-slot="table-cell"

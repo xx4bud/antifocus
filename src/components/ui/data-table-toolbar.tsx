@@ -2,65 +2,61 @@
 
 import { IconSearch, IconX } from "@tabler/icons-react";
 import type { Table } from "@tanstack/react-table";
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DataTableFacetedFilter } from "@/components/ui/data-table-filters";
-import { DataTableViewOptions } from "@/components/ui/data-table-view-options";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils/ui";
+import { DataTableFacetedFilter } from "./data-table-faceted-filter";
+import { DataTableViewOptions } from "./data-table-view-options";
 
 export interface DataTableToolbarProps<TData> {
   actionButtons?: ReactNode;
-  activeTab?: string;
-  filters?: {
+  columnVisibility: Record<string, boolean>;
+  filterOptions?: {
     columnId: string;
     title: string;
-    options: {
-      label: string;
-      value: string;
-      icon?: React.ComponentType<{ className?: string }>;
-    }[];
+    options: { label: string; value: string }[];
   }[];
-  onTabChange?: (tab: string) => void;
   searchKey?: string;
   searchPlaceholder?: string;
   table: Table<TData>;
-  tabs?: {
-    value: string;
-    label: string;
-    badgeCount?: number;
-  }[];
 }
 
 export function DataTableToolbar<TData>({
   table,
   searchKey,
   searchPlaceholder = "Search...",
-  tabs,
-  activeTab,
-  onTabChange,
-  filters,
   actionButtons,
+  columnVisibility, // view options required
+  filterOptions,
 }: DataTableToolbarProps<TData>) {
+  const isFiltered = table.getState().columnFilters.length > 0;
+
   return (
-    <div className="flex flex-col gap-4 px-4 lg:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-3">
+      {/* Mobile Search */}
+      {searchKey && (
+        <div className="relative w-full sm:hidden">
+          <IconSearch className="pointer-events-none absolute top-1/2 left-2.5 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+          <DebouncedInput
+            className="h-8 w-full pl-8"
+            onChange={(value) =>
+              table.getColumn(searchKey)?.setFilterValue(value)
+            }
+            placeholder={searchPlaceholder}
+            value={
+              (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
+            }
+          />
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Desktop Search */}
           {searchKey && (
-            <div className="relative flex w-full items-center sm:w-[250px]">
-              <IconSearch className="pointer-events-none absolute left-2.5 z-10 size-4 text-muted-foreground" />
+            <div className="relative hidden w-full sm:block sm:w-[250px] lg:w-[300px]">
+              <IconSearch className="pointer-events-none absolute top-1/2 left-2.5 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
               <DebouncedInput
                 className="h-8 w-full pl-8"
                 onChange={(value) =>
@@ -74,60 +70,36 @@ export function DataTableToolbar<TData>({
             </div>
           )}
 
-          {filters?.map(
-            (filter) =>
-              table.getColumn(filter.columnId) && (
-                <DataTableFacetedFilter
-                  column={table.getColumn(filter.columnId)}
-                  key={filter.columnId}
-                  options={filter.options}
-                  title={filter.title}
-                />
-              )
+          {filterOptions?.map((filter) => {
+            const column = table.getColumn(filter.columnId);
+            return column ? (
+              <DataTableFacetedFilter
+                column={column}
+                key={filter.columnId}
+                options={filter.options}
+                title={filter.title}
+              />
+            ) : null;
+          })}
+
+          {isFiltered && (
+            <Button
+              className="h-8 px-2 lg:px-3"
+              onClick={() => table.resetColumnFilters()}
+              variant="ghost"
+            >
+              Reset
+              <IconX className="ml-2 h-4 w-4" />
+            </Button>
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          {tabs && (
-            <>
-              <Label className="sr-only" htmlFor="view-selector">
-                View
-              </Label>
-              <Select onValueChange={onTabChange} value={activeTab}>
-                <SelectTrigger
-                  className="flex @4xl/main:hidden w-fit"
-                  id="view-selector"
-                  size="sm"
-                >
-                  <SelectValue placeholder="Select a view" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {tabs.map((tab) => (
-                      <SelectItem key={tab.value} value={tab.value}>
-                        {tab.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <TabsList className="@4xl/main:flex hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
-                {tabs.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value}>
-                    {tab.label}
-                    {tab.badgeCount !== undefined && tab.badgeCount > 0 && (
-                      <Badge className="ml-1" variant="secondary">
-                        {tab.badgeCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </>
-          )}
-
-          <DataTableViewOptions table={table} />
+        <div className="flex items-center gap-2">
           {actionButtons}
+          <DataTableViewOptions
+            columnVisibility={columnVisibility}
+            table={table}
+          />
         </div>
       </div>
     </div>

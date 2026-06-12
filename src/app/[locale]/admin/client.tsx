@@ -73,21 +73,26 @@ export function AdminClient() {
         }
         columns={columns}
         data={(productsData?.items as ProductRowType[]) ?? []}
-        searchKey="name"
-        searchPlaceholder="Search products..."
-        tabs={[
-          { value: "all", label: "All Products" },
+        filterOptions={[
           {
-            value: "active",
-            label: "Active",
-            filterFn: (item: ProductRowType) => item.status === "active",
+            columnId: "status",
+            title: "Status",
+            options: [
+              { label: "Active", value: "active" },
+              { label: "Draft", value: "draft" },
+            ],
           },
           {
-            value: "draft",
-            label: "Draft",
-            filterFn: (item: ProductRowType) => item.status === "draft",
+            columnId: "type",
+            title: "Type",
+            options: [
+              { label: "Product", value: "product" },
+              { label: "Service", value: "service" },
+            ],
           },
         ]}
+        searchKey="name"
+        searchPlaceholder="Search products..."
       />
     </div>
   );

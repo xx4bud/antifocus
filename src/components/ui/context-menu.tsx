@@ -160,7 +160,7 @@ function ContextMenuCheckboxItem({
       data-slot="context-menu-checkbox-item"
       {...props}
     >
-      <span className="pointer-events-none absolute inset-e-2">
+      <span className="pointer-events-none absolute right-2">
         <ContextMenuPrimitive.ItemIndicator>
           <IconCheck />
         </ContextMenuPrimitive.ItemIndicator>
@@ -188,7 +188,7 @@ function ContextMenuRadioItem({
       data-slot="context-menu-radio-item"
       {...props}
     >
-      <span className="pointer-events-none absolute inset-e-2">
+      <span className="pointer-events-none absolute right-2">
         <ContextMenuPrimitive.ItemIndicator>
           <IconCheck />
         </ContextMenuPrimitive.ItemIndicator>

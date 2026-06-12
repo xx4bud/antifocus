@@ -1,11 +1,6 @@
 "use client";
-
-import { useSortable } from "@dnd-kit/sortable";
 import {
-  IconCircleCheckFilled,
   IconCopy,
-  IconGripVertical,
-  IconLoader,
   IconPencil,
   IconStar,
   IconTrash,
@@ -22,8 +17,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableRowActions } from "@/components/ui/data-table-row-actions";
+import { getSelectColumn } from "@/components/ui/data-table-row-selects";
+import { DataTableSortable } from "@/components/ui/data-table-sortables";
 import {
   Drawer,
   DrawerClose,
@@ -34,7 +30,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -77,26 +72,6 @@ const chartConfig = {
     color: "var(--primary)",
   },
 } satisfies ChartConfig;
-
-// Create a separate component for the drag handle
-function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({
-    id,
-  });
-
-  return (
-    <Button
-      {...attributes}
-      {...listeners}
-      className="size-7 text-muted-foreground hover:bg-transparent"
-      size="icon"
-      variant="ghost"
-    >
-      <IconGripVertical className="size-3 text-muted-foreground" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
-  );
-}
 
 function TableCellViewer({ item }: { item: ProductRowType }) {
   const isMobile = useIsMobile();
@@ -260,94 +235,112 @@ function TableCellViewer({ item }: { item: ProductRowType }) {
 }
 
 export const columns: ColumnDef<ProductRowType>[] = [
-  {
-    id: "drag",
-    header: () => null,
-    cell: ({ row }) => <DragHandle id={row.id} />,
-  },
-  {
-    id: "select",
-    header: ({ table }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          aria-label="Select all"
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          aria-label="Select row"
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  getSelectColumn<ProductRowType>(),
   {
     accessorKey: "name",
-    header: "Product Name",
+    header: ({ column }) => (
+      <DataTableSortable column={column} title="Product Name" />
+    ),
     cell: ({ row }) => <TableCellViewer item={row.original} />,
     enableHiding: false,
+    meta: {
+      className: "min-w-[250px] w-full",
+    },
   },
   {
     accessorKey: "type",
-    header: "Type",
+    header: ({ column }) => <DataTableSortable column={column} title="Type" />,
     cell: ({ row }) => (
-      <div className="w-32">
-        <Badge className="px-1.5 text-muted-foreground" variant="outline">
-          {row.original.type}
-        </Badge>
-      </div>
+      <Badge
+        className="px-1.5 text-muted-foreground capitalize"
+        variant="secondary"
+      >
+        {row.original.type}
+      </Badge>
     ),
+    filterFn: (row, id, value) => {
+      if (!Array.isArray(value) || value.length === 0) {
+        return true;
+      }
+      return value.includes(row.getValue(id));
+    },
+    meta: {
+      className: "w-[120px]",
+    },
   },
   {
     accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <Badge className="px-1.5 text-muted-foreground" variant="outline">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
-      </Badge>
+    header: ({ column }) => (
+      <DataTableSortable column={column} title="Status" />
     ),
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string;
+      return (
+        <Badge
+          className="capitalize"
+          variant={status === "active" ? "default" : "secondary"}
+        >
+          {status}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => {
+      if (!Array.isArray(value) || value.length === 0) {
+        return true;
+      }
+      return value.includes(row.getValue(id));
+    },
+    meta: {
+      className: "w-[120px]",
+    },
   },
   {
     accessorKey: "saleCount",
-    header: () => <div className="w-full text-end">Sales</div>,
+    header: ({ column }) => (
+      <DataTableSortable
+        className="w-full justify-end"
+        column={column}
+        title="Sales"
+      />
+    ),
     cell: ({ row }) => (
       <div className="w-full text-end font-medium">
         {row.original.saleCount}
       </div>
     ),
+    meta: {
+      className: "w-[100px]",
+    },
   },
   {
     accessorKey: "viewCount",
-    header: () => <div className="w-full text-end">Views</div>,
+    header: ({ column }) => (
+      <DataTableSortable
+        className="w-full justify-end"
+        column={column}
+        title="Views"
+      />
+    ),
     cell: ({ row }) => (
       <div className="w-full text-end text-muted-foreground">
         {row.original.viewCount}
       </div>
     ),
+    meta: {
+      className: "w-[100px]",
+    },
   },
   {
     accessorKey: "slug",
-    header: "Slug",
+    header: ({ column }) => <DataTableSortable column={column} title="Slug" />,
     cell: ({ row }) => (
-      <div className="font-mono text-muted-foreground text-xs">
+      <div className="max-w-[150px] truncate font-mono text-muted-foreground text-xs">
         {row.original.slug}
       </div>
     ),
+    meta: {
+      className: "w-[150px]",
+    },
   },
 
   {
@@ -395,5 +388,8 @@ export const columns: ColumnDef<ProductRowType>[] = [
         row={row.original}
       />
     ),
+    meta: {
+      className: "w-[50px]",
+    },
   },
 ];

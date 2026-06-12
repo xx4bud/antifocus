@@ -133,16 +133,37 @@
     @apply border-border outline-ring/50;
   }
 
+  html body[data-scroll-locked] {
+    margin-right: 0px !important;
+    overflow: auto !important;
+  }
+
   html {
     @apply font-sans;
   }
 
   body {
+    letter-spacing: var(--tracking-normal);
     @apply bg-background text-foreground;
   }
 
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .container {
+    @apply mx-auto max-w-6xl;
   }
 }
