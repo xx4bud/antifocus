@@ -14,7 +14,6 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { toast } from "sonner";
-import z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,17 +48,15 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-export const schema = z.object({
-  id: z.number(),
-  header: z.string(),
-  type: z.string(),
-  status: z.string(),
-  target: z.string(),
-  limit: z.string(),
-  reviewer: z.string(),
-});
-
-export type TableRowType = z.infer<typeof schema>;
+export interface ProductRowType {
+  id: string;
+  name: string;
+  saleCount: number;
+  slug: string;
+  status: string;
+  type: string;
+  viewCount: number;
+}
 
 const chartData = [
   { month: "January", desktop: 186, mobile: 80 },
@@ -101,7 +98,7 @@ function DragHandle({ id }: { id: string }) {
   );
 }
 
-function TableCellViewer({ item }: { item: TableRowType }) {
+function TableCellViewer({ item }: { item: ProductRowType }) {
   const isMobile = useIsMobile();
 
   return (
@@ -111,12 +108,12 @@ function TableCellViewer({ item }: { item: TableRowType }) {
           className="w-fit px-0 text-start font-normal text-foreground hover:no-underline"
           variant="link"
         >
-          {item.header}
+          {item.name}
         </Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.header}</DrawerTitle>
+          <DrawerTitle>{item.name}</DrawerTitle>
           <DrawerDescription>
             Showing total visitors for the last 6 months
           </DrawerDescription>
@@ -181,8 +178,8 @@ function TableCellViewer({ item }: { item: TableRowType }) {
           )}
           <form className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
-              <Label htmlFor="header">Header</Label>
-              <Input defaultValue={item.header} id="header" />
+              <Label htmlFor="name">Name</Label>
+              <Input defaultValue={item.name} id="name" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-3">
@@ -231,30 +228,23 @@ function TableCellViewer({ item }: { item: TableRowType }) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input defaultValue={item.target} id="target" />
+                <Label htmlFor="saleCount">Sales</Label>
+                <Input
+                  defaultValue={item.saleCount.toString()}
+                  id="saleCount"
+                />
               </div>
               <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input defaultValue={item.limit} id="limit" />
+                <Label htmlFor="viewCount">Views</Label>
+                <Input
+                  defaultValue={item.viewCount.toString()}
+                  id="viewCount"
+                />
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer}>
-                <SelectTrigger className="w-full" id="reviewer">
-                  <SelectValue placeholder="Select a reviewer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                    <SelectItem value="Jamik Tashpulatov">
-                      Jamik Tashpulatov
-                    </SelectItem>
-                    <SelectItem value="Emily Whalen">Emily Whalen</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="slug">Slug</Label>
+              <Input defaultValue={item.slug} id="slug" />
             </div>
           </form>
         </div>
@@ -269,7 +259,7 @@ function TableCellViewer({ item }: { item: TableRowType }) {
   );
 }
 
-export const columns: ColumnDef<TableRowType>[] = [
+export const columns: ColumnDef<ProductRowType>[] = [
   {
     id: "drag",
     header: () => null,
@@ -302,14 +292,14 @@ export const columns: ColumnDef<TableRowType>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "header",
-    header: "Header",
+    accessorKey: "name",
+    header: "Product Name",
     cell: ({ row }) => <TableCellViewer item={row.original} />,
     enableHiding: false,
   },
   {
     accessorKey: "type",
-    header: "Section Type",
+    header: "Type",
     cell: ({ row }) => (
       <div className="w-32">
         <Badge className="px-1.5 text-muted-foreground" variant="outline">
@@ -333,91 +323,33 @@ export const columns: ColumnDef<TableRowType>[] = [
     ),
   },
   {
-    accessorKey: "target",
-    header: () => <div className="w-full text-end">Target</div>,
+    accessorKey: "saleCount",
+    header: () => <div className="w-full text-end">Sales</div>,
     cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          });
-        }}
-      >
-        <Label className="sr-only" htmlFor={`${row.original.id}-target`}>
-          Target
-        </Label>
-        <Input
-          className="h-8 w-16 border-transparent bg-transparent text-end shadow-none hover:bg-input/30 focus-visible:border focus-visible:bg-background dark:bg-transparent dark:focus-visible:bg-input/30 dark:hover:bg-input/30"
-          defaultValue={row.original.target}
-          id={`${row.original.id}-target`}
-        />
-      </form>
+      <div className="w-full text-end font-medium">
+        {row.original.saleCount}
+      </div>
     ),
   },
   {
-    accessorKey: "limit",
-    header: () => <div className="w-full text-end">Limit</div>,
+    accessorKey: "viewCount",
+    header: () => <div className="w-full text-end">Views</div>,
     cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          });
-        }}
-      >
-        <Label className="sr-only" htmlFor={`${row.original.id}-limit`}>
-          Limit
-        </Label>
-        <Input
-          className="h-8 w-16 border-transparent bg-transparent text-end shadow-none hover:bg-input/30 focus-visible:border focus-visible:bg-background dark:bg-transparent dark:focus-visible:bg-input/30 dark:hover:bg-input/30"
-          defaultValue={row.original.limit}
-          id={`${row.original.id}-limit`}
-        />
-      </form>
+      <div className="w-full text-end text-muted-foreground">
+        {row.original.viewCount}
+      </div>
     ),
   },
   {
-    accessorKey: "reviewer",
-    header: "Reviewer",
-    cell: ({ row }) => {
-      const isAssigned = row.original.reviewer !== "Assign reviewer";
-
-      if (isAssigned) {
-        return row.original.reviewer;
-      }
-
-      return (
-        <>
-          <Label className="sr-only" htmlFor={`${row.original.id}-reviewer`}>
-            Reviewer
-          </Label>
-          <Select>
-            <SelectTrigger
-              className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
-              id={`${row.original.id}-reviewer`}
-              size="sm"
-            >
-              <SelectValue placeholder="Assign reviewer" />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectGroup>
-                <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                <SelectItem value="Jamik Tashpulatov">
-                  Jamik Tashpulatov
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </>
-      );
-    },
+    accessorKey: "slug",
+    header: "Slug",
+    cell: ({ row }) => (
+      <div className="font-mono text-muted-foreground text-xs">
+        {row.original.slug}
+      </div>
+    ),
   },
+
   {
     id: "actions",
     cell: ({ row }) => (
@@ -428,7 +360,7 @@ export const columns: ColumnDef<TableRowType>[] = [
             label: "Edit",
             icon: IconPencil,
             onClick: (item) => {
-              toast.info(`Editing ${item.header}`);
+              toast.info(`Editing ${item.name}`);
             },
           },
           {
@@ -436,7 +368,7 @@ export const columns: ColumnDef<TableRowType>[] = [
             label: "Make a copy",
             icon: IconCopy,
             onClick: (item) => {
-              toast.success(`Copied ${item.header}`);
+              toast.success(`Copied ${item.name}`);
             },
           },
           {
@@ -444,7 +376,7 @@ export const columns: ColumnDef<TableRowType>[] = [
             label: "Favorite",
             icon: IconStar,
             onClick: (item) => {
-              toast.success(`Favorited ${item.header}`);
+              toast.success(`Favorited ${item.name}`);
             },
           },
           {
@@ -456,7 +388,7 @@ export const columns: ColumnDef<TableRowType>[] = [
             icon: IconTrash,
             variant: "destructive",
             onClick: (item) => {
-              toast.error(`Deleted ${item.header}`);
+              toast.error(`Deleted ${item.name}`);
             },
           },
         ]}

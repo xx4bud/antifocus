@@ -72,13 +72,23 @@ const enforceOrgAccess = t.middleware(async ({ ctx, next }) => {
   }
 
   const userId = ctx.user.id;
-  const activeOrgId = ctx.session.activeOrganizationId;
+  let activeOrgId = ctx.session.activeOrganizationId;
 
+  // Auto-select first organization if none is set
   if (!activeOrgId) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "Active organization required",
+    const userMember = await db.query.members.findFirst({
+      where: eq(members.userId, userId),
+      columns: { organizationId: true },
     });
+
+    if (userMember) {
+      activeOrgId = userMember.organizationId;
+    } else {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "User has no organizations",
+      });
+    }
   }
 
   const member = await db.query.members.findFirst({

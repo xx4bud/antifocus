@@ -1,4 +1,13 @@
-import { and, count, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, isNull } from "drizzle-orm";
+import {
+  getActiveOrdersCountQuery,
+  getChartOrdersQuery,
+  getFulfillmentRateQuery,
+  getOrderGrowthRateQuery,
+  getOrderRevenueQuery,
+  getPendingProductionQuery,
+  getProfitMarginQuery,
+} from "@/features/order/lib/queries";
 import { db } from "@/lib/db";
 import type { BranchStatus, EntityStatus } from "@/lib/db/schema/enums";
 import {
@@ -256,4 +265,136 @@ export const listSuppliers = async (
 
     const totalCount = totalResult[0]?.total ?? 0;
     return { items: rows, total: Number(totalCount) };
+  }, parseError);
+
+// ==============================
+// Dashboard Queries
+// ==============================
+
+export interface DashboardMetrics {
+  activeOrders: number;
+  fulfillmentRate: number;
+  growthRate: number;
+  newCustomers: number;
+  pendingProduction: number;
+  profitMargin: number;
+  totalRevenue: number;
+}
+
+export interface ChartDataItem {
+  date: string;
+  desktop: number;
+  mobile: number;
+}
+
+export interface DashboardData {
+  chartData: ChartDataItem[];
+  metrics: DashboardMetrics;
+}
+
+export const getDashboardData = async (
+  orgId: string
+): Promise<AppResult<DashboardData>> =>
+  tryCatchAsync(async () => {
+    // Calculate time periods
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const sixtyDaysAgo = new Date(now);
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    const ninetyDaysAgo = new Date(now);
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    // 1. Total Revenue
+    const totalRevenue = await getOrderRevenueQuery(orgId);
+
+    // 2. New Customers (created in last 30 days)
+    const [newCustomersResult] = await db
+      .select({ count: count() })
+      .from(customers)
+      .where(
+        and(
+          eq(customers.organizationId, orgId),
+          gte(customers.createdAt, thirtyDaysAgo),
+          isNull(customers.deletedAt)
+        )
+      );
+    const newCustomers = newCustomersResult?.count || 0;
+
+    // 3. Active Orders
+    const activeOrders = await getActiveOrdersCountQuery(orgId);
+
+    // 4. Growth Rate
+    const growthRate = await getOrderGrowthRateQuery(
+      orgId,
+      thirtyDaysAgo,
+      sixtyDaysAgo
+    );
+
+    // 5. Profit Margin
+    const profitMargin = await getProfitMarginQuery(orgId, totalRevenue);
+
+    // 6. Pending Production
+    const pendingProduction = await getPendingProductionQuery(orgId);
+
+    // 7. Fulfillment Rate
+    const fulfillmentRate = await getFulfillmentRateQuery(orgId);
+
+    // 8. Chart Data (past 90 days)
+    const chartOrders = await getChartOrdersQuery(orgId, ninetyDaysAgo);
+
+    // Group by date and channel
+    const groupedData: Record<string, { desktop: number; mobile: number }> = {};
+
+    // Initialize empty records for last 90 days
+    for (let i = 90; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0] || "";
+      groupedData[dateStr] = { desktop: 0, mobile: 0 };
+    }
+
+    // Aggregate data by channel
+    for (const order of chartOrders) {
+      const dateStr = order.createdAt.toISOString().split("T")[0] || "";
+      const amount = Number(order.grandTotal);
+
+      // Categorize by channel name
+      const isMobileChannel =
+        order.orderChannelId?.toLowerCase().includes("mobile") ||
+        order.orderChannelId?.toLowerCase().includes("app");
+
+      if (!groupedData[dateStr]) {
+        groupedData[dateStr] = { desktop: 0, mobile: 0 };
+      }
+
+      if (isMobileChannel) {
+        groupedData[dateStr].mobile += amount;
+      } else {
+        groupedData[dateStr].desktop += amount;
+      }
+    }
+
+    const chartData = Object.entries(groupedData)
+      .map(([date, val]) => ({
+        date,
+        desktop: Math.round(val.desktop),
+        mobile: Math.round(val.mobile),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      metrics: {
+        totalRevenue,
+        newCustomers,
+        activeOrders,
+        growthRate: Math.round(growthRate * 100) / 100,
+        profitMargin: Math.round(profitMargin * 100) / 100,
+        pendingProduction,
+        fulfillmentRate: Math.round(fulfillmentRate * 100) / 100,
+      },
+      chartData,
+    };
   }, parseError);

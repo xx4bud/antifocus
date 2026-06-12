@@ -352,4 +352,20 @@ export const orgRouter = createTRPCRouter({
       }
       return result.value;
     }),
+
+  // ==============================
+  // Dashboard Operations
+  // ==============================
+
+  getDashboardData: orgProcedure.input(z.object({})).query(async ({ ctx }) => {
+    if (!ctx.orgId) {
+      throw createError("UNAUTHORIZED", "Organization context missing", 401);
+    }
+    const { getDashboardData } = await import("./queries");
+    const result = await getDashboardData(ctx.orgId);
+    if (!result.ok) {
+      throw result.error;
+    }
+    return result.value;
+  }),
 });

@@ -4,9 +4,9 @@ import { SiteHeader } from "@/components/layouts/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getLocaleParams } from "@/lib/i18n/request";
 import { constructMetadata } from "@/lib/utils/seo";
-import { AdminDashboardClient } from "./client";
+import { AdminClient } from "./client";
 
-export default function AdminPage() {
+export default async function AdminPage() {
   return (
     <SidebarProvider
       style={
@@ -21,7 +21,7 @@ export default function AdminPage() {
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <AdminDashboardClient />
+            <AdminClient />
           </div>
         </div>
       </SidebarInset>

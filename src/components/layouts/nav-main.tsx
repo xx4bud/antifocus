@@ -1,57 +1,97 @@
 "use client";
 
-import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react";
-import { Button } from "@/components/ui/button";
+import { usePathname } from "next/navigation";
 import {
   SidebarGroup,
-  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Link } from "@/lib/i18n/navigation";
+import type { NavGroup, NavItem } from "./nav-data";
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string;
-    url: string;
-    icon?: React.ReactNode;
-  }[];
-}) {
+/**
+ * Flat, minimalist ERP sidebar navigation
+ * No trees, no icons, just data.
+ */
+export function NavGroups({ groups }: { groups: NavGroup[] }) {
+  const pathname = usePathname();
+
+  return (
+    <>
+      {groups.map((group) => (
+        <SidebarGroup key={group.domain}>
+          <SidebarGroupLabel className="font-semibold text-[10px] text-sidebar-foreground/40 uppercase tracking-widest">
+            {group.title}
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            {/* Render all items in the group flatly */}
+            {group.items?.map((item) => (
+              <SidebarMenuItem key={item.url}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.url}
+                  size="sm"
+                >
+                  <Link href={item.url}>
+                    <span>{item.title}</span>
+                    {item.badge && (
+                      <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                    )}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+            {/* If there are sections, flatten them into the group */}
+            {group.sections
+              ?.flatMap((s) => s.items)
+              .map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.url}
+                    size="sm"
+                  >
+                    <Link href={item.url}>
+                      <span>{item.title}</span>
+                      {item.badge && (
+                        <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                      )}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
+    </>
+  );
+}
+
+export function NavItems({ items }: { items: NavItem[] }) {
+  const pathname = usePathname();
   return (
     <SidebarGroup>
-      <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-2">
+      <SidebarMenu>
+        {items.map((item) => (
+          <SidebarMenuItem key={item.url}>
             <SidebarMenuButton
-              className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-              tooltip="Quick Create"
+              asChild
+              isActive={pathname === item.url}
+              size="sm"
             >
-              <IconCirclePlusFilled />
-              <span>Quick Create</span>
-            </SidebarMenuButton>
-            <Button
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              size="icon"
-              variant="outline"
-            >
-              <IconMail />
-              <span className="sr-only">Inbox</span>
-            </Button>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
-                {item.icon}
+              <Link href={item.url}>
                 <span>{item.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
+                {item.badge && (
+                  <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
     </SidebarGroup>
   );
 }

@@ -1,49 +1,91 @@
 "use client";
 
 import { IconPlus } from "@tabler/icons-react";
-import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive";
-import { SectionCards } from "@/components/dashboard/section-cards";
+import { useQuery } from "@tanstack/react-query";
+import { ChartAreaInteractive } from "@/app/[locale]/admin/chart-area-interactive";
+import { SectionCards } from "@/app/[locale]/admin/section-cards";
+import { useTRPC } from "@/components/providers/trpc-provider";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { columns, type TableRowType } from "./columns";
-import data from "./data.json";
+import { Skeleton } from "@/components/ui/skeleton";
+import { columns, type ProductRowType } from "./columns";
 
-export function AdminDashboardClient() {
+export function AdminClient() {
+  const trpc = useTRPC();
+
+  // Fetch dashboard data
+  const {
+    data: dashboardData,
+    isLoading: isDashboardLoading,
+    isError: isDashboardError,
+  } = useQuery(trpc.org.getDashboardData.queryOptions({}));
+
+  // Fetch products
+  const { data: productsData, isLoading: isProductsLoading } = useQuery({
+    ...trpc.catalog.listProducts.queryOptions({
+      page: 1,
+      limit: 100,
+    }),
+  });
+
+  const isLoading = isDashboardLoading || isProductsLoading;
+
+  if (isDashboardError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center py-12">
+        <p className="text-red-500">Failed to load dashboard data</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+        <div className="grid gap-4 px-4 md:grid-cols-4 lg:px-6">
+          <Skeleton className="h-[120px] w-full rounded-lg" />
+          <Skeleton className="h-[120px] w-full rounded-lg" />
+          <Skeleton className="h-[120px] w-full rounded-lg" />
+          <Skeleton className="h-[120px] w-full rounded-lg" />
+        </div>
+        <div className="px-4 lg:px-6">
+          <Skeleton className="h-[400px] w-full rounded-lg" />
+        </div>
+        <div className="space-y-4 px-4 lg:px-6">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <SectionCards />
+      <SectionCards metrics={dashboardData?.metrics} />
       <div className="px-4 lg:px-6">
-        <ChartAreaInteractive />
+        <ChartAreaInteractive data={dashboardData?.chartData ?? []} />
       </div>
       <DataTable
         actionButtons={
           <Button className="h-8" size="sm" variant="outline">
-            <IconPlus className="mr-2 h-4 w-4" stroke={1.5} />
-            Add Section
+            <IconPlus className="mr-2 size-4" stroke={1.5} />
+            Add Product
           </Button>
         }
         columns={columns}
-        data={data}
-        searchKey="header"
-        searchPlaceholder="Filter sections..."
+        data={(productsData?.items as ProductRowType[]) ?? []}
+        searchKey="name"
+        searchPlaceholder="Search products..."
         tabs={[
-          { value: "outline", label: "Outline" },
+          { value: "all", label: "All Products" },
           {
-            value: "past-performance",
-            label: "Past Performance",
-            badgeCount: 3,
-            filterFn: (item: TableRowType) => [13, 14, 15].includes(item.id),
+            value: "active",
+            label: "Active",
+            filterFn: (item: ProductRowType) => item.status === "active",
           },
           {
-            value: "key-personnel",
-            label: "Key Personnel",
-            badgeCount: 2,
-            filterFn: (item: TableRowType) => [19, 20].includes(item.id),
-          },
-          {
-            value: "focus-documents",
-            label: "Focus Documents",
-            filterFn: (item: TableRowType) => [21, 23].includes(item.id),
+            value: "draft",
+            label: "Draft",
+            filterFn: (item: ProductRowType) => item.status === "draft",
           },
         ]}
       />

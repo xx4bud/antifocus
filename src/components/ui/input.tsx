@@ -1,7 +1,11 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils/ui";
 
-function Input({ className, type, ...props }: ComponentProps<"input">) {
+export interface InputProps extends ComponentProps<"input"> {
+  children?: React.ReactNode;
+}
+
+function Input({ className, type, ...props }: InputProps) {
   return (
     <input
       className={cn(
