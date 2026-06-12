@@ -73,4 +73,4 @@ export const RESERVED_WORDS = [
 /**
  * Official domains that are restricted from public registrations.
  */
-export const RESERVED_DOMAINS = ["antifocus.my.id", "afc.my.id"] as const;
+export const RESERVED_DOMAINS = [] as const;

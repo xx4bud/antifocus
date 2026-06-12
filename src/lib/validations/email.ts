@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { RESERVED_DOMAINS } from "@/lib/utils/constants";
 import { normalizeString } from "@/lib/utils/normalizer";
 
 export const EMAIL_RULES = {
@@ -22,11 +21,4 @@ export const emailSchema = z
         EMAIL_RULES.MAX,
         `Email must be at most ${EMAIL_RULES.MAX} characters`
       )
-  )
-  .refine(
-    (email) => {
-      const domain = email.split("@")[1]?.toLowerCase() || "";
-      return !(RESERVED_DOMAINS as readonly string[]).includes(domain);
-    },
-    { message: "Registrations from this email domain are restricted" }
   );

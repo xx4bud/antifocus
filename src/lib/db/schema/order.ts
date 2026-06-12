@@ -502,6 +502,12 @@ export const fulfillments = pgTable(
 export const fulfillmentRelations = relations(
   fulfillments,
   ({ one, many }) => ({
+    // identity
+    organization: one(organizations, {
+      fields: [fulfillments.organizationId],
+      references: [organizations.id],
+    }),
+
     // order
     order: one(orders, {
       fields: [fulfillments.orderId],
@@ -620,6 +626,12 @@ export const orderReturns = pgTable(
 export const orderReturnRelations = relations(
   orderReturns,
   ({ one, many }) => ({
+    // identity
+    organization: one(organizations, {
+      fields: [orderReturns.organizationId],
+      references: [organizations.id],
+    }),
+
     // order
     order: one(orders, {
       fields: [orderReturns.orderId],

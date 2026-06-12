@@ -554,10 +554,12 @@ export const inventoryTransferRelations = relations(
     sourceBranch: one(branches, {
       fields: [inventoryTransfers.sourceBranchId],
       references: [branches.id],
+      relationName: "transfer_source",
     }),
     destinationBranch: one(branches, {
       fields: [inventoryTransfers.destinationBranchId],
       references: [branches.id],
+      relationName: "transfer_destination",
     }),
 
     // supply

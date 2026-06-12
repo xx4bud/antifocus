@@ -140,6 +140,12 @@ export const vouchers = pgTable(
 );
 
 export const voucherRelations = relations(vouchers, ({ one, many }) => ({
+  // identity
+  organization: one(organizations, {
+    fields: [vouchers.organizationId],
+    references: [organizations.id],
+  }),
+
   // marketing
   promotion: one(promotions, {
     fields: [vouchers.promotionId],

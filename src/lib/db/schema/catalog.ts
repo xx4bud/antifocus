@@ -21,9 +21,10 @@ import {
   type ProductStatus,
   type ProductType,
 } from "./enums";
+import { taxRates } from "./finance";
 import { promotionProducts, reviews } from "./marketing";
-import { orderItemDesigns, orderItems } from "./order";
-import { organizations } from "./org";
+import { orderChannels, orderItemDesigns, orderItems } from "./order";
+import { organizations, suppliers } from "./org";
 import { billOfMaterials, bomItems, productionOrderItems } from "./production";
 import {
   inventories,
@@ -89,9 +90,17 @@ export const products = pgTable(
 
 export const productRelations = relations(products, ({ one, many }) => ({
   // catalog
+  organization: one(organizations, {
+    fields: [products.organizationId],
+    references: [organizations.id],
+  }),
   unit: one(units, {
     fields: [products.unitId],
     references: [units.id],
+  }),
+  taxRate: one(taxRates, {
+    fields: [products.taxRateId],
+    references: [taxRates.id],
   }),
 
   // core
@@ -668,6 +677,10 @@ export const pricelistRelations = relations(pricelists, ({ one, many }) => ({
     fields: [pricelists.organizationId],
     references: [organizations.id],
   }),
+  orderChannel: one(orderChannels, {
+    fields: [pricelists.orderChannelId],
+    references: [orderChannels.id],
+  }),
   items: many(pricelistItems),
 }));
 
@@ -761,6 +774,10 @@ export const costlistRelations = relations(costlists, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [costlists.organizationId],
     references: [organizations.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [costlists.supplierId],
+    references: [suppliers.id],
   }),
   items: many(costlistItems),
 }));

@@ -48,12 +48,11 @@ export const parseZodError = (error: ZodError): AppError => {
     fieldErrors[path].push(issue.message);
   }
 
-  return createError(
-    error.name || "VALIDATION_ERROR",
-    error.message || "Validation error",
-    400,
-    { fieldErrors }
-  );
+  const firstMessage = error.issues[0]?.message || "Validation error";
+
+  return createError(error.name || "VALIDATION_ERROR", firstMessage, 400, {
+    fieldErrors,
+  });
 };
 
 /**
@@ -107,60 +106,78 @@ export const parseApiError = (
 };
 
 /**
+ * Internal helper to clean up error messages (e.g. from Zod JSON strings).
+ */
+const parseErrorMessage = (message: string | null | undefined): string => {
+  if (!message) {
+    return "";
+  }
+  if (message.startsWith("[") && message.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(message);
+      if (Array.isArray(parsed) && parsed[0]?.message) {
+        return parsed[0].message;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return message;
+};
+
+/**
  * Coerces any unknown error into a normalized AppError.
  */
 export const parseError = (error: unknown): AppError => {
+  // 1. Already an AppError
   if (
     error &&
     typeof error === "object" &&
     "code" in error &&
     "message" in error &&
-    !(
-      "name" in error && (error as Record<string, unknown>).name === "TRPCError"
-    ) &&
     !("issues" in error) &&
     typeof (error as Record<string, unknown>).code === "string"
   ) {
     return error as AppError;
   }
 
+  // 2. Specialized Error Types
   if (error instanceof ZodError) {
     return parseZodError(error);
   }
-
   if (isAPIError(error)) {
     return parseAuthError(error);
   }
-
   if (error instanceof TRPCError) {
     return parseTrpcError(error);
   }
-
   if (error instanceof DrizzleError) {
     return parseDbError(error);
   }
 
-  if (
-    error instanceof Error &&
-    "code" in error &&
-    typeof (error as Record<string, unknown>).code === "string" &&
-    (error as Record<string, unknown>).code?.toString().length === 5
-  ) {
-    return parseDbError(error);
-  }
-  if (
-    error instanceof Error &&
-    ("status" in error || "statusCode" in error || "response" in error)
-  ) {
-    return parseApiError(
-      error as Error & { status?: number; statusCode?: number }
-    );
-  }
-
+  // 3. Native Error or objects with status
   if (error instanceof Error) {
+    const errObj = error as unknown as Record<string, unknown>;
+    const isDbCode =
+      "code" in errObj &&
+      typeof errObj.code === "string" &&
+      errObj.code.length === 5;
+
+    if (isDbCode) {
+      return parseDbError(error as unknown as DrizzleError);
+    }
+
+    const hasStatus =
+      "status" in errObj || "statusCode" in errObj || "response" in errObj;
+    if (hasStatus) {
+      return parseApiError(
+        error as Error & { status?: number; statusCode?: number }
+      );
+    }
+
     return createError(
       "INTERNAL_ERROR",
-      error.message || `Error: ${JSON.stringify(error)}`,
+      parseErrorMessage(error.message) || "An unexpected error occurred",
       500
     );
   }
