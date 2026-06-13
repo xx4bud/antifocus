@@ -5,30 +5,45 @@ import { db } from "@/lib/db";
 import { auditLogs } from "@/lib/db/schema/core";
 import type {
   BillOfMaterial,
+  bomItems,
   ProductionOrder,
   productionOrders,
   productionTasks,
 } from "@/lib/db/schema/production";
-import { parseError } from "@/lib/utils/error";
+import { createError, parseError } from "@/lib/utils/error";
 import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
 import {
+  deleteBomItem,
+  deleteProductionTask,
   insertBom,
+  insertBomItem,
   insertBomItems,
   insertProductionOrder,
   insertProductionOrderItems,
+  insertProductionTask,
   insertProductionTasks,
   softDeleteBom,
   softDeleteProductionOrder,
   updateBom,
+  updateBomItem,
   updateProductionOrder,
   updateProductionTask,
 } from "./mutations";
-import { getBomById, getProductionOrderById } from "./queries";
+import {
+  getBomById,
+  getProductionOrderById,
+  getProductionTaskById,
+  listProductionTasks,
+} from "./queries";
 import type {
   CreateBomInput,
+  CreateBomItemInput,
   CreateProductionOrderInput,
+  CreateProductionTaskInput,
   UpdateBomInput,
+  UpdateBomItemInput,
   UpdateProductionOrderStatusInput,
+  UpdateProductionTaskInput,
   UpdateProductionTaskStatusInput,
 } from "./validators";
 
@@ -148,6 +163,96 @@ export const deleteBomService = async (
     });
 
     return bomRes.value;
+  }, parseError);
+
+// ==============================
+// BOM Item Services
+// ==============================
+
+export const addBomItemService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  bomId: string,
+  data: CreateBomItemInput
+): Promise<AppResult<typeof bomItems.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const check = await getBomById(orgId, bomId);
+    if (!check.ok) {
+      throw createError("BOM_NOT_FOUND", "BOM not found", 404);
+    }
+
+    const itemRes = await insertBomItem(orgId, {
+      id: createId(),
+      bomId,
+      ...data,
+    });
+    if (!itemRes.ok) {
+      throw itemRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "production.bom_item_added",
+      targetName: "bom_items",
+      targetId: itemRes.value.id,
+    });
+
+    return itemRes.value;
+  }, parseError);
+
+export const updateBomItemService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  id: string,
+  data: UpdateBomItemInput
+): Promise<AppResult<typeof bomItems.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const itemRes = await updateBomItem(orgId, id, data);
+    if (!itemRes.ok) {
+      throw itemRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "production.bom_item_updated",
+      targetName: "bom_items",
+      targetId: id,
+    });
+
+    return itemRes.value;
+  }, parseError);
+
+export const removeBomItemService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  id: string
+): Promise<AppResult<typeof bomItems.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const itemRes = await deleteBomItem(orgId, id);
+    if (!itemRes.ok) {
+      throw itemRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "production.bom_item_removed",
+      targetName: "bom_items",
+      targetId: id,
+    });
+
+    return itemRes.value;
   }, parseError);
 
 // ==============================
@@ -300,8 +405,8 @@ export const deleteProductionOrderService = async (
 
 export const updateProductionTaskStatusService = async (
   orgId: string,
-  _actorId: string,
-  _actorName: string,
+  actorId: string,
+  actorName: string,
   taskId: string,
   data: UpdateProductionTaskStatusInput
 ): Promise<AppResult<typeof productionTasks.$inferSelect>> =>
@@ -322,6 +427,134 @@ export const updateProductionTaskStatusService = async (
     if (!taskRes.ok) {
       throw taskRes.error;
     }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "production.task_status_updated",
+      targetName: "production_tasks",
+      targetId: taskId,
+    });
+
+    // Check if PO is completed (all tasks done)
+    if (data.status === "completed") {
+      const task = taskRes.value;
+      const allTasksRes = await listProductionTasks(
+        orgId,
+        task.productionOrderId
+      );
+      if (allTasksRes.ok) {
+        const allCompleted = allTasksRes.value.every(
+          (t) => t.status === "completed"
+        );
+        if (allCompleted) {
+          await updateProductionOrderStatusService(
+            orgId,
+            actorId,
+            actorName,
+            task.productionOrderId,
+            { status: "completed" }
+          );
+        }
+      }
+    }
+
+    return taskRes.value;
+  }, parseError);
+
+export const createProductionTaskService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  data: CreateProductionTaskInput
+): Promise<AppResult<typeof productionTasks.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const check = await getProductionOrderById(orgId, data.productionOrderId);
+    if (!check.ok) {
+      throw check.error;
+    }
+
+    const taskRes = await insertProductionTask(orgId, {
+      id: createId(),
+      status: "pending",
+      ...data,
+    });
+    if (!taskRes.ok) {
+      throw taskRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "production.task_created",
+      targetName: "production_tasks",
+      targetId: taskRes.value.id,
+    });
+
+    return taskRes.value;
+  }, parseError);
+
+export const updateProductionTaskService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  taskId: string,
+  data: UpdateProductionTaskInput
+): Promise<AppResult<typeof productionTasks.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const check = await getProductionTaskById(orgId, taskId);
+    if (!check.ok) {
+      throw check.error;
+    }
+
+    const taskRes = await updateProductionTask(orgId, taskId, data);
+    if (!taskRes.ok) {
+      throw taskRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "production.task_updated",
+      targetName: "production_tasks",
+      targetId: taskId,
+    });
+
+    return taskRes.value;
+  }, parseError);
+
+export const deleteProductionTaskService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  taskId: string
+): Promise<AppResult<typeof productionTasks.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const check = await getProductionTaskById(orgId, taskId);
+    if (!check.ok) {
+      throw check.error;
+    }
+
+    const taskRes = await deleteProductionTask(orgId, taskId);
+    if (!taskRes.ok) {
+      throw taskRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "production.task_deleted",
+      targetName: "production_tasks",
+      targetId: taskId,
+    });
 
     return taskRes.value;
   }, parseError);

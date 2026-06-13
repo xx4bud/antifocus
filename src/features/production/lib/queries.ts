@@ -2,6 +2,7 @@ import { and, count, desc, eq, ilike, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   billOfMaterials,
+  bomItems,
   productionOrderItems,
   productionOrders,
   productionTasks,
@@ -72,6 +73,25 @@ export const listBoms = async (
 
     return { items: rows, total: Number(total) };
   }, parseError);
+
+// ==============================
+// BOM Item Queries
+// ==============================
+
+export const listBomItems = async (
+  orgId: string,
+  bomId: string
+): Promise<AppResult<(typeof bomItems.$inferSelect)[]>> =>
+  tryCatchAsync(
+    async () =>
+      await db
+        .select()
+        .from(bomItems)
+        .where(
+          and(eq(bomItems.organizationId, orgId), eq(bomItems.bomId, bomId))
+        ),
+    parseError
+  );
 
 // ==============================
 // Production Order Queries
@@ -183,6 +203,52 @@ export const listProductionTasks = async (
           and(
             eq(productionTasks.organizationId, orgId),
             eq(productionTasks.productionOrderId, productionOrderId)
+          )
+        )
+        .orderBy(productionTasks.sequence),
+    parseError
+  );
+
+export const getProductionTaskById = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof productionTasks.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [task] = await db
+      .select()
+      .from(productionTasks)
+      .where(
+        and(
+          eq(productionTasks.organizationId, orgId),
+          eq(productionTasks.id, id)
+        )
+      )
+      .limit(1);
+
+    if (!task) {
+      throw createError(
+        "PRODUCTION_TASK_NOT_FOUND",
+        "Production task not found",
+        404
+      );
+    }
+
+    return task;
+  }, parseError);
+
+export const listProductionTasksByAssignee = async (
+  orgId: string,
+  assigneeId: string
+): Promise<AppResult<(typeof productionTasks.$inferSelect)[]>> =>
+  tryCatchAsync(
+    async () =>
+      await db
+        .select()
+        .from(productionTasks)
+        .where(
+          and(
+            eq(productionTasks.organizationId, orgId),
+            eq(productionTasks.assigneeId, assigneeId)
           )
         )
         .orderBy(productionTasks.sequence),

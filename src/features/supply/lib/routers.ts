@@ -3,11 +3,13 @@ import { createTRPCRouter, orgProcedure } from "@/lib/api/trpc";
 import { createError } from "@/lib/utils/error";
 import {
   getCourierById,
+  getInventoryTransferById,
   getPurchaseOrderById,
   getShippingMethodById,
   getShippingRateById,
   listCouriers,
   listInventories,
+  listInventoryTransfers,
   listPurchaseOrderItems,
   listPurchaseOrders,
   listShippingMethods,
@@ -16,26 +18,38 @@ import {
 import {
   adjustStockService,
   createCourierService,
+  createInventoryTransferService,
   createPurchaseOrderService,
   createShippingMethodService,
   createShippingRateService,
   deleteCourierService,
+  deleteInventoryTransferService,
   deletePurchaseOrderService,
   deleteShippingMethodService,
   deleteShippingRateService,
+  getLowStockAlertsService,
+  listInventoryMovementsService,
+  receivePurchaseOrderService,
+  receiveTransferService,
   updateCourierService,
   updatePurchaseOrderStatusService,
   updateShippingMethodService,
   updateShippingRateService,
+  updateTransferStatusService,
 } from "./services";
 import {
   createCourierSchema,
+  createInventoryTransferSchema,
   createPurchaseOrderSchema,
   createShippingMethodSchema,
   createShippingRateSchema,
   createStockAdjustmentSchema,
+  inventoryMovementFiltersSchema,
+  lowStockThresholdSchema,
+  receivePurchaseOrderSchema,
   supplyFiltersSchema,
   updateCourierSchema,
+  updateInventoryTransferStatusSchema,
   updatePurchaseOrderStatusSchema,
   updateShippingMethodSchema,
   updateShippingRateSchema,
@@ -129,6 +143,40 @@ export const supplyRouter = createTRPCRouter({
         ctx.user.id,
         ctx.user.name,
         input.id
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  // ==============================
+  // Inventory Movements
+  // ==============================
+
+  listInventoryMovements: orgProcedure
+    .input(inventoryMovementFiltersSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listInventoryMovementsService(ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  getLowStockAlerts: orgProcedure
+    .input(lowStockThresholdSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await getLowStockAlertsService(
+        ctx.orgId,
+        input.branchId,
+        input.threshold
       );
       if (!result.ok) {
         throw result.error;
@@ -333,6 +381,128 @@ export const supplyRouter = createTRPCRouter({
     }),
 
   // ==============================
+  // Inventory Transfers
+  // ==============================
+
+  createInventoryTransfer: orgProcedure
+    .input(createInventoryTransferSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await createInventoryTransferService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  listInventoryTransfers: orgProcedure
+    .input(
+      supplyFiltersSchema.extend({
+        sourceBranchId: z.string().optional(),
+        destinationBranchId: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listInventoryTransfers(ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  getInventoryTransfer: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await getInventoryTransferById(ctx.orgId, input.id);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  updateTransferStatus: orgProcedure
+    .input(
+      z.object({ id: z.string(), data: updateInventoryTransferStatusSchema })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await updateTransferStatusService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id,
+        input.data
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  receiveTransfer: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await receiveTransferService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  deleteInventoryTransfer: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await deleteInventoryTransferService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  // ==============================
   // Purchase Orders
   // ==============================
 
@@ -435,6 +605,31 @@ export const supplyRouter = createTRPCRouter({
       const result = await listPurchaseOrderItems(
         ctx.orgId,
         input.purchaseOrderId
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  // ==============================
+  // PO Receiving
+  // ==============================
+
+  receivePurchaseOrder: orgProcedure
+    .input(receivePurchaseOrderSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await receivePurchaseOrderService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input
       );
       if (!result.ok) {
         throw result.error;

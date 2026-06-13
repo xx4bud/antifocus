@@ -122,6 +122,27 @@ export type UpdatePurchaseOrderStatusInput = z.infer<
 >;
 
 // ==============================
+// PO Receiving
+// ==============================
+
+export const receivePurchaseOrderItemSchema = z.object({
+  itemId: z.string().min(1, "Purchase order item ID is required"),
+  receivedQuantity: z.number().min(0),
+  unitCost: z.number().optional().nullable(),
+});
+
+export const receivePurchaseOrderSchema = z.object({
+  purchaseOrderId: z.string().min(1, "Purchase order ID is required"),
+  items: z
+    .array(receivePurchaseOrderItemSchema)
+    .min(1, "Must receive at least 1 item"),
+});
+
+export type ReceivePurchaseOrderInput = z.infer<
+  typeof receivePurchaseOrderSchema
+>;
+
+// ==============================
 // Inventory & Stock Adjustments
 // ==============================
 
@@ -138,6 +159,83 @@ export const createStockAdjustmentSchema = z.object({
 export type CreateStockAdjustmentInput = z.infer<
   typeof createStockAdjustmentSchema
 >;
+
+// ==============================
+// Inventory Transfers
+// ==============================
+
+const transferStatusEnum = z.enum([
+  "draft",
+  "requested",
+  "in_transit",
+  "completed",
+  "cancelled",
+]);
+
+export const createInventoryTransferItemSchema = z.object({
+  variantId: z.string().min(1, "Variant ID is required"),
+  quantity: z.number().positive(),
+});
+
+export const createInventoryTransferSchema = z.object({
+  sourceBranchId: z.string().min(1, "Source branch ID is required"),
+  destinationBranchId: z.string().min(1, "Destination branch ID is required"),
+  shippingMethodId: z.string().optional().nullable(),
+  trackingNumber: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  items: z
+    .array(createInventoryTransferItemSchema)
+    .min(1, "Transfer must have at least 1 item"),
+});
+
+export type CreateInventoryTransferInput = z.infer<
+  typeof createInventoryTransferSchema
+>;
+
+export const updateInventoryTransferStatusSchema = z.object({
+  status: transferStatusEnum,
+});
+
+export type UpdateInventoryTransferStatusInput = z.infer<
+  typeof updateInventoryTransferStatusSchema
+>;
+
+// ==============================
+// Inventory Movement Filters
+// ==============================
+
+export const inventoryMovementFiltersSchema = z.object({
+  branchId: z.string().optional(),
+  variantId: z.string().optional(),
+  type: z
+    .enum([
+      "purchase_receipt",
+      "sales_delivery",
+      "production_consume",
+      "production_receipt",
+      "transfer_in",
+      "transfer_out",
+      "adjustment_add",
+      "adjustment_deduct",
+    ])
+    .optional(),
+  dateFrom: z.date().optional(),
+  dateTo: z.date().optional(),
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(10),
+});
+
+export type InventoryMovementFiltersInput = z.infer<
+  typeof inventoryMovementFiltersSchema
+>;
+
+export const lowStockThresholdSchema = z.object({
+  branchId: z.string().min(1, "Branch ID is required"),
+  threshold: z.number().min(0).default(5),
+});
+
+export type LowStockThresholdInput = z.infer<typeof lowStockThresholdSchema>;
 
 // ==============================
 // Filters

@@ -1,9 +1,11 @@
-import { and, count, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, isNull, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import type { PurchaseOrderStatus } from "@/lib/db/schema/enums";
 import {
   couriers,
   inventories,
+  inventoryMovements,
+  inventoryTransfers,
   purchaseOrderItems,
   purchaseOrders,
   shippingMethods,
@@ -11,7 +13,10 @@ import {
 } from "@/lib/db/schema/supply";
 import { createError, parseError } from "@/lib/utils/error";
 import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
-import type { SupplyFiltersInput } from "./validators";
+import type {
+  InventoryMovementFiltersInput,
+  SupplyFiltersInput,
+} from "./validators";
 
 // ==============================
 // Courier Queries
@@ -225,6 +230,125 @@ export const listInventories = async (
   }, parseError);
 
 // ==============================
+// Inventory Movement Queries
+// ==============================
+
+export const listInventoryMovements = async (
+  orgId: string,
+  filters: InventoryMovementFiltersInput
+): Promise<
+  AppResult<{
+    items: (typeof inventoryMovements.$inferSelect)[];
+    total: number;
+  }>
+> =>
+  tryCatchAsync(async () => {
+    const conditions = [eq(inventoryMovements.organizationId, orgId)];
+
+    if (filters.branchId) {
+      conditions.push(eq(inventoryMovements.branchId, filters.branchId));
+    }
+    if (filters.variantId) {
+      conditions.push(eq(inventoryMovements.variantId, filters.variantId));
+    }
+    if (filters.type) {
+      conditions.push(eq(inventoryMovements.type, filters.type));
+    }
+    if (filters.dateFrom) {
+      conditions.push(gte(inventoryMovements.createdAt, filters.dateFrom));
+    }
+    if (filters.dateTo) {
+      conditions.push(lte(inventoryMovements.createdAt, filters.dateTo));
+    }
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(inventoryMovements)
+        .where(and(...conditions))
+        .orderBy(desc(inventoryMovements.createdAt))
+        .limit(filters.limit)
+        .offset((filters.page - 1) * filters.limit),
+      db
+        .select({ total: count() })
+        .from(inventoryMovements)
+        .where(and(...conditions)),
+    ]);
+
+    const total = totalResult[0]?.total ?? 0;
+
+    return { items: rows, total: Number(total) };
+  }, parseError);
+
+export const getInventoryMovementsByVariant = async (
+  orgId: string,
+  variantId: string,
+  filters: Omit<InventoryMovementFiltersInput, "variantId">
+): Promise<
+  AppResult<{
+    items: (typeof inventoryMovements.$inferSelect)[];
+    total: number;
+  }>
+> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(inventoryMovements.organizationId, orgId),
+      eq(inventoryMovements.variantId, variantId),
+    ];
+
+    if (filters.branchId) {
+      conditions.push(eq(inventoryMovements.branchId, filters.branchId));
+    }
+    if (filters.type) {
+      conditions.push(eq(inventoryMovements.type, filters.type));
+    }
+    if (filters.dateFrom) {
+      conditions.push(gte(inventoryMovements.createdAt, filters.dateFrom));
+    }
+    if (filters.dateTo) {
+      conditions.push(lte(inventoryMovements.createdAt, filters.dateTo));
+    }
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(inventoryMovements)
+        .where(and(...conditions))
+        .orderBy(desc(inventoryMovements.createdAt))
+        .limit(filters.limit)
+        .offset((filters.page - 1) * filters.limit),
+      db
+        .select({ total: count() })
+        .from(inventoryMovements)
+        .where(and(...conditions)),
+    ]);
+
+    const total = totalResult[0]?.total ?? 0;
+
+    return { items: rows, total: Number(total) };
+  }, parseError);
+
+export const getLowStockItems = async (
+  orgId: string,
+  branchId: string,
+  threshold: number
+): Promise<AppResult<(typeof inventories.$inferSelect)[]>> =>
+  tryCatchAsync(async () => {
+    const rows = await db
+      .select()
+      .from(inventories)
+      .where(
+        and(
+          eq(inventories.organizationId, orgId),
+          eq(inventories.branchId, branchId),
+          lte(inventories.available, threshold)
+        )
+      );
+
+    return rows;
+  }, parseError);
+
+// ==============================
 // Shipping Method Queries
 // ==============================
 
@@ -350,6 +474,94 @@ export const listShippingRates = async (
       db
         .select({ total: count() })
         .from(shippingRates)
+        .where(and(...conditions)),
+    ]);
+
+    const total = totalResult[0]?.total ?? 0;
+
+    return { items: rows, total: Number(total) };
+  }, parseError);
+
+// ==============================
+// Inventory Transfer Queries
+// ==============================
+
+export const getInventoryTransferById = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof inventoryTransfers.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [transfer] = await db
+      .select()
+      .from(inventoryTransfers)
+      .where(
+        and(
+          eq(inventoryTransfers.organizationId, orgId),
+          eq(inventoryTransfers.id, id),
+          isNull(inventoryTransfers.deletedAt)
+        )
+      )
+      .limit(1);
+
+    if (!transfer) {
+      throw createError(
+        "TRANSFER_NOT_FOUND",
+        "Inventory transfer not found",
+        404
+      );
+    }
+
+    return transfer;
+  }, parseError);
+
+export const listInventoryTransfers = async (
+  orgId: string,
+  filters: SupplyFiltersInput & {
+    sourceBranchId?: string;
+    destinationBranchId?: string;
+  }
+): Promise<
+  AppResult<{
+    items: (typeof inventoryTransfers.$inferSelect)[];
+    total: number;
+  }>
+> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(inventoryTransfers.organizationId, orgId),
+      isNull(inventoryTransfers.deletedAt),
+    ];
+
+    if (filters.status) {
+      conditions.push(
+        eq(
+          inventoryTransfers.status,
+          filters.status as import("@/lib/db/schema/enums").InventoryTransferStatus
+        )
+      );
+    }
+    if (filters.sourceBranchId) {
+      conditions.push(
+        eq(inventoryTransfers.sourceBranchId, filters.sourceBranchId)
+      );
+    }
+    if (filters.destinationBranchId) {
+      conditions.push(
+        eq(inventoryTransfers.destinationBranchId, filters.destinationBranchId)
+      );
+    }
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(inventoryTransfers)
+        .where(and(...conditions))
+        .orderBy(desc(inventoryTransfers.createdAt))
+        .limit(filters.limit)
+        .offset((filters.page - 1) * filters.limit),
+      db
+        .select({ total: count() })
+        .from(inventoryTransfers)
         .where(and(...conditions)),
     ]);
 

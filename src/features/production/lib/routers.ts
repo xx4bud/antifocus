@@ -4,26 +4,39 @@ import { createError } from "@/lib/utils/error";
 import {
   getBomById,
   getProductionOrderById,
+  getProductionTaskById,
+  listBomItems,
   listBoms,
   listProductionOrderItems,
   listProductionOrders,
   listProductionTasks,
+  listProductionTasksByAssignee,
 } from "./queries";
 import {
+  addBomItemService,
   createBomService,
   createProductionOrderService,
+  createProductionTaskService,
   deleteBomService,
   deleteProductionOrderService,
+  deleteProductionTaskService,
+  removeBomItemService,
+  updateBomItemService,
   updateBomService,
   updateProductionOrderStatusService,
+  updateProductionTaskService,
   updateProductionTaskStatusService,
 } from "./services";
 import {
+  createBomItemSchema,
   createBomSchema,
   createProductionOrderSchema,
+  createProductionTaskSchema,
   productionFiltersSchema,
+  updateBomItemSchema,
   updateBomSchema,
   updateProductionOrderStatusSchema,
+  updateProductionTaskSchema,
   updateProductionTaskStatusSchema,
 } from "./validators";
 
@@ -111,6 +124,88 @@ export const productionRouter = createTRPCRouter({
         throw createError("UNAUTHORIZED", "User context missing", 401);
       }
       const result = await deleteBomService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  // ==============================
+  // BOM Items
+  // ==============================
+
+  listBomItems: orgProcedure
+    .input(z.object({ bomId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listBomItems(ctx.orgId, input.bomId);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  addBomItem: orgProcedure
+    .input(z.object({ bomId: z.string(), data: createBomItemSchema }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await addBomItemService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.bomId,
+        input.data
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  updateBomItem: orgProcedure
+    .input(z.object({ id: z.string(), data: updateBomItemSchema }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await updateBomItemService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id,
+        input.data
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  removeBomItem: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await removeBomItemService(
         ctx.orgId,
         ctx.user.id,
         ctx.user.name,
@@ -247,6 +342,99 @@ export const productionRouter = createTRPCRouter({
       const result = await listProductionTasks(
         ctx.orgId,
         input.productionOrderId
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  getProductionTask: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await getProductionTaskById(ctx.orgId, input.id);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  listProductionTasksByAssignee: orgProcedure
+    .input(z.object({ assigneeId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listProductionTasksByAssignee(
+        ctx.orgId,
+        input.assigneeId
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  createProductionTask: orgProcedure
+    .input(createProductionTaskSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await createProductionTaskService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  updateProductionTask: orgProcedure
+    .input(z.object({ id: z.string(), data: updateProductionTaskSchema }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await updateProductionTaskService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id,
+        input.data
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  deleteProductionTask: orgProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      if (!ctx.user) {
+        throw createError("UNAUTHORIZED", "User context missing", 401);
+      }
+      const result = await deleteProductionTaskService(
+        ctx.orgId,
+        ctx.user.id,
+        ctx.user.name,
+        input.id
       );
       if (!result.ok) {
         throw result.error;

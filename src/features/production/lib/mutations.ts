@@ -105,6 +105,67 @@ export const deleteBomItems = async (
     return true;
   }, parseError);
 
+export const insertBomItem = async (
+  orgId: string,
+  data: Omit<typeof bomItems.$inferInsert, "organizationId">
+): Promise<AppResult<typeof bomItems.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [item] = await db
+      .insert(bomItems)
+      .values({ ...data, organizationId: orgId })
+      .returning();
+
+    if (!item) {
+      throw createError("BAD_REQUEST", "Failed to add BOM item", 400);
+    }
+
+    return item;
+  }, parseError);
+
+export const updateBomItem = async (
+  orgId: string,
+  id: string,
+  data: Partial<Omit<typeof bomItems.$inferInsert, "organizationId">>
+): Promise<AppResult<typeof bomItems.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [item] = await db
+      .update(bomItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(bomItems.organizationId, orgId), eq(bomItems.id, id)))
+      .returning();
+
+    if (!item) {
+      throw createError(
+        "BOM_ITEM_NOT_FOUND",
+        "BOM item not found to update",
+        404
+      );
+    }
+
+    return item;
+  }, parseError);
+
+export const deleteBomItem = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof bomItems.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [item] = await db
+      .delete(bomItems)
+      .where(and(eq(bomItems.organizationId, orgId), eq(bomItems.id, id)))
+      .returning();
+
+    if (!item) {
+      throw createError(
+        "BOM_ITEM_NOT_FOUND",
+        "BOM item not found to delete",
+        404
+      );
+    }
+
+    return item;
+  }, parseError);
+
 // ==============================
 // Production Order Mutations
 // ==============================
@@ -236,6 +297,49 @@ export const updateProductionTask = async (
       throw createError(
         "PRODUCTION_TASK_NOT_FOUND",
         "Production task not found to update",
+        404
+      );
+    }
+
+    return task;
+  }, parseError);
+
+export const insertProductionTask = async (
+  orgId: string,
+  data: Omit<typeof productionTasks.$inferInsert, "organizationId">
+): Promise<AppResult<typeof productionTasks.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [task] = await db
+      .insert(productionTasks)
+      .values({ ...data, organizationId: orgId })
+      .returning();
+
+    if (!task) {
+      throw createError("BAD_REQUEST", "Failed to create production task", 400);
+    }
+
+    return task;
+  }, parseError);
+
+export const deleteProductionTask = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof productionTasks.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [task] = await db
+      .delete(productionTasks)
+      .where(
+        and(
+          eq(productionTasks.organizationId, orgId),
+          eq(productionTasks.id, id)
+        )
+      )
+      .returning();
+
+    if (!task) {
+      throw createError(
+        "PRODUCTION_TASK_NOT_FOUND",
+        "Production task not found to delete",
         404
       );
     }

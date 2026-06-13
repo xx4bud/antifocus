@@ -1,9 +1,12 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
+import type { InventoryTransferStatus } from "@/lib/db/schema/enums";
 import {
   couriers,
   inventories,
   inventoryMovements,
+  inventoryTransferItems,
+  inventoryTransfers,
   purchaseOrderItems,
   purchaseOrders,
   shippingMethods,
@@ -334,6 +337,173 @@ export const insertPurchaseOrderItems = async (
       .values(items.map((item) => ({ ...item, organizationId: orgId })))
       .returning();
     return rows;
+  }, parseError);
+
+// ==============================
+// PO Receiving Mutations
+// ==============================
+
+export const updatePurchaseOrderItemReceived = async (
+  orgId: string,
+  id: string,
+  receivedQuantity: number,
+  unitCost?: number | null
+): Promise<AppResult<typeof purchaseOrderItems.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [item] = await db
+      .update(purchaseOrderItems)
+      .set({
+        receivedQuantity,
+        unitCost: unitCost ?? undefined,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(purchaseOrderItems.organizationId, orgId),
+          eq(purchaseOrderItems.id, id)
+        )
+      )
+      .returning();
+
+    if (!item) {
+      throw createError(
+        "PURCHASE_ORDER_ITEM_NOT_FOUND",
+        "Purchase order item not found",
+        404
+      );
+    }
+
+    return item;
+  }, parseError);
+
+export const updatePurchaseOrderToCompleted = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof purchaseOrders.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [order] = await db
+      .update(purchaseOrders)
+      .set({
+        status: "completed",
+        paymentStatus: "paid",
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(purchaseOrders.organizationId, orgId),
+          eq(purchaseOrders.id, id),
+          isNull(purchaseOrders.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!order) {
+      throw createError(
+        "PURCHASE_ORDER_NOT_FOUND",
+        "Purchase order not found to complete",
+        404
+      );
+    }
+
+    return order;
+  }, parseError);
+
+// ==============================
+// Inventory Transfer Mutations
+// ==============================
+
+export const insertInventoryTransfer = async (
+  orgId: string,
+  data: Omit<typeof inventoryTransfers.$inferInsert, "organizationId">
+): Promise<AppResult<typeof inventoryTransfers.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [transfer] = await db
+      .insert(inventoryTransfers)
+      .values({ ...data, organizationId: orgId })
+      .returning();
+
+    if (!transfer) {
+      throw createError(
+        "BAD_REQUEST",
+        "Failed to create inventory transfer",
+        400
+      );
+    }
+
+    return transfer;
+  }, parseError);
+
+export const insertInventoryTransferItems = async (
+  orgId: string,
+  items: Omit<typeof inventoryTransferItems.$inferInsert, "organizationId">[]
+): Promise<AppResult<(typeof inventoryTransferItems.$inferSelect)[]>> =>
+  tryCatchAsync(async () => {
+    const rows = await db
+      .insert(inventoryTransferItems)
+      .values(items.map((item) => ({ ...item, organizationId: orgId })))
+      .returning();
+    return rows;
+  }, parseError);
+
+export const updateInventoryTransferStatus = async (
+  orgId: string,
+  id: string,
+  data: {
+    status: InventoryTransferStatus;
+    shippedAt?: Date | null;
+    receivedAt?: Date | null;
+  }
+): Promise<AppResult<typeof inventoryTransfers.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [transfer] = await db
+      .update(inventoryTransfers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(
+        and(
+          eq(inventoryTransfers.organizationId, orgId),
+          eq(inventoryTransfers.id, id),
+          isNull(inventoryTransfers.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!transfer) {
+      throw createError(
+        "TRANSFER_NOT_FOUND",
+        "Inventory transfer not found to update",
+        404
+      );
+    }
+
+    return transfer;
+  }, parseError);
+
+export const softDeleteInventoryTransfer = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof inventoryTransfers.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [transfer] = await db
+      .update(inventoryTransfers)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(inventoryTransfers.organizationId, orgId),
+          eq(inventoryTransfers.id, id),
+          isNull(inventoryTransfers.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!transfer) {
+      throw createError(
+        "TRANSFER_NOT_FOUND",
+        "Inventory transfer not found to delete",
+        404
+      );
+    }
+
+    return transfer;
   }, parseError);
 
 // ==============================

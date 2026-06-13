@@ -13,6 +13,16 @@ export const createBomItemSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
+export type CreateBomItemInput = z.infer<typeof createBomItemSchema>;
+
+export const updateBomItemSchema = z.object({
+  quantity: z.number().positive().optional(),
+  unitId: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type UpdateBomItemInput = z.infer<typeof updateBomItemSchema>;
+
 export const createBomSchema = z.object({
   variantId: z.string().min(1, "Variant ID is required"),
   name: nameSchema,
@@ -84,6 +94,34 @@ export const updateProductionTaskStatusSchema = z.object({
 
 export type UpdateProductionTaskStatusInput = z.infer<
   typeof updateProductionTaskStatusSchema
+>;
+
+// ==============================
+// Production Tasks
+// ==============================
+
+export const createProductionTaskSchema = z.object({
+  productionOrderId: z.string().min(1, "Production order ID is required"),
+  productionOrderItemId: z.string().optional().nullable(),
+  assigneeId: z.string().optional().nullable(),
+  name: z.string().min(1, "Task name is required"),
+  sequence: z.number().int().positive(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type CreateProductionTaskInput = z.infer<
+  typeof createProductionTaskSchema
+>;
+
+export const updateProductionTaskSchema = z.object({
+  name: z.string().optional(),
+  assigneeId: z.string().optional().nullable(),
+  sequence: z.number().int().positive().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type UpdateProductionTaskInput = z.infer<
+  typeof updateProductionTaskSchema
 >;
 
 // ==============================
