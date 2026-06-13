@@ -46,6 +46,13 @@ export const updateBranchSchema = createBranchSchema.partial();
 
 export type UpdateBranchInput = z.infer<typeof updateBranchSchema>;
 
+export const setBranchStatusSchema = z.object({
+  id: z.string(),
+  status: z.enum(["open", "closed", "maintenance", "archived"]),
+});
+
+export type SetBranchStatusInput = z.infer<typeof setBranchStatusSchema>;
+
 // ==============================
 // Members & Invitations
 // ==============================
@@ -128,3 +135,28 @@ export type CustomerFiltersInput = z.infer<typeof customerFiltersSchema>;
 
 export const supplierFiltersSchema = baseFiltersSchema;
 export type SupplierFiltersInput = z.infer<typeof supplierFiltersSchema>;
+
+// ==============================
+// Additional Operations
+// ==============================
+
+export const listMembersSchema = baseFiltersSchema.extend({
+  role: z.string().optional(),
+});
+export type ListMembersInput = z.infer<typeof listMembersSchema>;
+
+export const removeMemberSchema = z.object({ memberId: z.string() });
+
+export const addBranchMemberSchema = z.object({
+  branchId: z.string(),
+  memberId: z.string(),
+});
+export type AddBranchMemberInput = z.infer<typeof addBranchMemberSchema>;
+
+export const removeBranchMemberSchema = addBranchMemberSchema;
+export type RemoveBranchMemberInput = z.infer<typeof removeBranchMemberSchema>;
+
+export const listBranchMembersSchema = z.object({
+  branchId: z.string(),
+});
+export type ListBranchMembersInput = z.infer<typeof listBranchMembersSchema>;

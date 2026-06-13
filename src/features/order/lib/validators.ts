@@ -1,6 +1,57 @@
 import { z } from "zod/v4";
 
 // ==============================
+// Order Channels
+// ==============================
+
+export const createOrderChannelSchema = z.object({
+  integrationId: z.string().optional().nullable(),
+  name: z.string().min(1, "Channel Name is required"),
+  code: z.string().min(1, "Channel Code is required"),
+  enabled: z.boolean().default(true),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type CreateOrderChannelInput = z.infer<typeof createOrderChannelSchema>;
+
+export const updateOrderChannelSchema = createOrderChannelSchema.partial();
+export type UpdateOrderChannelInput = z.infer<typeof updateOrderChannelSchema>;
+
+// ==============================
+// Cart & Checkout
+// ==============================
+
+export const cartItemSchema = z.object({
+  id: z.string().min(1, "Item ID is required"), // unique id for cart item (could be variantId + options hash)
+  variantId: z.string().min(1, "Variant ID is required"),
+  quantity: z.number().int().min(1),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type CartItemInput = z.infer<typeof cartItemSchema>;
+
+export const cartSchema = z.object({
+  id: z.string(), // userId or sessionId
+  items: z.array(cartItemSchema),
+  updatedAt: z.number(),
+});
+
+export type CartInput = z.infer<typeof cartSchema>;
+
+export const checkoutSchema = z.object({
+  cartId: z.string().min(1, "Cart ID is required"),
+  shippingAddress: z.record(z.string(), z.unknown()).optional().nullable(),
+  billingAddress: z.record(z.string(), z.unknown()).optional().nullable(),
+  paymentMethodId: z.string().optional().nullable(),
+  shippingMethodId: z.string().optional().nullable(),
+  orderChannelId: z.string().optional().nullable(),
+  branchId: z.string().optional().nullable(),
+  promotionId: z.string().optional().nullable(),
+});
+
+export type CheckoutInput = z.infer<typeof checkoutSchema>;
+
+// ==============================
 // Order Sessions (POS)
 // ==============================
 
@@ -25,6 +76,35 @@ export type CloseOrderSessionInput = z.infer<typeof closeOrderSessionSchema>;
 // Orders & Items
 // ==============================
 
+export const createFulfillmentItemSchema = z.object({
+  orderItemId: z.string().min(1, "Order Item ID is required"),
+  quantity: z.number().positive(),
+});
+
+export const createFulfillmentSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  branchId: z.string().optional().nullable(),
+  shippingMethodId: z.string().optional().nullable(),
+  trackingNumber: z.string().optional().nullable(),
+  trackingUrl: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  items: z
+    .array(createFulfillmentItemSchema)
+    .min(1, "At least 1 item is required"),
+});
+
+export type CreateFulfillmentInput = z.infer<typeof createFulfillmentSchema>;
+
+export const createOrderItemDesignSchema = z.object({
+  designAreaId: z.string().min(1, "Design Area ID is required"),
+  fileId: z.string().optional().nullable(),
+  placementX: z.number().optional().nullable(),
+  placementY: z.number().optional().nullable(),
+  scale: z.number().default(1),
+  rotation: z.number().default(0),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
 export const createOrderItemSchema = z.object({
   variantId: z.string().min(1, "Variant ID is required"),
   promotionId: z.string().optional().nullable(),
@@ -35,6 +115,7 @@ export const createOrderItemSchema = z.object({
   taxAmount: z.number().min(0).default(0),
   totalPrice: z.number().min(0),
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  designs: z.array(createOrderItemDesignSchema).optional(),
 });
 
 export const createOrderSchema = z.object({
@@ -123,3 +204,34 @@ export const orderFiltersSchema = z.object({
 });
 
 export type OrderFiltersInput = z.infer<typeof orderFiltersSchema>;
+
+// ==============================
+// Order Returns
+// ==============================
+
+export const createOrderReturnItemSchema = z.object({
+  orderItemId: z.string().min(1, "Order Item ID is required"),
+  quantity: z.number().positive(),
+  receivedQuantity: z.number().min(0).default(0),
+  condition: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export const createOrderReturnSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  branchId: z.string().min(1, "Branch ID is required"),
+  reason: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  items: z
+    .array(createOrderReturnItemSchema)
+    .min(1, "At least 1 item is required"),
+});
+
+export type CreateOrderReturnInput = z.infer<typeof createOrderReturnSchema>;
+
+export const updateOrderReturnSchema = z.object({
+  reason: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type UpdateOrderReturnInput = z.infer<typeof updateOrderReturnSchema>;

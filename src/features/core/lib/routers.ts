@@ -1,6 +1,15 @@
 import { z } from "zod/v4";
-import { createTRPCRouter, orgProcedure } from "@/lib/api/trpc";
+import {
+  createTRPCRouter,
+  orgProcedure,
+  protectedProcedure,
+} from "@/lib/api/trpc";
 import { createError } from "@/lib/utils/error";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+  nextSequence,
+} from "./mutations";
 import {
   getAddressById,
   getFileById,
@@ -11,6 +20,7 @@ import {
   listAddresses,
   listFiles,
   listIntegrations,
+  listNotifications,
   listSequences,
   listSettings,
   listWebhooks,
@@ -42,6 +52,9 @@ import {
   createSequenceSchema,
   createSettingSchema,
   createWebhookSchema,
+  listNotificationsSchema,
+  markReadSchema,
+  nextSequenceSchema,
 } from "./validators";
 
 export const coreRouter = createTRPCRouter({
@@ -506,6 +519,56 @@ export const coreRouter = createTRPCRouter({
         throw createError("UNAUTHORIZED", "Organization context missing", 401);
       }
       const result = await softDeleteWebhookService(input.id, ctx.orgId);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  // ==============================
+  // Additional Endpoints
+  // ==============================
+
+  nextSequence: orgProcedure
+    .input(nextSequenceSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await nextSequence(ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  listNotifications: protectedProcedure
+    .input(listNotificationsSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listNotifications(ctx.user.id, ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  markNotificationRead: protectedProcedure
+    .input(markReadSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await markNotificationRead(ctx.user.id, input.id);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  markAllNotificationsRead: protectedProcedure
+    .input(z.object({ orgId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await markAllNotificationsRead(ctx.user.id, input.orgId);
       if (!result.ok) {
         throw result.error;
       }

@@ -1,6 +1,13 @@
 import { and, count, desc, eq, ilike, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { orderItems, orderSessions, orders } from "@/lib/db/schema/order";
+import {
+  fulfillments,
+  orderChannels,
+  orderItems,
+  orderReturns,
+  orderSessions,
+  orders,
+} from "@/lib/db/schema/order";
 import { createError, parseError } from "@/lib/utils/error";
 import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
 import type { OrderFiltersInput } from "./validators";
@@ -9,22 +16,22 @@ import type { OrderFiltersInput } from "./validators";
 // Order Queries
 // ==============================
 
-export const getOrderById = async (
-  orgId: string,
-  orderId: string
-): Promise<AppResult<typeof orders.$inferSelect>> =>
+export const getOrderById = async (orgId: string, orderId: string) =>
   tryCatchAsync(async () => {
-    const [order] = await db
-      .select()
-      .from(orders)
-      .where(
-        and(
-          eq(orders.organizationId, orgId),
-          eq(orders.id, orderId),
-          isNull(orders.deletedAt)
-        )
-      )
-      .limit(1);
+    const order = await db.query.orders.findFirst({
+      where: and(
+        eq(orders.organizationId, orgId),
+        eq(orders.id, orderId),
+        isNull(orders.deletedAt)
+      ),
+      with: {
+        items: {
+          with: {
+            designs: true,
+          },
+        },
+      },
+    });
 
     if (!order) {
       throw createError("ORDER_NOT_FOUND", "Order not found", 404);
@@ -277,3 +284,166 @@ export const getChartOrdersQuery = async (
       )
     );
 };
+
+// ==============================
+// Order Channel Queries
+// ==============================
+
+export const listOrderChannels = async (
+  orgId: string
+): Promise<AppResult<(typeof orderChannels.$inferSelect)[]>> =>
+  tryCatchAsync(
+    async () =>
+      await db
+        .select()
+        .from(orderChannels)
+        .where(
+          and(
+            eq(orderChannels.organizationId, orgId),
+            isNull(orderChannels.deletedAt)
+          )
+        )
+        .orderBy(desc(orderChannels.createdAt)),
+    parseError
+  );
+
+export const getOrderChannelById = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof orderChannels.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [channel] = await db
+      .select()
+      .from(orderChannels)
+      .where(
+        and(
+          eq(orderChannels.organizationId, orgId),
+          eq(orderChannels.id, id),
+          isNull(orderChannels.deletedAt)
+        )
+      )
+      .limit(1);
+
+    if (!channel) {
+      throw createError("NOT_FOUND", "Order channel not found", 404);
+    }
+    return channel;
+  }, parseError);
+
+// ==============================
+// Order Session Queries
+// ==============================
+
+export const listOrderSessions = async (
+  orgId: string
+): Promise<AppResult<(typeof orderSessions.$inferSelect)[]>> =>
+  tryCatchAsync(
+    async () =>
+      await db
+        .select()
+        .from(orderSessions)
+        .where(eq(orderSessions.organizationId, orgId))
+        .orderBy(desc(orderSessions.createdAt)),
+    parseError
+  );
+
+// ==============================
+// Fulfillment Queries
+// ==============================
+
+export const listFulfillments = async (
+  orgId: string,
+  orderId?: string
+): Promise<AppResult<(typeof fulfillments.$inferSelect)[]>> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(fulfillments.organizationId, orgId),
+      isNull(fulfillments.deletedAt),
+    ];
+
+    if (orderId) {
+      conditions.push(eq(fulfillments.orderId, orderId));
+    }
+
+    return await db
+      .select()
+      .from(fulfillments)
+      .where(and(...conditions))
+      .orderBy(desc(fulfillments.createdAt));
+  }, parseError);
+
+export const getFulfillmentById = async (
+  orgId: string,
+  fulfillmentId: string
+) =>
+  tryCatchAsync(async () => {
+    const fulfillment = await db.query.fulfillments.findFirst({
+      where: and(
+        eq(fulfillments.organizationId, orgId),
+        eq(fulfillments.id, fulfillmentId),
+        isNull(fulfillments.deletedAt)
+      ),
+      with: {
+        items: {
+          with: {
+            orderItem: true,
+          },
+        },
+      },
+    });
+
+    if (!fulfillment) {
+      throw createError("NOT_FOUND", "Fulfillment not found", 404);
+    }
+
+    return fulfillment;
+  }, parseError);
+
+// ==============================
+// Order Return Queries
+// ==============================
+
+export const listOrderReturns = async (
+  orgId: string,
+  orderId?: string
+): Promise<AppResult<(typeof orderReturns.$inferSelect)[]>> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(orderReturns.organizationId, orgId),
+      isNull(orderReturns.deletedAt),
+    ];
+
+    if (orderId) {
+      conditions.push(eq(orderReturns.orderId, orderId));
+    }
+
+    return await db
+      .select()
+      .from(orderReturns)
+      .where(and(...conditions))
+      .orderBy(desc(orderReturns.createdAt));
+  }, parseError);
+
+export const getOrderReturnById = async (orgId: string, returnId: string) =>
+  tryCatchAsync(async () => {
+    const orderReturn = await db.query.orderReturns.findFirst({
+      where: and(
+        eq(orderReturns.organizationId, orgId),
+        eq(orderReturns.id, returnId),
+        isNull(orderReturns.deletedAt)
+      ),
+      with: {
+        items: {
+          with: {
+            orderItem: true,
+          },
+        },
+      },
+    });
+
+    if (!orderReturn) {
+      throw createError("NOT_FOUND", "Order return not found", 404);
+    }
+
+    return orderReturn;
+  }, parseError);

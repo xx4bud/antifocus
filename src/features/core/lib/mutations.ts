@@ -1,10 +1,11 @@
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   addresses,
   files,
   integrations,
+  notifications,
   sequences,
   settings,
   webhooks,
@@ -375,4 +376,85 @@ export const softDeleteWebhook = async (
       throw createError("NOT_FOUND", "Webhook not found", 404);
     }
     return webhook;
+  }, parseError);
+
+// ==============================
+// Additional Operations
+// ==============================
+
+export const nextSequence = async (
+  organizationId: string,
+  input: { name: string; branchId?: string | null }
+): Promise<AppResult<string>> =>
+  tryCatchAsync(async () => {
+    return db.transaction(async (tx) => {
+      const conditions = [
+        eq(sequences.organizationId, organizationId),
+        eq(sequences.name, input.name),
+        eq(sequences.enabled, true),
+        isNull(sequences.deletedAt),
+      ];
+
+      if (input.branchId) {
+        conditions.push(eq(sequences.branchId, input.branchId));
+      } else {
+        conditions.push(isNull(sequences.branchId));
+      }
+
+      const [seq] = await tx
+        .select()
+        .from(sequences)
+        .where(and(...conditions))
+        .for("update"); // pessimistic row lock
+
+      if (!seq) {
+        throw createError(
+          "NOT_FOUND",
+          `Sequence '${input.name}' not found for this organization.`,
+          404
+        );
+      }
+
+      const next = seq.current + seq.increment;
+      await tx
+        .update(sequences)
+        .set({ current: next, updatedAt: new Date() })
+        .where(eq(sequences.id, seq.id));
+
+      const padded = String(next).padStart(seq.padding ?? 4, "0");
+      return `${seq.prefix ?? ""}${padded}${seq.suffix ?? ""}`;
+    });
+  }, parseError);
+
+export const markNotificationRead = async (
+  userId: string,
+  id: string
+): Promise<AppResult<typeof notifications.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [row] = await db
+      .update(notifications)
+      .set({ read: true, readAt: new Date() })
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)))
+      .returning();
+    if (!row) {
+      throw createError("NOT_FOUND", "Notification not found", 404);
+    }
+    return row;
+  }, parseError);
+
+export const markAllNotificationsRead = async (
+  userId: string,
+  organizationId: string
+): Promise<AppResult<void>> =>
+  tryCatchAsync(async () => {
+    await db
+      .update(notifications)
+      .set({ read: true, readAt: new Date() })
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.organizationId, organizationId),
+          eq(notifications.read, false)
+        )
+      );
   }, parseError);

@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, isNull } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, isNull, or } from "drizzle-orm";
 import {
   getActiveOrdersCountQuery,
   getChartOrdersQuery,
@@ -9,9 +9,14 @@ import {
   getProfitMarginQuery,
 } from "@/features/order/lib/queries";
 import { db } from "@/lib/db";
-import type { BranchStatus, EntityStatus } from "@/lib/db/schema/enums";
+import type {
+  BranchStatus,
+  EntityStatus,
+  OrgRole,
+} from "@/lib/db/schema/enums";
 import {
   branches,
+  branchMembers,
   customers,
   members,
   organizations,
@@ -22,6 +27,8 @@ import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
 import type {
   BranchFiltersInput,
   CustomerFiltersInput,
+  ListBranchMembersInput,
+  ListMembersInput,
   OrgFiltersInput,
   SupplierFiltersInput,
 } from "./validators";
@@ -199,7 +206,14 @@ export const listCustomers = async (
     ];
 
     if (filters.search) {
-      conditions.push(ilike(customers.name, `%${filters.search}%`));
+      const searchCondition = or(
+        ilike(customers.name, `%${filters.search}%`),
+        ilike(customers.phoneNumber, `%${filters.search}%`),
+        ilike(customers.email, `%${filters.search}%`)
+      );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
     }
     if (filters.status) {
       conditions.push(eq(customers.status, filters.status as EntityStatus));
@@ -243,7 +257,13 @@ export const listSuppliers = async (
     ];
 
     if (filters.search) {
-      conditions.push(ilike(suppliers.name, `%${filters.search}%`));
+      const searchCondition = or(
+        ilike(suppliers.name, `%${filters.search}%`),
+        ilike(suppliers.phoneNumber, `%${filters.search}%`)
+      );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
     }
     if (filters.status) {
       conditions.push(eq(suppliers.status, filters.status as EntityStatus));
@@ -265,6 +285,61 @@ export const listSuppliers = async (
 
     const totalCount = totalResult[0]?.total ?? 0;
     return { items: rows, total: Number(totalCount) };
+  }, parseError);
+
+// ==============================
+// Additional Member Queries
+// ==============================
+
+export const listMembers = async (
+  orgId: string,
+  filters: ListMembersInput
+): Promise<
+  AppResult<{ items: (typeof members.$inferSelect)[]; total: number }>
+> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(members.organizationId, orgId),
+      isNull(members.deletedAt),
+    ];
+
+    if (filters.role) {
+      conditions.push(eq(members.role, filters.role as OrgRole));
+    }
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(members)
+        .where(and(...conditions))
+        .orderBy(desc(members.createdAt))
+        .limit(filters.limit)
+        .offset((filters.page - 1) * filters.limit),
+      db
+        .select({ total: count() })
+        .from(members)
+        .where(and(...conditions)),
+    ]);
+
+    const totalCount = totalResult[0]?.total ?? 0;
+    return { items: rows, total: Number(totalCount) };
+  }, parseError);
+
+export const listBranchMembers = async (
+  orgId: string,
+  filters: ListBranchMembersInput
+): Promise<AppResult<{ items: (typeof branchMembers.$inferSelect)[] }>> =>
+  tryCatchAsync(async () => {
+    const rows = await db
+      .select()
+      .from(branchMembers)
+      .where(
+        and(
+          eq(branchMembers.branchId, filters.branchId),
+          eq(branchMembers.organizationId, orgId)
+        )
+      );
+    return { items: rows };
   }, parseError);
 
 // ==============================

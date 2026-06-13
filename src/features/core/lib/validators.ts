@@ -152,3 +152,19 @@ export const coreFiltersSchema = z.object({
 });
 
 export type CoreFiltersInput = z.infer<typeof coreFiltersSchema>;
+
+// ==============================
+// Additional Operations
+// ==============================
+
+export const nextSequenceSchema = z.object({
+  name: z.string().min(1),
+  branchId: z.string().optional().nullable(),
+});
+
+export const listNotificationsSchema = coreFiltersSchema.extend({
+  unreadOnly: z.boolean().default(false),
+  category: z.string().optional(),
+});
+
+export const markReadSchema = z.object({ id: z.string() });

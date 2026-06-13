@@ -7,8 +7,16 @@ import {
 } from "@/lib/api/trpc";
 import { createError } from "@/lib/utils/error";
 import {
+  addBranchMember,
+  removeBranchMember,
+  removeMember,
+  setBranchStatus,
+} from "./mutations";
+import {
   listBranches,
+  listBranchMembers,
   listCustomers,
+  listMembers,
   listOrganizations,
   listSuppliers,
 } from "./queries";
@@ -29,6 +37,7 @@ import {
   updateSupplierService,
 } from "./services";
 import {
+  addBranchMemberSchema,
   branchFiltersSchema,
   createBranchSchema,
   createCustomerSchema,
@@ -36,7 +45,12 @@ import {
   createSupplierSchema,
   customerFiltersSchema,
   inviteMemberSchema,
+  listBranchMembersSchema,
+  listMembersSchema,
   orgFiltersSchema,
+  removeBranchMemberSchema,
+  removeMemberSchema,
+  setBranchStatusSchema,
   supplierFiltersSchema,
   updateMemberRoleSchema,
 } from "./validators";
@@ -175,6 +189,19 @@ export const orgRouter = createTRPCRouter({
       return result.value;
     }),
 
+  setBranchStatus: orgProcedure
+    .input(setBranchStatusSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await setBranchStatus(input.id, ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
   deleteBranch: orgProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -215,6 +242,79 @@ export const orgRouter = createTRPCRouter({
         input.memberId,
         ctx.orgId,
         input
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  listMembers: orgProcedure
+    .input(listMembersSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listMembers(ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  removeMember: orgAdminProcedure
+    .input(removeMemberSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await removeMember(input.memberId, ctx.orgId);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  listBranchMembers: orgProcedure
+    .input(listBranchMembersSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await listBranchMembers(ctx.orgId, input);
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  addBranchMember: orgAdminProcedure
+    .input(addBranchMemberSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await addBranchMember(
+        ctx.orgId,
+        input.branchId,
+        input.memberId
+      );
+      if (!result.ok) {
+        throw result.error;
+      }
+      return result.value;
+    }),
+
+  removeBranchMember: orgAdminProcedure
+    .input(removeBranchMemberSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.orgId) {
+        throw createError("UNAUTHORIZED", "Organization context missing", 401);
+      }
+      const result = await removeBranchMember(
+        ctx.orgId,
+        input.branchId,
+        input.memberId
       );
       if (!result.ok) {
         throw result.error;

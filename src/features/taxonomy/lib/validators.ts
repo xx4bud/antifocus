@@ -33,6 +33,17 @@ export const createAttributeSchema = z.object({
   position: z.number().int().default(0),
   enabled: z.boolean().default(true),
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  options: z
+    .array(
+      z.object({
+        label: z.string().min(1),
+        value: z.record(z.string(), z.unknown()).optional().nullable(),
+        price: z.number().optional().nullable(),
+        cost: z.number().optional().nullable(),
+        position: z.number().int().default(0),
+      })
+    )
+    .optional(),
 });
 
 export type CreateAttributeInput = z.infer<typeof createAttributeSchema>;

@@ -40,7 +40,27 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   });
 });
 
-export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+const auditMiddleware = t.middleware(async ({ type, path, ctx, next }) => {
+  const result = await next();
+
+  if (type === "mutation" && result.ok && ctx.audit) {
+    // Attempt to log audit asynchronously without blocking response
+    ctx
+      .audit(path, path.split(".")[0] || "unknown", "unknown", {
+        path,
+        type,
+      })
+      .catch((err) => {
+        console.error("Audit log failed:", err);
+      });
+  }
+
+  return result;
+});
+
+export const protectedProcedure = t.procedure
+  .use(enforceUserIsAuthed)
+  .use(auditMiddleware);
 
 const enforceSuperadmin = t.middleware(({ ctx, next }) => {
   if (!(ctx.session && ctx.user)) {

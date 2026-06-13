@@ -1,16 +1,18 @@
-import { and, count, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNull } from "drizzle-orm";
+import type { z } from "zod/v4";
 import { db } from "@/lib/db";
 import {
   addresses,
   files,
   integrations,
+  notifications,
   sequences,
   settings,
   webhooks,
 } from "@/lib/db/schema/core";
 import { createError, parseError } from "@/lib/utils/error";
 import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
-import type { CoreFiltersInput } from "./validators";
+import type { CoreFiltersInput, listNotificationsSchema } from "./validators";
 
 // ==============================
 // Files
@@ -348,6 +350,48 @@ export const listWebhooks = async (
       db
         .select({ total: count() })
         .from(webhooks)
+        .where(and(...conditions)),
+    ]);
+    const totalCount = totalResult[0]?.total ?? 0;
+    return { items: rows, total: Number(totalCount) };
+  }, parseError);
+
+// ==============================
+// Notifications
+// ==============================
+
+export const listNotifications = async (
+  userId: string,
+  organizationId: string,
+  filters: z.infer<typeof listNotificationsSchema>
+): Promise<
+  AppResult<{ items: (typeof notifications.$inferSelect)[]; total: number }>
+> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(notifications.organizationId, organizationId),
+      eq(notifications.userId, userId),
+      isNull(notifications.deletedAt),
+    ];
+
+    if (filters.unreadOnly) {
+      conditions.push(eq(notifications.read, false));
+    }
+    if (filters.category) {
+      conditions.push(eq(notifications.category, filters.category));
+    }
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(notifications)
+        .where(and(...conditions))
+        .orderBy(asc(notifications.read), desc(notifications.createdAt))
+        .limit(filters.limit)
+        .offset((filters.page - 1) * filters.limit),
+      db
+        .select({ total: count() })
+        .from(notifications)
         .where(and(...conditions)),
     ]);
     const totalCount = totalResult[0]?.total ?? 0;

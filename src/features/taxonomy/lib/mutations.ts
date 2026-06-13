@@ -92,20 +92,37 @@ export const createAttribute = async (
   organizationId: string,
   data: CreateAttributeInput
 ): Promise<AppResult<typeof attributes.$inferSelect>> =>
-  tryCatchAsync(async () => {
-    const [attr] = await db
-      .insert(attributes)
-      .values({
-        id: createId(),
-        organizationId,
-        ...data,
-      })
-      .returning();
-    if (!attr) {
-      throw createError("DATABASE", "Failed to create attribute", 500);
-    }
-    return attr;
-  }, parseError);
+  tryCatchAsync(
+    async () =>
+      db.transaction(async (tx) => {
+        const { options, ...attrData } = data;
+        const [attr] = await tx
+          .insert(attributes)
+          .values({
+            id: createId(),
+            organizationId,
+            ...attrData,
+          })
+          .returning();
+        if (!attr) {
+          throw createError("DATABASE", "Failed to create attribute", 500);
+        }
+
+        if (options && options.length > 0) {
+          await tx.insert(attributeOptions).values(
+            options.map((opt) => ({
+              id: createId(),
+              organizationId,
+              attributeId: attr.id,
+              ...opt,
+            }))
+          );
+        }
+
+        return attr;
+      }),
+    parseError
+  );
 
 export const updateAttribute = async (
   id: string,
