@@ -37,6 +37,29 @@ export type UpdateShippingMethodInput = z.infer<
 >;
 
 // ==============================
+// Shipping Rates
+// ==============================
+
+export const createShippingRateSchema = z.object({
+  shippingMethodId: z.string().min(1, "Shipping method ID is required"),
+  name: z.string().optional().nullable(),
+  originCode: z.string().optional().nullable(),
+  destinationCode: z.string().optional().nullable(),
+  minWeight: z.number().min(0).default(0),
+  maxWeight: z.number().min(0).default(0),
+  cost: z.number().optional().nullable(),
+  price: z.number().optional().nullable(),
+  estimatedDays: z.string().optional().nullable(),
+  enabled: z.boolean().default(true),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type CreateShippingRateInput = z.infer<typeof createShippingRateSchema>;
+
+export const updateShippingRateSchema = createShippingRateSchema.partial();
+export type UpdateShippingRateInput = z.infer<typeof updateShippingRateSchema>;
+
+// ==============================
 // Purchase Orders & Items
 // ==============================
 

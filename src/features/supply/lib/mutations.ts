@@ -6,6 +6,8 @@ import {
   inventoryMovements,
   purchaseOrderItems,
   purchaseOrders,
+  shippingMethods,
+  shippingRates,
 } from "@/lib/db/schema/supply";
 import { createError, parseError } from "@/lib/utils/error";
 import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
@@ -86,6 +88,162 @@ export const softDeleteCourier = async (
     }
 
     return courier;
+  }, parseError);
+
+// ==============================
+// Shipping Methods Mutations
+// ==============================
+
+export const insertShippingMethod = async (
+  orgId: string,
+  data: Omit<typeof shippingMethods.$inferInsert, "organizationId">
+): Promise<AppResult<typeof shippingMethods.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [method] = await db
+      .insert(shippingMethods)
+      .values({ ...data, organizationId: orgId })
+      .returning();
+
+    if (!method) {
+      throw createError("BAD_REQUEST", "Failed to create shipping method", 400);
+    }
+
+    return method;
+  }, parseError);
+
+export const updateShippingMethod = async (
+  orgId: string,
+  id: string,
+  data: Partial<Omit<typeof shippingMethods.$inferInsert, "organizationId">>
+): Promise<AppResult<typeof shippingMethods.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [method] = await db
+      .update(shippingMethods)
+      .set({ ...data, updatedAt: new Date() })
+      .where(
+        and(
+          eq(shippingMethods.organizationId, orgId),
+          eq(shippingMethods.id, id),
+          isNull(shippingMethods.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!method) {
+      throw createError(
+        "SHIPPING_METHOD_NOT_FOUND",
+        "Shipping method not found to update",
+        404
+      );
+    }
+
+    return method;
+  }, parseError);
+
+export const softDeleteShippingMethod = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof shippingMethods.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [method] = await db
+      .update(shippingMethods)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(shippingMethods.organizationId, orgId),
+          eq(shippingMethods.id, id),
+          isNull(shippingMethods.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!method) {
+      throw createError(
+        "SHIPPING_METHOD_NOT_FOUND",
+        "Shipping method not found to delete",
+        404
+      );
+    }
+
+    return method;
+  }, parseError);
+
+// ==============================
+// Shipping Rates Mutations
+// ==============================
+
+export const insertShippingRate = async (
+  orgId: string,
+  data: Omit<typeof shippingRates.$inferInsert, "organizationId">
+): Promise<AppResult<typeof shippingRates.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [rate] = await db
+      .insert(shippingRates)
+      .values({ ...data, organizationId: orgId })
+      .returning();
+
+    if (!rate) {
+      throw createError("BAD_REQUEST", "Failed to create shipping rate", 400);
+    }
+
+    return rate;
+  }, parseError);
+
+export const updateShippingRate = async (
+  orgId: string,
+  id: string,
+  data: Partial<Omit<typeof shippingRates.$inferInsert, "organizationId">>
+): Promise<AppResult<typeof shippingRates.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [rate] = await db
+      .update(shippingRates)
+      .set({ ...data, updatedAt: new Date() })
+      .where(
+        and(
+          eq(shippingRates.organizationId, orgId),
+          eq(shippingRates.id, id),
+          isNull(shippingRates.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!rate) {
+      throw createError(
+        "SHIPPING_RATE_NOT_FOUND",
+        "Shipping rate not found to update",
+        404
+      );
+    }
+
+    return rate;
+  }, parseError);
+
+export const softDeleteShippingRate = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof shippingRates.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [rate] = await db
+      .update(shippingRates)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(shippingRates.organizationId, orgId),
+          eq(shippingRates.id, id),
+          isNull(shippingRates.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!rate) {
+      throw createError(
+        "SHIPPING_RATE_NOT_FOUND",
+        "Shipping rate not found to delete",
+        404
+      );
+    }
+
+    return rate;
   }, parseError);
 
 // ==============================

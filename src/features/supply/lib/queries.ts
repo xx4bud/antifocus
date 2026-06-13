@@ -6,6 +6,8 @@ import {
   inventories,
   purchaseOrderItems,
   purchaseOrders,
+  shippingMethods,
+  shippingRates,
 } from "@/lib/db/schema/supply";
 import { createError, parseError } from "@/lib/utils/error";
 import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
@@ -214,6 +216,140 @@ export const listInventories = async (
       db
         .select({ total: count() })
         .from(inventories)
+        .where(and(...conditions)),
+    ]);
+
+    const total = totalResult[0]?.total ?? 0;
+
+    return { items: rows, total: Number(total) };
+  }, parseError);
+
+// ==============================
+// Shipping Method Queries
+// ==============================
+
+export const getShippingMethodById = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof shippingMethods.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [method] = await db
+      .select()
+      .from(shippingMethods)
+      .where(
+        and(
+          eq(shippingMethods.organizationId, orgId),
+          eq(shippingMethods.id, id),
+          isNull(shippingMethods.deletedAt)
+        )
+      )
+      .limit(1);
+
+    if (!method) {
+      throw createError(
+        "SHIPPING_METHOD_NOT_FOUND",
+        "Shipping method not found",
+        404
+      );
+    }
+
+    return method;
+  }, parseError);
+
+export const listShippingMethods = async (
+  orgId: string,
+  courierId: string,
+  filters: SupplyFiltersInput
+): Promise<
+  AppResult<{ items: (typeof shippingMethods.$inferSelect)[]; total: number }>
+> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(shippingMethods.organizationId, orgId),
+      eq(shippingMethods.courierId, courierId),
+      isNull(shippingMethods.deletedAt),
+    ];
+
+    if (filters.search) {
+      conditions.push(ilike(shippingMethods.name, `%${filters.search}%`));
+    }
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(shippingMethods)
+        .where(and(...conditions))
+        .orderBy(desc(shippingMethods.createdAt))
+        .limit(filters.limit)
+        .offset((filters.page - 1) * filters.limit),
+      db
+        .select({ total: count() })
+        .from(shippingMethods)
+        .where(and(...conditions)),
+    ]);
+
+    const total = totalResult[0]?.total ?? 0;
+
+    return { items: rows, total: Number(total) };
+  }, parseError);
+
+// ==============================
+// Shipping Rate Queries
+// ==============================
+
+export const getShippingRateById = async (
+  orgId: string,
+  id: string
+): Promise<AppResult<typeof shippingRates.$inferSelect>> =>
+  tryCatchAsync(async () => {
+    const [rate] = await db
+      .select()
+      .from(shippingRates)
+      .where(
+        and(
+          eq(shippingRates.organizationId, orgId),
+          eq(shippingRates.id, id),
+          isNull(shippingRates.deletedAt)
+        )
+      )
+      .limit(1);
+
+    if (!rate) {
+      throw createError(
+        "SHIPPING_RATE_NOT_FOUND",
+        "Shipping rate not found",
+        404
+      );
+    }
+
+    return rate;
+  }, parseError);
+
+export const listShippingRates = async (
+  orgId: string,
+  methodId: string,
+  filters: SupplyFiltersInput
+): Promise<
+  AppResult<{ items: (typeof shippingRates.$inferSelect)[]; total: number }>
+> =>
+  tryCatchAsync(async () => {
+    const conditions = [
+      eq(shippingRates.organizationId, orgId),
+      eq(shippingRates.shippingMethodId, methodId),
+      isNull(shippingRates.deletedAt),
+    ];
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(shippingRates)
+        .where(and(...conditions))
+        .orderBy(desc(shippingRates.createdAt))
+        .limit(filters.limit)
+        .offset((filters.page - 1) * filters.limit),
+      db
+        .select({ total: count() })
+        .from(shippingRates)
         .where(and(...conditions)),
     ]);
 

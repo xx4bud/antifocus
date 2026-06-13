@@ -7,6 +7,8 @@ import type {
   Courier,
   InventoryMovement,
   PurchaseOrder,
+  ShippingMethod,
+  ShippingRate,
 } from "@/lib/db/schema/supply";
 import { parseError } from "@/lib/utils/error";
 import { type AppResult, tryCatchAsync } from "@/lib/utils/result";
@@ -16,23 +18,35 @@ import {
   insertInventoryMovement,
   insertPurchaseOrder,
   insertPurchaseOrderItems,
+  insertShippingMethod,
+  insertShippingRate,
   softDeleteCourier,
   softDeletePurchaseOrder,
+  softDeleteShippingMethod,
+  softDeleteShippingRate,
   updateCourier,
   updateInventory,
   updatePurchaseOrder,
+  updateShippingMethod,
+  updateShippingRate,
 } from "./mutations";
 import {
   getCourierById,
   getInventoryByBranchAndVariant,
   getPurchaseOrderById,
+  getShippingMethodById,
+  getShippingRateById,
 } from "./queries";
 import type {
   CreateCourierInput,
   CreatePurchaseOrderInput,
+  CreateShippingMethodInput,
+  CreateShippingRateInput,
   CreateStockAdjustmentInput,
   UpdateCourierInput,
   UpdatePurchaseOrderStatusInput,
+  UpdateShippingMethodInput,
+  UpdateShippingRateInput,
 } from "./validators";
 
 // ==============================
@@ -123,6 +137,192 @@ export const deleteCourierService = async (
     });
 
     return courierRes.value;
+  }, parseError);
+
+// ==============================
+// Shipping Method Services
+// ==============================
+
+export const createShippingMethodService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  data: CreateShippingMethodInput
+): Promise<AppResult<ShippingMethod>> =>
+  tryCatchAsync(async () => {
+    const methodRes = await insertShippingMethod(orgId, {
+      ...data,
+      id: createId(),
+    });
+    if (!methodRes.ok) {
+      throw methodRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "supply.shipping_method_created",
+      targetName: "shipping_methods",
+      targetId: methodRes.value.id,
+    });
+
+    return methodRes.value;
+  }, parseError);
+
+export const updateShippingMethodService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  id: string,
+  data: UpdateShippingMethodInput
+): Promise<AppResult<ShippingMethod>> =>
+  tryCatchAsync(async () => {
+    const check = await getShippingMethodById(orgId, id);
+    if (!check.ok) {
+      throw check.error;
+    }
+
+    const methodRes = await updateShippingMethod(orgId, id, data);
+    if (!methodRes.ok) {
+      throw methodRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "supply.shipping_method_updated",
+      targetName: "shipping_methods",
+      targetId: id,
+    });
+
+    return methodRes.value;
+  }, parseError);
+
+export const deleteShippingMethodService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  id: string
+): Promise<AppResult<ShippingMethod>> =>
+  tryCatchAsync(async () => {
+    const check = await getShippingMethodById(orgId, id);
+    if (!check.ok) {
+      throw check.error;
+    }
+
+    const methodRes = await softDeleteShippingMethod(orgId, id);
+    if (!methodRes.ok) {
+      throw methodRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "supply.shipping_method_deleted",
+      targetName: "shipping_methods",
+      targetId: id,
+    });
+
+    return methodRes.value;
+  }, parseError);
+
+// ==============================
+// Shipping Rate Services
+// ==============================
+
+export const createShippingRateService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  data: CreateShippingRateInput
+): Promise<AppResult<ShippingRate>> =>
+  tryCatchAsync(async () => {
+    const rateRes = await insertShippingRate(orgId, {
+      ...data,
+      id: createId(),
+    });
+    if (!rateRes.ok) {
+      throw rateRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "supply.shipping_rate_created",
+      targetName: "shipping_rates",
+      targetId: rateRes.value.id,
+    });
+
+    return rateRes.value;
+  }, parseError);
+
+export const updateShippingRateService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  id: string,
+  data: UpdateShippingRateInput
+): Promise<AppResult<ShippingRate>> =>
+  tryCatchAsync(async () => {
+    const check = await getShippingRateById(orgId, id);
+    if (!check.ok) {
+      throw check.error;
+    }
+
+    const rateRes = await updateShippingRate(orgId, id, data);
+    if (!rateRes.ok) {
+      throw rateRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "supply.shipping_rate_updated",
+      targetName: "shipping_rates",
+      targetId: id,
+    });
+
+    return rateRes.value;
+  }, parseError);
+
+export const deleteShippingRateService = async (
+  orgId: string,
+  actorId: string,
+  actorName: string,
+  id: string
+): Promise<AppResult<ShippingRate>> =>
+  tryCatchAsync(async () => {
+    const check = await getShippingRateById(orgId, id);
+    if (!check.ok) {
+      throw check.error;
+    }
+
+    const rateRes = await softDeleteShippingRate(orgId, id);
+    if (!rateRes.ok) {
+      throw rateRes.error;
+    }
+
+    await db.insert(auditLogs).values({
+      id: createId(),
+      organizationId: orgId,
+      actorName,
+      actorId,
+      action: "supply.shipping_rate_deleted",
+      targetName: "shipping_rates",
+      targetId: id,
+    });
+
+    return rateRes.value;
   }, parseError);
 
 // ==============================
